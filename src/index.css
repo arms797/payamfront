@@ -19,94 +19,25 @@
 }
 
 /* ============================================================
-   متغیرهای اصلی
+   تنظیمات پایه
    ============================================================ */
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
   --bg: #f5f5f5;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px,
-    rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
   --sans: 'Vazir', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: 'Vazir', system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
-
-/* ============================================================
-   حالت تاریک (Dark Mode)
-   ============================================================ */
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px,
-      rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
-/* ============================================================
-   تنظیمات پایه بدنه
-   ============================================================ */
 
 body {
   margin: 0;
   font-family: var(--sans);
   background: var(--bg);
-  color: var(--text);
   direction: rtl;
   text-align: right;
   min-height: 100vh;
 }
 
 /* ============================================================
-   کانتینر اصلی برنامه (برای صفحات داخلی مثل داشبورد)
-   ============================================================ */
-
-.app-container {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  border-inline: 1px solid var(--border);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-/* ============================================================
-   صفحه اصلی (LandingPage) - با بک‌گراند ساده و لاگینی
+   صفحه لاگین
    ============================================================ */
 
 .landing-page {
@@ -114,18 +45,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  overflow: hidden;
-  background: #f0f2f5; /* ← بک‌گراند ساده و تمیز */
+  background: #f0f2f5;
 }
 
-/* ============================================================
-   کارت لاگین
-   ============================================================ */
-
 .login-card {
-  position: relative;
-  z-index: 1;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 24px;
@@ -148,73 +71,7 @@ body {
 }
 
 /* ============================================================
-   تگ‌های عنوان
-   ============================================================ */
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-}
-
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-}
-
-/* ============================================================
-   واکنش‌گرایی
-   ============================================================ */
-
-@media (max-width: 1024px) {
-  :root {
-    font-size: 16px;
-  }
-
-  h1 {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-
-  h2 {
-    font-size: 20px;
-  }
-}
-
-/* ============================================================
-   کد و دکمه
-   ============================================================ */
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
-
-p {
-  margin: 0;
-}
-
-/* ============================================================
-   انیمیشن چرخش برای آیکون Refresh CAPTCHA
+   انیمیشن چرخش برای Refresh CAPTCHA
    ============================================================ */
 
 @keyframes spin {
@@ -228,4 +85,281 @@ p {
 
 .spin {
   animation: spin 1s linear infinite;
+}
+
+/* ============================================================
+   ============================================================
+   DASHBOARD STYLES
+   ============================================================
+   ============================================================ */
+
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+/* ============================================================
+   هدر
+   ============================================================ */
+
+/* ============================================================
+   هدر - اضافه شدن استایل‌های جدید
+   ============================================================ */
+
+.dashboard-header-top {
+  background: white;
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+}
+
+.dashboard-header-top h5 {
+  color: #0d6efd;
+  font-weight: 600;
+}
+
+.hamburger-btn {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  font-size: 24px;
+  color: #2c3e50;
+}
+
+.hamburger-btn:hover {
+  background: #f1f4f9;
+  border-radius: 4px;
+}
+
+/* استایل dropdown نقش‌ها */
+.dropdown-menu .dropdown-item.active {
+  background-color: #e9f0ff;
+  color: #0d6efd;
+}
+
+.dropdown-menu .dropdown-item:active {
+  background-color: #0d6efd;
+  color: white;
+}
+
+/* ============================================================
+   سایدبار (همبرگری - در همه اندازه‌ها)
+   ============================================================ */
+
+.dashboard-body-wrapper {
+  display: flex;
+  flex: 1;
+  position: relative;
+}
+
+.dashboard-sidebar {
+  position: fixed;
+  top: 60px;
+  right: -280px;
+  width: 280px;
+  height: calc(100vh - 60px);
+  background: white;
+  border-left: 1px solid #e9ecef;
+  padding: 16px 0;
+  transition: right 0.3s ease;
+  z-index: 1050;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+}
+
+.dashboard-sidebar.open {
+  right: 0;
+}
+
+.dashboard-sidebar .sidebar-header {
+  padding: 0 20px 16px;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 8px;
+}
+
+.dashboard-sidebar .sidebar-header h5 {
+  color: #0d6efd;
+  font-weight: 600;
+}
+
+.dashboard-sidebar .sidebar-header p {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.dashboard-sidebar .nav-link {
+  color: #2c3e50;
+  padding: 10px 20px;
+  border-radius: 0;
+  transition: all 0.2s;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-sidebar .nav-link i {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+.dashboard-sidebar .nav-link:hover {
+  background: #f1f4f9;
+  color: #0d6efd;
+}
+
+.dashboard-sidebar .nav-link.active {
+  background: #e9f0ff;
+  color: #0d6efd;
+  border-right: 3px solid #0d6efd;
+}
+
+.dashboard-sidebar .dropdown-toggle::after {
+  display: none;
+}
+
+.dashboard-sidebar .dropdown-arrow {
+  font-size: 14px;
+  color: #6c757d;
+  transition: transform 0.2s;
+}
+
+.dashboard-sidebar .dropdown-toggle[aria-expanded="true"] .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dashboard-sidebar .collapse .nav-link {
+  padding-right: 44px;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.dashboard-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.dashboard-sidebar::-webkit-scrollbar-thumb {
+  background: #c1c7cd;
+  border-radius: 10px;
+}
+
+/* ============================================================
+   ❌ سایه پشت سایدبار حذف شد
+   ============================================================ */
+
+/* ============================================================
+   محتوای اصلی
+   ============================================================ */
+
+.dashboard-content {
+  flex: 1;
+  padding: 20px;
+  background: #f8f9fa;
+  transition: margin-right 0.3s ease;
+  width: 100%;
+}
+
+/* وقتی سایدبار باز است، محتوا کنار برود */
+.dashboard-content.shifted {
+  margin-right: 280px;
+}
+
+/* ============================================================
+   ویجت خوش‌آمدگویی
+   ============================================================ */
+
+.dashboard-welcome {
+  background: white;
+  padding: 20px 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e9ecef;
+}
+
+.dashboard-welcome h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #1a2a6c;
+}
+
+/* ============================================================
+   کارت‌های آماری
+   ============================================================ */
+
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+  transform: translateY(-2px);
+}
+
+.dashboard-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-card-body h6 {
+  margin: 0;
+  color: #6c757d;
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.dashboard-card-body h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a2a6c;
+}
+
+.dashboard-main-content .card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* ============================================================
+   واکنش‌گرایی
+   ============================================================ */
+
+@media (max-width: 575.98px) {
+  .dashboard-header-top h5 {
+    font-size: 16px;
+  }
+
+  .dashboard-welcome h2 {
+    font-size: 18px;
+  }
+
+  .dashboard-card {
+    padding: 12px 16px;
+  }
+
+  .dashboard-card-body h3 {
+    font-size: 20px;
+  }
+
+  .dashboard-content.shifted {
+    margin-right: 280px;
+  }
 }
