@@ -68,8 +68,8 @@ export default function Sidebar({ closeSidebar }) {
     return (
         <>
             <div className="sidebar-header">
-                <h5 className="mb-0">سامانه پیام</h5>
-                <p className="text-muted small mb-0">نسخه ۱.۰</p>
+                <h5 className="mb-0">منوی سیستم </h5>
+                {/*<p className="text-muted small mb-0">نسخه ۱.۰</p>*/}
             </div>
             <ul className="nav flex-column">{renderMenus(menus)}</ul>
         </>

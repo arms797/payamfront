@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/axiosConfig';
-import { setUserData } from '../../utils/storage';
+import { useAuth } from '../../context/AuthContext';
 import CaptchaInput from './CaptchaInput';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();  // ← اضافه شد
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,12 +16,8 @@ export default function Login() {
   const captchaInputRef = useRef(null);
 
   async function handleSubmit(e) {
-    // ============================================================
-    // 🔥 جلوگیری از رفرش صفحه (بسیار مهم)
-    // ============================================================
     e.preventDefault();
-    e.stopPropagation();  // جلوگیری از انتشار رویداد
-
+    e.stopPropagation();
     setLoading(true);
     setError(null);
 
@@ -38,22 +35,23 @@ export default function Login() {
         captchaAnswer
       });
 
-      console.log("data:", response.data);
-      if (response.data.data) {
-        setUserData(response.data.data);
+      if (response.data?.data) {
+        // ============================================================
+        // 🔥 ذخیره اطلاعات در AuthContext
+        // ============================================================
+        login(response.data.data);
+
+        // ============================================================
+        // 🔥 هدایت به داشبورد
+        // ============================================================
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      // دریافت پیغام خطا از بک‌اند
       const errorMessage = err.response?.data?.message || 'خطا در ارتباط با سرور';
       console.log('errorMessage:', errorMessage);
 
-      // ============================================================
-      // تشخیص نوع خطا و نمایش پیغام مناسب
-      // ============================================================
       if (errorMessage.includes('کد امنیتی') || errorMessage.includes('captcha')) {
         setError('کد امنیتی اشتباه است');
-        // فقط کپچا را عوض کن (نام کاربری و رمز عبور پاک نمی‌شوند)
         setCaptchaKey('');
         setCaptchaAnswer('');
         if (captchaInputRef.current) {
@@ -61,9 +59,7 @@ export default function Login() {
         }
       } else if (errorMessage.includes('نام کاربری') || errorMessage.includes('رمز عبور') || errorMessage.includes('login_invalid')) {
         setError('نام کاربری یا رمز عبور اشتباه است');
-        // فقط رمز عبور را پاک کن (نام کاربری باقی می‌ماند)
         setPassword('');
-        // کپچا را عوض کن
         setCaptchaKey('');
         setCaptchaAnswer('');
         if (captchaInputRef.current) {
@@ -91,7 +87,6 @@ export default function Login() {
 
       <h5 className="text-center mb-4">ورود به سامانه</h5>
 
-      {/* نمایش خطا */}
       {error && (
         <div className="alert alert-danger">
           <i className="bi bi-exclamation-triangle-fill me-2"></i>

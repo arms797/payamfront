@@ -1,61 +1,70 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserData } from '../utils/storage';
+import React, { createContext, useContext, useMemo } from 'react';
+import { useAuth } from './AuthContext';
 
 const MenuContext = createContext();
 
 export const MenuProvider = ({ children }) => {
-    const [menus, setMenus] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // ============================================================
+    // دریافت منوهای خام و نقش فعال از AuthContext
+    // ============================================================
+    const { menus: rawMenus, roles, currentRoleId } = useAuth();
 
-    useEffect(() => {
-        try {
-            const userData = getUserData();
-            if (userData?.menus) {
-                setMenus(userData.menus);
-            } else {
-                setMenus([
-                    {
-                        id: 1,
-                        parentId: null,
-                        title: 'داشبورد',
-                        icon: 'bi-grid-1x2-fill',
-                        path: '/dashboard',
-                        permissionName: null,
-                        order: 1,
-                        children: []
-                    },
-                    {
-                        id: 2,
-                        parentId: null,
-                        title: 'مدیریت',
-                        icon: 'bi-gear-fill',
-                        path: null,
-                        permissionName: null,
-                        order: 2,
-                        children: [
-                            {
-                                id: 3,
-                                parentId: 2,
-                                title: 'کاربران',
-                                icon: 'bi-people-fill',
-                                path: '/users',
-                                permissionName: null,
-                                order: 1,
-                                children: []
-                            }
-                        ]
-                    }
-                ]);
-            }
-        } catch (error) {
-            console.error('Error loading menus:', error);
-        } finally {
-            setLoading(false);
+    // ============================================================
+    // پیدا کردن مجوزهای نقش فعال
+    // ============================================================
+    const activeRolePermissions = useMemo(() => {
+        if (!roles || !currentRoleId) return [];
+
+        const activeRole = roles.find(r => r.id === currentRoleId);
+        return activeRole?.permissions || [];
+    }, [roles, currentRoleId]);
+
+    // ============================================================
+    // فیلتر کردن منوها بر اساس مجوزهای نقش فعال
+    // ============================================================
+    const filteredMenus = useMemo(() => {
+        if (!rawMenus) return [];
+
+        // اگر نقش هیچ مجوزی ندارد، فقط منوهای عمومی را نمایش بده
+        if (activeRolePermissions.length === 0) {
+            return rawMenus.filter(menu => !menu.permissionName);
         }
-    }, []);
+
+        // فیلتر منوها: اگر منو permissionName ندارد (عمومی است) یا کاربر به آن دسترسی دارد
+        return rawMenus.filter(menu => {
+            if (!menu.permissionName) return true; // منوی عمومی
+            return activeRolePermissions.includes(menu.permissionName);
+        });
+    }, [rawMenus, activeRolePermissions]);
+
+    // ============================================================
+    // تبدیل منوها به ساختار درختی
+    // ============================================================
+    const buildTree = (items, parentId = null) => {
+        return items
+            .filter(item => item.parentId === parentId)
+            .map(item => ({
+                ...item,
+                children: buildTree(items, item.id)
+            }));
+    };
+
+    const menuTree = useMemo(() => {
+        return buildTree(filteredMenus);
+    }, [filteredMenus]);
+
+    // ============================================================
+    // مقدار Context
+    // ============================================================
+    const value = {
+        menus: menuTree,
+        rawMenus: filteredMenus,
+        // اگر بعداً نیاز به جستجو داشتید
+        // searchMenus: (term) => { ... }
+    };
 
     return (
-        <MenuContext.Provider value={{ menus, loading }}>
+        <MenuContext.Provider value={value}>
             {children}
         </MenuContext.Provider>
     );
@@ -63,6 +72,8 @@ export const MenuProvider = ({ children }) => {
 
 export const useMenu = () => {
     const context = useContext(MenuContext);
-    if (!context) throw new Error('useMenu must be used within a MenuProvider');
+    if (!context) {
+        throw new Error('useMenu must be used within a MenuProvider');
+    }
     return context;
 };

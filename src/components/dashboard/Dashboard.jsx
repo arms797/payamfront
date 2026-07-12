@@ -1,23 +1,35 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { getUserData, clearUserData } from '../../utils/storage';
+import { useAuth } from '../../context/AuthContext';
 import { useMenu } from '../../context/MenuContext';
+import { useMarkaz } from '../../context/MarkazContext';
 import api from '../../api/axiosConfig';
-import { MarkazContext } from '../../context/MarkazContext';
 
 export default function Dashboard() {
-  const { loading } = useMenu();
-  const userData = getUserData();
+  const {
+    user,
+    isAuthenticated,
+    logout,
+    updateUser,
+    roles,
+    currentRoleId,
+    changeRole
+  } = useAuth();
+
+  const { loading: menuLoading } = useMenu();
+  const { markazList, loading: markazLoading } = useMarkaz();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedRoleId, setSelectedRoleId] = useState(userData?.currentRoleId || null);
+  const [selectedRoleId, setSelectedRoleId] = useState(currentRoleId || null);
   const [changingRole, setChangingRole] = useState(false);
 
-  // ============================================================
-  // دریافت لیست مراکز از Context
-  // ============================================================
-  const { markazList } = useContext(MarkazContext);
+  // اگر کاربر لاگین نبود، به صفحه اصلی برو
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
 
   const toggleSidebar = () => setIsOpen(!isOpen);
   const closeSidebar = () => setIsOpen(false);
@@ -27,28 +39,16 @@ export default function Dashboard() {
   // ============================================================
   const handleRoleChange = async (roleId) => {
     if (roleId === selectedRoleId) return;
-    
+
     setChangingRole(true);
     try {
       const response = await api.post('/Auth/change-role', { roleId });
-      
+
       if (response.data?.data) {
         const newUserData = response.data.data;
-        localStorage.setItem('accessToken', newUserData.accessToken);
-        localStorage.setItem('refreshToken', newUserData.refreshToken);
-        localStorage.setItem('user', JSON.stringify({
-          username: newUserData.username,
-          email: newUserData.email,
-          firstName: newUserData.firstName,
-          lastName: newUserData.lastName,
-          roles: newUserData.roles,
-          currentRoleId: newUserData.currentRoleId,
-          currentRoleName: newUserData.currentRoleName,
-          menus: newUserData.menus,
-          expiresIn: newUserData.expiresIn
-        }));
-        
-        setSelectedRoleId(newUserData.currentRoleId);
+        updateUser(newUserData);
+        changeRole(roleId);
+        setSelectedRoleId(roleId);
         window.location.reload();
       }
     } catch (error) {
@@ -62,17 +62,11 @@ export default function Dashboard() {
   // تابع خروج
   // ============================================================
   const handleLogout = async () => {
-    try {
-      await api.post('/Auth/logout');
-    } catch (error) {
-      console.error('خطا در خروج:', error);
-    } finally {
-      clearUserData();
-      navigate('/');
-    }
+    await logout();
   };
 
-  if (loading) {
+  // نمایش لودینگ
+  if (menuLoading || markazLoading) {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
         <div className="spinner-border text-primary" role="status">
@@ -82,20 +76,15 @@ export default function Dashboard() {
     );
   }
 
-  // ============================================================
   // پیدا کردن نقش فعال و مرکز مربوطه
-  // ============================================================
-  const activeRole = userData?.roles?.find(r => r.id === selectedRoleId);
-  
-  // پیدا کردن نام مرکز از لیست مراکز
+  const activeRole = roles?.find(r => r.id === selectedRoleId);
   const activeMarkaz = markazList?.find(m => m.id === activeRole?.markazId);
-  const markazName = activeMarkaz?.naamMarkaz || ' اصلی';
+  const markazName = activeMarkaz?.naamMarkaz || 'مرکز اصلی';
 
   return (
     <div className="dashboard-container">
       <header className="dashboard-header-top">
         <div className="d-flex align-items-center justify-content-between">
-          {/* سمت راست: همبرگر + عنوان */}
           <div className="d-flex align-items-center gap-2">
             <button className="hamburger-btn" onClick={toggleSidebar}>
               <i className={`bi ${isOpen ? 'bi-x-lg' : 'bi-list'} fs-3`}></i>
@@ -103,15 +92,12 @@ export default function Dashboard() {
             <h5 className="mb-0">سامانه پیام</h5>
           </div>
 
-          {/* سمت چپ: نام کاربر + نقش‌ها + مرکز */}
           <div className="d-flex align-items-center gap-3">
-            {/* نام و نام خانوادگی */}
             <span className="fw-semibold text-dark">
-              {userData?.firstName} {userData?.lastName}
+              {user?.firstName} {user?.lastName}
             </span>
 
-            {/* Dropdown نقش‌ها */}
-            {userData?.roles && userData.roles.length > 0 && (
+            {roles && roles.length > 0 && (
               <div className="dropdown">
                 <button
                   className="btn btn-outline-primary btn-sm dropdown-toggle"
@@ -120,34 +106,32 @@ export default function Dashboard() {
                   aria-expanded="false"
                   disabled={changingRole}
                 >
-                  {activeRole?.name || 'انتخاب نقش'}
+                  {activeRole?.name} - {markazName}
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end">
-                  {userData.roles.map((role) => (
-                    <li key={role.id}>
-                      <button
-                        className={`dropdown-item ${role.id === selectedRoleId ? 'active' : ''}`}
-                        onClick={() => handleRoleChange(role.id)}
-                        disabled={changingRole}
-                      >
-                        {role.name}
-                        {role.id === selectedRoleId && (
-                          <i className="bi bi-check2 ms-2 text-primary"></i>
-                        )}
-                      </button>
-                    </li>
-                  ))}
+                  {roles.map((role) => {
+                    const roleMarkaz = markazList?.find(m => m.id === role.markazId);
+                    const roleMarkazName = roleMarkaz?.naamMarkaz || 'مرکز اصلی';
+
+                    return (
+                      <li key={role.id}>
+                        <button
+                          className={`dropdown-item ${role.id === selectedRoleId ? 'active' : ''}`}
+                          onClick={() => handleRoleChange(role.id)}
+                          disabled={changingRole}
+                        >
+                          {role.name} - {roleMarkazName}
+                          {role.id === selectedRoleId && (
+                            <i className="bi bi-check2 ms-2 text-primary"></i>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
 
-            {/* نام مرکز (از Context) */}
-            <span className="text-muted small">
-              <i className="bi bi-building me-1"></i>
-              {markazName}
-            </span>
-
-            {/* دکمه خروج */}
             <button
               className="btn btn-outline-danger btn-sm"
               onClick={handleLogout}
@@ -165,7 +149,7 @@ export default function Dashboard() {
 
         <div className={`dashboard-content ${isOpen ? 'shifted' : ''}`}>
           <div className="dashboard-welcome">
-            <h2>خوش آمدید {userData?.firstName} {userData?.lastName}</h2>
+            <h2>خوش آمدید {user?.firstName} {user?.lastName}</h2>
             <p className="text-muted">
               نقش فعلی: {activeRole?.name} | مرکز: {markazName}
             </p>

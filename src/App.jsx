@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './components/landing/LandingPage';
 import Dashboard from './components/dashboard/Dashboard';
-import { MenuProvider } from './context/MenuContext';
-import { MarkazProvider } from './context/MarkazContext';
+import AppProviders from './components/AppProviders';
 import { isAuthenticated } from './utils/storage';
 
 function ProtectedRoute({ children }) {
@@ -15,25 +14,37 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <BrowserRouter>
-      <MenuProvider>
-        <MarkazProvider>
-          <div className="app-container">
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<Navigate to="/" replace />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </div>
-        </MarkazProvider>
-      </MenuProvider>
+      {/* ============================================================
+          AppProviders کل برنامه را احاطه کرده است
+          ============================================================ */}
+      <AppProviders>
+        <div className="app-container">
+          <Routes>
+            {/* ============================================================
+                صفحه لاگین (دسترسی به AuthContext دارد، اما Menu و Markaz ندارند)
+                ============================================================ */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Navigate to="/" replace />} />
+
+            {/* ============================================================
+                مسیرهای محافظت‌شده
+                ============================================================ */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ============================================================
+                سایر مسیرهای آینده
+                ============================================================ */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
+      </AppProviders>
     </BrowserRouter>
   );
 }
