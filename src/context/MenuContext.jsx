@@ -5,37 +5,27 @@ const MenuContext = createContext();
 
 export const MenuProvider = ({ children }) => {
     // ============================================================
-    // دریافت منوهای خام و نقش فعال از AuthContext
+    // دریافت منوهای خام و مجوزها از AuthContext
     // ============================================================
-    const { menus: rawMenus, roles, currentRoleId } = useAuth();
+    const { menus: rawMenus, permissions } = useAuth();
 
     // ============================================================
-    // پیدا کردن مجوزهای نقش فعال
-    // ============================================================
-    const activeRolePermissions = useMemo(() => {
-        if (!roles || !currentRoleId) return [];
-
-        const activeRole = roles.find(r => r.id === currentRoleId);
-        return activeRole?.permissions || [];
-    }, [roles, currentRoleId]);
-
-    // ============================================================
-    // فیلتر کردن منوها بر اساس مجوزهای نقش فعال
+    // فیلتر کردن منوها بر اساس مجوزهای کاربر
     // ============================================================
     const filteredMenus = useMemo(() => {
         if (!rawMenus) return [];
 
-        // اگر نقش هیچ مجوزی ندارد، فقط منوهای عمومی را نمایش بده
-        if (activeRolePermissions.length === 0) {
+        // اگر کاربر هیچ مجوزی ندارد، فقط منوهای عمومی را نمایش بده
+        if (permissions.length === 0) {
             return rawMenus.filter(menu => !menu.permissionName);
         }
 
         // فیلتر منوها: اگر منو permissionName ندارد (عمومی است) یا کاربر به آن دسترسی دارد
         return rawMenus.filter(menu => {
             if (!menu.permissionName) return true; // منوی عمومی
-            return activeRolePermissions.includes(menu.permissionName);
+            return permissions.includes(menu.permissionName);
         });
-    }, [rawMenus, activeRolePermissions]);
+    }, [rawMenus, permissions]);
 
     // ============================================================
     // تبدیل منوها به ساختار درختی
@@ -59,8 +49,7 @@ export const MenuProvider = ({ children }) => {
     const value = {
         menus: menuTree,
         rawMenus: filteredMenus,
-        // اگر بعداً نیاز به جستجو داشتید
-        // searchMenus: (term) => { ... }
+        loading: false, // دیگر نیازی به loading جداگانه نیست
     };
 
     return (

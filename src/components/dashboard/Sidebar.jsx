@@ -3,20 +3,26 @@ import { NavLink } from 'react-router-dom';
 import { useMenu } from '../../context/MenuContext';
 
 export default function Sidebar({ closeSidebar }) {
-    const { menus, loading } = useMenu();
+    const { menus } = useMenu();
 
-    if (loading) {
+    // اگر منویی وجود ندارد
+    if (!menus || menus.length === 0) {
         return (
-            <div className="sidebar-loading">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">در حال بارگذاری...</span>
+            <div className="sidebar-empty">
+                <div className="sidebar-header">
+                    <h5 className="mb-0">منوی سیستم</h5>
                 </div>
+                <p className="text-muted text-center p-3">هیچ منویی برای نمایش وجود ندارد</p>
             </div>
         );
     }
 
+    // ============================================================
+    // رندر بازگشتی منوها
+    // ============================================================
     const renderMenus = (menuList) => {
         return menuList.map((menu) => {
+            // اگر منو زیرمنو دارد
             if (menu.children && menu.children.length > 0) {
                 return (
                     <li key={menu.id} className="nav-item dropdown">
@@ -48,6 +54,7 @@ export default function Sidebar({ closeSidebar }) {
                 );
             }
 
+            // منوی ساده
             return (
                 <li key={menu.id} className="nav-item">
                     <NavLink
@@ -68,10 +75,11 @@ export default function Sidebar({ closeSidebar }) {
     return (
         <>
             <div className="sidebar-header">
-                <h5 className="mb-0">منوی سیستم </h5>
-                {/*<p className="text-muted small mb-0">نسخه ۱.۰</p>*/}
+                <h5 className="mb-0">منوی سیستم</h5>
             </div>
-            <ul className="nav flex-column">{renderMenus(menus)}</ul>
+            <ul className="nav flex-column">
+                {renderMenus(menus)}
+            </ul>
         </>
     );
 }
