@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useMenu } from '../../context/MenuContext';
-import { useMarkaz } from '../../context/MarkazContext';
+import { MarkazProvider, useMarkaz } from '../../context/MarkazContext';
 import api from '../../api/axiosConfig';
 
-export default function Dashboard() {
+// ============================================================
+// محتوای اصلی داشبورد (داخل MarkazProvider)
+// ============================================================
+function DashboardContent() {
   const {
     user,
     isAuthenticated,
@@ -202,5 +205,16 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// خروجی نهایی با MarkazProvider
+// ============================================================
+export default function Dashboard() {
+  return (
+    <MarkazProvider>
+      <DashboardContent />
+    </MarkazProvider>
   );
 }
