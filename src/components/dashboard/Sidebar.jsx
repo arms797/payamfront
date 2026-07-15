@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useMenu } from '../../context/MenuContext';
 
-export default function Sidebar({ closeSidebar }) {
+export default function Sidebar() {
     const { menus } = useMenu();
+    const [openMenus, setOpenMenus] = useState({});
 
-    // اگر منویی وجود ندارد
     if (!menus || menus.length === 0) {
         return (
             <div className="sidebar-empty">
@@ -17,52 +17,58 @@ export default function Sidebar({ closeSidebar }) {
         );
     }
 
-    // ============================================================
-    // رندر بازگشتی منوها
-    // ============================================================
+    const toggleMenu = (menuId) => {
+        setOpenMenus(prev => ({
+            ...prev,
+            [menuId]: !prev[menuId]
+        }));
+    };
+
     const renderMenus = (menuList) => {
         return menuList.map((menu) => {
-            // اگر منو زیرمنو دارد
             if (menu.children && menu.children.length > 0) {
+                const isOpen = openMenus[menu.id] || false;
                 return (
-                    <li key={menu.id} className="nav-item dropdown">
-                        <a
+                    <li key={menu.id} className="nav-item">
+                        <div
                             className="nav-link dropdown-toggle"
-                            href="#"
-                            role="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target={`#submenu-${menu.id}`}
-                            aria-expanded="false"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                const target = document.getElementById(`submenu-${menu.id}`);
-                                if (target) {
-                                    target.classList.toggle('show');
-                                }
-                            }}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => toggleMenu(menu.id)}
                         >
                             {menu.icon && <i className={`bi ${menu.icon} me-2`}></i>}
                             {menu.title}
-                            <i className="bi bi-chevron-down ms-auto dropdown-arrow"></i>
-                        </a>
-                        <div className="collapse" id={`submenu-${menu.id}`}>
-                            <ul className="nav flex-column">
+                            <i className={`bi bi-chevron-${isOpen ? 'up' : 'down'} ms-auto`}></i>
+                        </div>
+                        {isOpen && (
+                            <ul className="nav flex-column ms-3">
                                 {renderMenus(menu.children)}
                             </ul>
-                        </div>
+                        )}
                     </li>
                 );
             }
 
-            // منوی ساده
+            // ============================================================
+            // 🔥 اصلاح مسیرها
+            // ============================================================
+            let path;
+            if (menu.path === '/dashboard') {
+                path = '/dashboard';
+            } else if (menu.path?.startsWith('/')) {
+                path = `/dashboard${menu.path}`;
+            } else if (menu.path) {
+                path = `/dashboard/${menu.path}`;
+            } else {
+                path = '#';
+            }
+
             return (
                 <li key={menu.id} className="nav-item">
                     <NavLink
-                        to={menu.path || '#'}
+                        to={path}
                         className={({ isActive }) =>
                             `nav-link ${isActive ? 'active' : ''}`
                         }
-                        onClick={closeSidebar}
                     >
                         {menu.icon && <i className={`bi ${menu.icon} me-2`}></i>}
                         {menu.title}

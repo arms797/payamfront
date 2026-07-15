@@ -147,7 +147,7 @@ function DashboardContent() {
 
       <div className="dashboard-body-wrapper">
         <div className={`dashboard-sidebar ${isOpen ? 'open' : ''}`}>
-          <Sidebar closeSidebar={closeSidebar} />
+          <Sidebar  />
         </div>
 
         <div className={`dashboard-content ${isOpen ? 'shifted' : ''}`}>
