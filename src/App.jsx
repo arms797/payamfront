@@ -2,15 +2,17 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+import AppProviders from './components/AppProviders';
+import { isAuthenticated } from './utils/storage';
+import { useAuth } from './context/AuthContext';
 import LandingPage from './components/landing/LandingPage';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import DashboardHome from './components/dashboard/DashboardHome';
 import PermissionList from './pages/Permission/PermissionList';
 import MenuList from './pages/Menu/MenuList';
 import RolePermissionList from './pages/RolePermission/RolePermissionList';
-import AppProviders from './components/AppProviders';
-import { isAuthenticated } from './utils/storage';
-import { useAuth } from './context/AuthContext';
+import RoleList from './pages/Role/RoleList';
+
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -93,7 +95,16 @@ function App() {
                   </ProtectedRouteWithPermission>
                 }
               />
+              <Route
+                path="roles"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Role.View">
+                    <RoleList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
             </Route>
+
 
             {/* ============================================================
                             مسیر 404
