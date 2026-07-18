@@ -12,6 +12,8 @@ import PermissionList from './pages/Permission/PermissionList';
 import MenuList from './pages/Menu/MenuList';
 import RolePermissionList from './pages/RolePermission/RolePermissionList';
 import RoleList from './pages/Role/RoleList';
+import KarmandList from './pages/Karmand/KarmandList';
+import KarmandCreate from './pages/Karmand/KarmandCreate';
 
 
 // ============================================================
@@ -103,6 +105,21 @@ function App() {
                   </ProtectedRouteWithPermission>
                 }
               />
+
+              <Route
+                path="personel"
+                element={<ProtectedRouteWithPermission requiredPermission="Karmand.View">
+                  <KarmandList />
+                </ProtectedRouteWithPermission>}
+              />
+              <Route
+                path="personel/create"
+                element={<ProtectedRouteWithPermission requiredPermission="Karmand.Create">
+                  <KarmandCreate />
+                </ProtectedRouteWithPermission>}
+              />
+
+              {/* پایان قسمت داشبورد */}
             </Route>
 
 

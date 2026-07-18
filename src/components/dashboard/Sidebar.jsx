@@ -4,7 +4,7 @@ import { useMenu } from '../../context/MenuContext';
 
 export default function Sidebar() {
     const { menus } = useMenu();
-    const [openMenus, setOpenMenus] = useState({});
+    const [openMenuId, setOpenMenuId] = useState(null); // فقط یک منو باز می‌شود
 
     if (!menus || menus.length === 0) {
         return (
@@ -17,17 +17,43 @@ export default function Sidebar() {
         );
     }
 
+    // ============================================================
+    // 🔥 تغییر وضعیت منو: فقط یک منو در هر لحظه باز می‌شود
+    // ============================================================
     const toggleMenu = (menuId) => {
-        setOpenMenus(prev => ({
-            ...prev,
-            [menuId]: !prev[menuId]
-        }));
+        setOpenMenuId(prev => (prev === menuId ? null : menuId));
     };
+
+    // ============================================================
+    // 🔥 فیلتر کردن منوهایی که هم مسیر ندارند و هم زیرمنو ندارند
+    // ============================================================
+    const filterEmptyMenus = (menuList) => {
+        return menuList.filter(menu => {
+            if (menu.children && menu.children.length > 0) {
+                menu.children = filterEmptyMenus(menu.children);
+                return menu.children.length > 0;
+            }
+            return menu.path && menu.path.trim() !== '';
+        });
+    };
+
+    const filteredMenus = filterEmptyMenus(menus);
+
+    if (filteredMenus.length === 0) {
+        return (
+            <div className="sidebar-empty">
+                <div className="sidebar-header">
+                    <h5 className="mb-0">منوی سیستم</h5>
+                </div>
+                <p className="text-muted text-center p-3">هیچ منویی برای نمایش وجود ندارد</p>
+            </div>
+        );
+    }
 
     const renderMenus = (menuList) => {
         return menuList.map((menu) => {
             if (menu.children && menu.children.length > 0) {
-                const isOpen = openMenus[menu.id] || false;
+                const isOpen = openMenuId === menu.id;
                 return (
                     <li key={menu.id} className="nav-item">
                         <div
@@ -84,7 +110,7 @@ export default function Sidebar() {
                 <h5 className="mb-0">منوی سیستم</h5>
             </div>
             <ul className="nav flex-column">
-                {renderMenus(menus)}
+                {renderMenus(filteredMenus)}
             </ul>
         </>
     );

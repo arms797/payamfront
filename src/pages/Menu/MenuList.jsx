@@ -52,11 +52,21 @@ export default function MenuList() {
         fetchMenus();
     }, []);
 
-    const filteredMenus = menus.filter(m =>
-        m.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.path?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.permissionName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // ============================================================
+    // 🔥 جستجو در نام منو و نام والد
+    // ============================================================
+    const filteredMenus = menus.filter(m => {
+        // پیدا کردن نام والد
+        const parent = menus.find(p => p.id === m.parentId);
+        const parentTitle = parent?.title || '';
+
+        const searchLower = searchTerm.toLowerCase();
+
+        return m.title?.toLowerCase().includes(searchLower) ||
+            m.path?.toLowerCase().includes(searchLower) ||
+            m.permissionName?.toLowerCase().includes(searchLower) ||
+            parentTitle.toLowerCase().includes(searchLower);
+    });
 
     const handleCreate = async (e) => {
         e.preventDefault();
@@ -143,8 +153,19 @@ export default function MenuList() {
                 <div className="col-md-4">
                     <div className="input-group">
                         <span className="input-group-text"><i className="bi bi-search"></i></span>
-                        <input type="text" className="form-control" placeholder="جستجوی منو..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder="جستجو در عنوان منو و والد..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
+                </div>
+                <div className="col-md-8 text-end">
+                    <span className="badge bg-secondary">
+                        تعداد منوها: {filteredMenus.length}
+                    </span>
                 </div>
             </div>
 
@@ -191,7 +212,9 @@ export default function MenuList() {
                 </div>
             )}
 
-            {/* مودال‌ها - مشابه PermissionList */}
+            {/* ============================================================
+                مودال ایجاد منو
+                ============================================================ */}
             {showCreateModal && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog">
@@ -230,6 +253,9 @@ export default function MenuList() {
                 </div>
             )}
 
+            {/* ============================================================
+                مودال ویرایش منو
+                ============================================================ */}
             {showEditModal && selectedMenu && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog">
