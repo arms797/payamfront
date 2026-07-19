@@ -1,34 +1,43 @@
-// components/PermissionWrapper.jsx
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAccessLevel } from '../hooks/useAccessLevel';
 
 export const PermissionWrapper = ({
     permission,      // یک مجوز خاص
     permissions,     // یا لیست مجوزها (برای hasAnyPermission)
     mode = 'single', // 'single' | 'any' | 'all'
-    fallback = null, // در صورت عدم دسترسی چه چیزی نمایش داده شود
+    targetMarkazId,  // برای بررسی سطح دسترسی
+    fallback = null,
     children
 }) => {
-    const { hasPermission, hasAnyPermission, hasAllPermissions } = useAuth();
+    const { hasPermission: hasAuthPermission } = useAuth();
+    const { canEdit, canView } = useAccessLevel();
 
     // ============================================================
-    // بررسی دسترسی بر اساس حالت
+    // 1️⃣ بررسی مجوز
     // ============================================================
     let hasAccess = false;
 
     if (mode === 'single' && permission) {
-        hasAccess = hasPermission(permission);
+        hasAccess = hasAuthPermission(permission);
     } else if (mode === 'any' && permissions) {
-        hasAccess = hasAnyPermission(permissions);
+        hasAccess = permissions.some(p => hasAuthPermission(p));
     } else if (mode === 'all' && permissions) {
-        hasAccess = hasAllPermissions(permissions);
+        hasAccess = permissions.every(p => hasAuthPermission(p));
     } else {
-        // اگر هیچ مجوزی نیاز نباشد، همیشه نمایش بده
         hasAccess = true;
     }
 
     // ============================================================
-    // برگرداندن نتیجه
+    // 2️⃣ اگر مجوز داشت، سطح دسترسی را بررسی کن
     // ============================================================
-    return hasAccess ? children : fallback;
+    let canEditAccess = true;
+    if (hasAccess && targetMarkazId !== undefined) {
+        canEditAccess = canEdit(targetMarkazId);
+    }
+
+    // ============================================================
+    // 3️⃣ برگرداندن نتیجه
+    // ============================================================
+    return (hasAccess && canEditAccess) ? children : fallback;
 };

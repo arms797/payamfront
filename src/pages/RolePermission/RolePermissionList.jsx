@@ -62,20 +62,30 @@ export default function RolePermissionList() {
     }, []);
 
     // ============================================================
-    // فیلتر کردن نقش‌ها بر اساس نقش انتخاب‌شده
+    // 🔥 فیلتر کردن بر اساس نقش و منبع (Resource)
     // ============================================================
     useEffect(() => {
         let filtered = [...allRolePermissions];
 
-        // اگر نقش خاصی انتخاب شده، فقط مجوزهای آن نقش را نشان بده
+        // 1️⃣ فیلتر بر اساس نقش
         if (selectedRoleId) {
             filtered = filtered.filter(rp => rp.roleId === parseInt(selectedRoleId));
+        }
+
+        // 2️⃣ 🔥 فیلتر بر اساس منبع (Resource)
+        if (selectedResource) {
+            // پیدا کردن PermissionIdهای مربوط به منبع انتخاب‌شده
+            const permissionIds = permissions
+                .filter(p => p.resource === selectedResource)
+                .map(p => p.id);
+
+            filtered = filtered.filter(rp => permissionIds.includes(rp.permissionId));
         }
 
         setFilteredRolePermissions(filtered);
         setTotalItems(filtered.length);
         setCurrentPage(1);
-    }, [allRolePermissions, selectedRoleId]);
+    }, [allRolePermissions, selectedRoleId, selectedResource, permissions]);
 
     // ============================================================
     // داده‌های صفحه‌بندی شده
@@ -246,6 +256,7 @@ export default function RolePermissionList() {
                             {selectedRoleId
                                 ? `مجوزهای نقش "${getRoleName(parseInt(selectedRoleId))}"`
                                 : 'همه مجوزهای اختصاص‌یافته'}
+                            {selectedResource && ` - منبع: ${selectedResource}`}
                             {` (${totalItems} مورد)`}
                         </span>
                         <span className="text-muted small">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
@@ -11,7 +11,6 @@ export default function KarmandCreate() {
     const { markazList } = useMarkaz();
 
     const [loading, setLoading] = useState(false);
-    const [roles, setRoles] = useState([]); // ← لیست نقش‌ها
     const [formData, setFormData] = useState({
         userName: '',
         codeMelli: '',
@@ -24,28 +23,12 @@ export default function KarmandCreate() {
         telefonMostaghim: '',
         telefonGhayreMostaghim: '',
         telefonDakheli: '',
-        email: '',
-        emza: '',
-        roleIds: [] // ← لیست شناسه نقش‌های انتخاب‌شده
+        email: ''
     });
 
     // ============================================================
-    // دریافت لیست نقش‌ها
+    // بررسی مجوز
     // ============================================================
-    useEffect(() => {
-        const fetchRoles = async () => {
-            try {
-                const response = await api.get('/Role/list');
-                if (response.data?.data) {
-                    setRoles(response.data.data);
-                }
-            } catch (error) {
-                toast.error('خطا در دریافت لیست نقش‌ها');
-            }
-        };
-        fetchRoles();
-    }, []);
-
     if (!hasPermission('Karmand.Create')) {
         return (
             <div className="alert alert-warning text-center mt-5">
@@ -59,24 +42,24 @@ export default function KarmandCreate() {
         setFormData({ ...formData, [name]: value });
     };
 
-    // ============================================================
-    // مدیریت انتخاب نقش‌ها (چندگانه)
-    // ============================================================
-    const handleRoleChange = (e) => {
-        const selectedOptions = Array.from(e.target.selectedOptions, option => parseInt(option.value));
-        setFormData({ ...formData, roleIds: selectedOptions });
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
             const payload = {
-                ...formData,
+                userName: formData.userName,
+                codeMelli: formData.codeMelli,
+                naam: formData.naam,
+                naameKhanevadeghi: formData.naameKhanevadeghi,
                 markazId: parseInt(formData.markazId),
                 markazAsliId: formData.markazAsliId ? parseInt(formData.markazAsliId) : null,
-                roleIds: formData.roleIds // ← ارسال لیست نقش‌ها
+                mobile: formData.mobile || null,
+                mobile2: formData.mobile2 || null,
+                telefonMostaghim: formData.telefonMostaghim || null,
+                telefonGhayreMostaghim: formData.telefonGhayreMostaghim || null,
+                telefonDakheli: formData.telefonDakheli || null,
+                email: formData.email || null
             };
 
             const response = await api.post('/Karmand/create', payload);
@@ -99,7 +82,9 @@ export default function KarmandCreate() {
             <div className="card">
                 <div className="card-body">
                     <form onSubmit={handleSubmit}>
-                        {/* اطلاعات کاربری */}
+                        {/* ============================================================
+                            اطلاعات کاربری
+                            ============================================================ */}
                         <h6 className="text-primary">اطلاعات کاربری</h6>
                         <hr />
 
@@ -153,7 +138,9 @@ export default function KarmandCreate() {
                             </div>
                         </div>
 
-                        {/* اطلاعات شغلی */}
+                        {/* ============================================================
+                            اطلاعات شغلی
+                            ============================================================ */}
                         <h6 className="text-primary mt-4">اطلاعات شغلی</h6>
                         <hr />
 
@@ -189,7 +176,9 @@ export default function KarmandCreate() {
                             </div>
                         </div>
 
-                        {/* اطلاعات تماس */}
+                        {/* ============================================================
+                            اطلاعات تماس
+                            ============================================================ */}
                         <h6 className="text-primary mt-4">اطلاعات تماس</h6>
                         <hr />
 
@@ -262,52 +251,9 @@ export default function KarmandCreate() {
                             </div>
                         </div>
 
-                        <div className="row mb-3">
-                            <div className="col-md-6">
-                                <label className="form-label">امضا</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="emza"
-                                    value={formData.emza}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                        </div>
-
                         {/* ============================================================
-                            انتخاب نقش‌ها (چندگانه و پویا)
+                            ❌ نقش و امضا حذف شدند
                             ============================================================ */}
-                        <h6 className="text-primary mt-4">نقش‌ها</h6>
-                        <hr />
-
-                        <div className="row mb-3">
-                            <div className="col-md-12">
-                                <label className="form-label">انتخاب نقش‌ها (چندگانه)</label>
-                                <select
-                                    className="form-select"
-                                    multiple
-                                    style={{ minHeight: '150px' }}
-                                    value={formData.roleIds}
-                                    onChange={handleRoleChange}
-                                >
-                                    {roles.map(role => (
-                                        <option key={role.id} value={role.id}>
-                                            {role.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <small className="text-muted">
-                                    <i className="bi bi-info-circle me-1"></i>
-                                    برای انتخاب چند نقش، کلید Ctrl را نگه دارید و کلیک کنید
-                                </small>
-                                <div className="mt-2">
-                                    <span className="badge bg-secondary">
-                                        تعداد نقش‌های انتخاب‌شده: {formData.roleIds.length}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
 
                         <div className="d-flex gap-2 mt-4">
                             <button
