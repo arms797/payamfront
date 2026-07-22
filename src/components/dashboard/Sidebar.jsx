@@ -52,12 +52,17 @@ export default function Sidebar() {
 
     const renderMenus = (menuList) => {
         return menuList.map((menu) => {
+            // ============================================================
+            // 🔥 تشخیص منوی بدون والد (سرمنو)
+            // ============================================================
+            const isParentMenu = menu.parentId === null;
+
             if (menu.children && menu.children.length > 0) {
                 const isOpen = openMenuId === menu.id;
                 return (
                     <li key={menu.id} className="nav-item">
                         <div
-                            className="nav-link dropdown-toggle"
+                            className={`nav-link dropdown-toggle ${isParentMenu ? 'fw-bold' : ''}`}
                             style={{ cursor: 'pointer' }}
                             onClick={() => toggleMenu(menu.id)}
                         >
@@ -93,7 +98,7 @@ export default function Sidebar() {
                     <NavLink
                         to={path}
                         className={({ isActive }) =>
-                            `nav-link ${isActive ? 'active' : ''}`
+                            `nav-link ${isActive ? 'active' : ''} ${isParentMenu ? 'fw-bold' : ''}`
                         }
                     >
                         {menu.icon && <i className={`bi ${menu.icon} me-2`}></i>}

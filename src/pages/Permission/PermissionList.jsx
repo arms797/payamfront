@@ -8,10 +8,22 @@ export default function PermissionList() {
     const { hasPermission } = useAuth();
     const [permissions, setPermissions] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedPermission, setSelectedPermission] = useState(null);
+
+    // ============================================================
+    // 🔥 Stateهای جدید برای کومبوهای پویا
+    // ============================================================
+    const [resourcesList, setResourcesList] = useState([]);
+    const [actionsList, setActionsList] = useState([]);
+    const [filteredActions, setFilteredActions] = useState([]);
+
+    // ============================================================
+    // 🔥 State برای فیلتر بر اساس منبع
+    // ============================================================
+    const [selectedResource, setSelectedResource] = useState('');
+
     const [formData, setFormData] = useState({
         resource: '',
         action: '',
@@ -41,6 +53,9 @@ export default function PermissionList() {
             const response = await api.get('/Permission/list');
             if (response.data?.data) {
                 setPermissions(response.data.data);
+                // استخراج منابع یکتا
+                const uniqueResources = [...new Set(response.data.data.map(p => p.resource).filter(Boolean))];
+                setResourcesList(uniqueResources);
             }
         } catch (error) {
             console.error('خطا در دریافت مجوزها:', error);
@@ -50,19 +65,65 @@ export default function PermissionList() {
         }
     };
 
+    // ============================================================
+    // 🔥 دریافت لیست کنترلرها و اکشن‌های نرمال‌سازی‌شده
+    // ============================================================
+    const fetchActionsList = async () => {
+        try {
+            const response = await api.get('/Permission/actions-list');
+            if (response.data?.data) {
+                setActionsList(response.data.data);
+            }
+        } catch (error) {
+            console.error('خطا در دریافت لیست اکشن‌ها:', error);
+        }
+    };
+
     useEffect(() => {
         fetchPermissions();
+        fetchActionsList();
     }, []);
 
     // ============================================================
-    // فیلتر کردن مجوزها بر اساس جستجو
+    // 🔥 دریافت مجوزهای فیلتر شده بر اساس منبع انتخاب‌شده
     // ============================================================
-    const filteredPermissions = permissions.filter(p =>
-        p.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.resource?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const getFilteredPermissions = () => {
+        if (!selectedResource) {
+            // اگر هیچ منبعی انتخاب نشده، همه مجوزها را نمایش بده
+            return permissions;
+        }
+        // فقط مجوزهای مربوط به منبع انتخاب‌شده را نمایش بده
+        return permissions.filter(p => p.resource === selectedResource);
+    };
+
+    const filteredPermissions = getFilteredPermissions();
+
+    // ============================================================
+    // 🔥 تغییر منبع → فیلتر اکشن‌ها و تنظیم خودکار name
+    // ============================================================
+    const handleResourceChange = (resource) => {
+        setFormData(prev => ({
+            ...prev,
+            resource: resource,
+            action: '',
+            name: ''
+        }));
+
+        const filtered = actionsList.filter(item => item.resource === resource);
+        setFilteredActions(filtered);
+    };
+
+    // ============================================================
+    // 🔥 تغییر اکشن → تنظیم خودکار name
+    // ============================================================
+    const handleActionChange = (action) => {
+        const permissionName = `${formData.resource}.${action}`;
+        setFormData(prev => ({
+            ...prev,
+            action: action,
+            name: permissionName
+        }));
+    };
 
     // ============================================================
     // ایجاد مجوز جدید
@@ -75,6 +136,7 @@ export default function PermissionList() {
                 toast.success('مجوز با موفقیت ایجاد شد');
                 setShowCreateModal(false);
                 setFormData({ resource: '', action: '', name: '', description: '', isActive: true });
+                setFilteredActions([]);
                 fetchPermissions();
             }
         } catch (error) {
@@ -94,6 +156,7 @@ export default function PermissionList() {
                 toast.success('مجوز با موفقیت ویرایش شد');
                 setShowEditModal(false);
                 setSelectedPermission(null);
+                setFilteredActions([]);
                 fetchPermissions();
             }
         } catch (error) {
@@ -132,6 +195,10 @@ export default function PermissionList() {
             description: permission.description || '',
             isActive: permission.isActive ?? true
         });
+
+        const filtered = actionsList.filter(item => item.resource === permission.resource);
+        setFilteredActions(filtered);
+
         setShowEditModal(true);
     };
 
@@ -143,6 +210,7 @@ export default function PermissionList() {
         setShowEditModal(false);
         setSelectedPermission(null);
         setFormData({ resource: '', action: '', name: '', description: '', isActive: true });
+        setFilteredActions([]);
     };
 
     return (
@@ -161,20 +229,25 @@ export default function PermissionList() {
                 </PermissionWrapper>
             </div>
 
-            {/* جستجو */}
+            {/* ============================================================
+                🔥 کومبوی فیلتر بر اساس منبع (به جای جستجو)
+                ============================================================ */}
             <div className="row mb-3">
                 <div className="col-md-4">
                     <div className="input-group">
                         <span className="input-group-text">
-                            <i className="bi bi-search"></i>
+                            <i className="bi bi-funnel-fill"></i>
                         </span>
-                        <input
-                            type="text"
-                            className="form-control"
-                            placeholder="جستجوی مجوز..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        <select
+                            className="form-select"
+                            value={selectedResource}
+                            onChange={(e) => setSelectedResource(e.target.value)}
+                        >
+                            <option value="">همه منابع</option>
+                            {resourcesList.map(res => (
+                                <option key={res} value={res}>{res}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
                 <div className="col-md-8 text-end">
@@ -210,7 +283,9 @@ export default function PermissionList() {
                             {filteredPermissions.length === 0 ? (
                                 <tr>
                                     <td colSpan="8" className="text-center text-muted">
-                                        هیچ مجوزی یافت نشد
+                                        {selectedResource
+                                            ? `هیچ مجوزی برای منبع "${selectedResource}" یافت نشد`
+                                            : 'هیچ مجوزی یافت نشد'}
                                     </td>
                                 </tr>
                             ) : (
@@ -276,28 +351,47 @@ export default function PermissionList() {
                                     <button type="button" className="btn-close" onClick={closeModals}></button>
                                 </div>
                                 <div className="modal-body">
+                                    {/* کومبوی منبع (Resource) */}
                                     <div className="mb-3">
                                         <label className="form-label">منبع (Resource) *</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
+                                        <select
+                                            className="form-select"
                                             value={formData.resource}
-                                            onChange={(e) => setFormData({ ...formData, resource: e.target.value })}
+                                            onChange={(e) => handleResourceChange(e.target.value)}
                                             required
-                                            placeholder="مثلاً Ostad"
-                                        />
+                                        >
+                                            <option value="">انتخاب منبع...</option>
+                                            {resourcesList.map(res => (
+                                                <option key={res} value={res}>{res}</option>
+                                            ))}
+                                        </select>
                                     </div>
+
+                                    {/* کومبوی عملیات (Action) - فیلتر شده بر اساس منبع */}
                                     <div className="mb-3">
                                         <label className="form-label">عملیات (Action) *</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
+                                        <select
+                                            className="form-select"
                                             value={formData.action}
-                                            onChange={(e) => setFormData({ ...formData, action: e.target.value })}
+                                            onChange={(e) => handleActionChange(e.target.value)}
                                             required
-                                            placeholder="مثلاً Create"
-                                        />
+                                            disabled={!formData.resource}
+                                        >
+                                            <option value="">انتخاب عملیات...</option>
+                                            {filteredActions.map(item => (
+                                                <option key={item.permissionName} value={item.action}>
+                                                    {item.action}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {formData.resource && filteredActions.length === 0 && (
+                                            <small className="text-warning">
+                                                برای این منبع هیچ عملیاتی یافت نشد
+                                            </small>
+                                        )}
                                     </div>
+
+                                    {/* فیلد نام مجوز (خودکار پر می‌شود، قابل ویرایش) */}
                                     <div className="mb-3">
                                         <label className="form-label">نام مجوز (Name) *</label>
                                         <input
@@ -306,9 +400,13 @@ export default function PermissionList() {
                                             value={formData.name}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                             required
-                                            placeholder="مثلاً Ostad.Create"
+                                            placeholder="نام مجوز به‌صورت خودکار پر می‌شود"
                                         />
+                                        <small className="text-muted">
+                                            با انتخاب منبع و عملیات، این فیلد به‌صورت خودکار پر می‌شود
+                                        </small>
                                     </div>
+
                                     <div className="mb-3">
                                         <label className="form-label">توضیحات</label>
                                         <textarea
@@ -319,6 +417,7 @@ export default function PermissionList() {
                                             placeholder="توضیحات اختیاری"
                                         ></textarea>
                                     </div>
+
                                     <div className="mb-3">
                                         <div className="form-check">
                                             <input
@@ -360,24 +459,37 @@ export default function PermissionList() {
                                 <div className="modal-body">
                                     <div className="mb-3">
                                         <label className="form-label">منبع (Resource) *</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
+                                        <select
+                                            className="form-select"
                                             value={formData.resource}
-                                            onChange={(e) => setFormData({ ...formData, resource: e.target.value })}
+                                            onChange={(e) => handleResourceChange(e.target.value)}
                                             required
-                                        />
+                                        >
+                                            <option value="">انتخاب منبع...</option>
+                                            {resourcesList.map(res => (
+                                                <option key={res} value={res}>{res}</option>
+                                            ))}
+                                        </select>
                                     </div>
+
                                     <div className="mb-3">
                                         <label className="form-label">عملیات (Action) *</label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
+                                        <select
+                                            className="form-select"
                                             value={formData.action}
-                                            onChange={(e) => setFormData({ ...formData, action: e.target.value })}
+                                            onChange={(e) => handleActionChange(e.target.value)}
                                             required
-                                        />
+                                            disabled={!formData.resource}
+                                        >
+                                            <option value="">انتخاب عملیات...</option>
+                                            {filteredActions.map(item => (
+                                                <option key={item.permissionName} value={item.action}>
+                                                    {item.action}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </div>
+
                                     <div className="mb-3">
                                         <label className="form-label">نام مجوز (Name) *</label>
                                         <input
@@ -388,6 +500,7 @@ export default function PermissionList() {
                                             required
                                         />
                                     </div>
+
                                     <div className="mb-3">
                                         <label className="form-label">توضیحات</label>
                                         <textarea
@@ -397,6 +510,7 @@ export default function PermissionList() {
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         ></textarea>
                                     </div>
+
                                     <div className="mb-3">
                                         <div className="form-check">
                                             <input
