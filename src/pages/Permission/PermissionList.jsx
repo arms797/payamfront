@@ -53,9 +53,9 @@ export default function PermissionList() {
             const response = await api.get('/Permission/list');
             if (response.data?.data) {
                 setPermissions(response.data.data);
-                // استخراج منابع یکتا
-                const uniqueResources = [...new Set(response.data.data.map(p => p.resource).filter(Boolean))];
-                setResourcesList(uniqueResources);
+                // ============================================================
+                // ❌ اینجا دیگر منابع را استخراج نمی‌کنیم
+                // ============================================================
             }
         } catch (error) {
             console.error('خطا در دریافت مجوزها:', error);
@@ -73,6 +73,12 @@ export default function PermissionList() {
             const response = await api.get('/Permission/actions-list');
             if (response.data?.data) {
                 setActionsList(response.data.data);
+
+                // ============================================================
+                // 🔥 استخراج منابع یکتا از actions-list
+                // ============================================================
+                const uniqueResources = [...new Set(response.data.data.map(item => item.resource).filter(Boolean))];
+                setResourcesList(uniqueResources);
             }
         } catch (error) {
             console.error('خطا در دریافت لیست اکشن‌ها:', error);
@@ -89,10 +95,8 @@ export default function PermissionList() {
     // ============================================================
     const getFilteredPermissions = () => {
         if (!selectedResource) {
-            // اگر هیچ منبعی انتخاب نشده، همه مجوزها را نمایش بده
             return permissions;
         }
-        // فقط مجوزهای مربوط به منبع انتخاب‌شده را نمایش بده
         return permissions.filter(p => p.resource === selectedResource);
     };
 
@@ -138,6 +142,7 @@ export default function PermissionList() {
                 setFormData({ resource: '', action: '', name: '', description: '', isActive: true });
                 setFilteredActions([]);
                 fetchPermissions();
+                fetchActionsList(); // ← برای به‌روزرسانی لیست منابع
             }
         } catch (error) {
             console.error('خطا در ایجاد مجوز:', error);
@@ -158,6 +163,7 @@ export default function PermissionList() {
                 setSelectedPermission(null);
                 setFilteredActions([]);
                 fetchPermissions();
+                fetchActionsList();
             }
         } catch (error) {
             console.error('خطا در ویرایش مجوز:', error);
@@ -176,6 +182,7 @@ export default function PermissionList() {
             if (response.data?.success) {
                 toast.success('مجوز با موفقیت حذف شد');
                 fetchPermissions();
+                fetchActionsList();
             }
         } catch (error) {
             console.error('خطا در حذف مجوز:', error);
@@ -230,7 +237,7 @@ export default function PermissionList() {
             </div>
 
             {/* ============================================================
-                🔥 کومبوی فیلتر بر اساس منبع (به جای جستجو)
+                🔥 کومبوی فیلتر بر اساس منبع
                 ============================================================ */}
             <div className="row mb-3">
                 <div className="col-md-4">
@@ -339,7 +346,7 @@ export default function PermissionList() {
             )}
 
             {/* ============================================================
-                مودال ایجاد مجوز
+                مودال ایجاد مجوز (بدون تغییر)
                 ============================================================ */}
             {showCreateModal && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -367,7 +374,7 @@ export default function PermissionList() {
                                         </select>
                                     </div>
 
-                                    {/* کومبوی عملیات (Action) - فیلتر شده بر اساس منبع */}
+                                    {/* کومبوی عملیات (Action) */}
                                     <div className="mb-3">
                                         <label className="form-label">عملیات (Action) *</label>
                                         <select
@@ -391,7 +398,7 @@ export default function PermissionList() {
                                         )}
                                     </div>
 
-                                    {/* فیلد نام مجوز (خودکار پر می‌شود، قابل ویرایش) */}
+                                    {/* فیلد نام مجوز */}
                                     <div className="mb-3">
                                         <label className="form-label">نام مجوز (Name) *</label>
                                         <input
@@ -445,7 +452,7 @@ export default function PermissionList() {
             )}
 
             {/* ============================================================
-                مودال ویرایش مجوز
+                مودال ویرایش مجوز (بدون تغییر)
                 ============================================================ */}
             {showEditModal && selectedPermission && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import { PermissionWrapper } from '../../components/PermissionWrapper';
@@ -8,6 +8,7 @@ import api from '../../api/axiosConfig';
 
 export default function KarmandList() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { hasPermission } = useAuth();
     const { markazList } = useMarkaz();
 
@@ -27,31 +28,45 @@ export default function KarmandList() {
     // Stateهای فیلتر
     // ============================================================
     const [search, setSearch] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
     const [vazeeat, setVazeeat] = useState('true');
 
     // ============================================================
-    // Stateهای مودال
+    // Stateهای مودال حذف
     // ============================================================
-    const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedKarmand, setSelectedKarmand] = useState(null);
-    const [editLoading, setEditLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
-    const [editFormData, setEditFormData] = useState({
-        naam: '',
-        naameKhanevadeghi: '',
-        markazId: '',
-        markazAsliId: '',
-        mobile: '',
-        mobile2: '',
-        telefonMostaghim: '',
-        telefonGhayreMostaghim: '',
-        telefonDakheli: '',
-        email: '',
-        emza: ''
-    });
+
+    // ============================================================
+    // 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
+    // ============================================================
+    const getDisplayName = useCallback((markaz) => {
+        if (!markaz) return '';
+
+        if (markaz.level === 2) {
+            return 'سازمان مرکزی';
+        }
+
+        if (markaz.level === 3) {
+            return `ستاد استان ${markaz.naamOstan || ''}`;
+        }
+
+        return markaz.naamMarkaz || '';
+    }, []);
+
+    // ============================================================
+    // 🔥 Debounce برای جستجو
+    // ============================================================
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 700);
+
+        return () => clearTimeout(timer);
+    }, [search]);
 
     // ============================================================
     // بررسی مجوز مشاهده
@@ -68,13 +83,13 @@ export default function KarmandList() {
     // ============================================================
     // دریافت لیست کارمندان
     // ============================================================
-    const fetchKarmands = async () => {
+    const fetchKarmands = useCallback(async () => {
         setLoading(true);
         try {
             const params = {
                 page: pagination.page,
                 pageSize: pagination.pageSize,
-                search: search || undefined,
+                search: debouncedSearch || undefined,
                 vazeeat: vazeeat === 'all' ? undefined : vazeeat === 'true'
             };
 
@@ -100,32 +115,20 @@ export default function KarmandList() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [pagination.page, pagination.pageSize, debouncedSearch, selectedOstanId, selectedMarkazId, vazeeat]);
+
+    // ============================================================
+    // بارگذاری مجدد هنگام بازگشت از صفحه جزئیات
+    // ============================================================
+    useEffect(() => {
+        if (location.state?.fromDetail) {
+            fetchKarmands();
+        }
+    }, [location.state, fetchKarmands]);
 
     useEffect(() => {
         fetchKarmands();
-    }, [pagination.page, pagination.pageSize, search, selectedOstanId, selectedMarkazId, vazeeat]);
-
-    // ============================================================
-    // باز کردن مودال ویرایش
-    // ============================================================
-    const openEditModal = (karmand) => {
-        setSelectedKarmand(karmand);
-        setEditFormData({
-            naam: karmand.naam || '',
-            naameKhanevadeghi: karmand.naameKhanevadeghi || '',
-            markazId: karmand.markazId || '',
-            markazAsliId: karmand.markazAsliId || '',
-            mobile: karmand.mobile || '',
-            mobile2: karmand.mobile2 || '',
-            telefonMostaghim: karmand.telefonMostaghim || '',
-            telefonGhayreMostaghim: karmand.telefonGhayreMostaghim || '',
-            telefonDakheli: karmand.telefonDakheli || '',
-            email: karmand.email || '',
-            emza: karmand.emza || ''
-        });
-        setShowEditModal(true);
-    };
+    }, [fetchKarmands]);
 
     // ============================================================
     // باز کردن مودال حذف
@@ -139,48 +142,8 @@ export default function KarmandList() {
     // بستن مودال‌ها
     // ============================================================
     const closeModals = () => {
-        setShowEditModal(false);
         setShowDeleteModal(false);
         setSelectedKarmand(null);
-        setEditFormData({
-            naam: '',
-            naameKhanevadeghi: '',
-            markazId: '',
-            markazAsliId: '',
-            mobile: '',
-            mobile2: '',
-            telefonMostaghim: '',
-            telefonGhayreMostaghim: '',
-            telefonDakheli: '',
-            email: '',
-            emza: ''
-        });
-    };
-
-    // ============================================================
-    // ویرایش کارمند
-    // ============================================================
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        setEditLoading(true);
-
-        try {
-            const response = await api.put(`/Karmand/update/${selectedKarmand.id}`, {
-                ...editFormData,
-                markazId: editFormData.markazId ? parseInt(editFormData.markazId) : null,
-                markazAsliId: editFormData.markazAsliId ? parseInt(editFormData.markazAsliId) : null
-            });
-
-            if (response.data?.success) {
-                toast.success('کارمند با موفقیت ویرایش شد');
-                closeModals();
-                fetchKarmands();
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'خطا در ویرایش کارمند');
-        } finally {
-            setEditLoading(false);
-        }
     };
 
     // ============================================================
@@ -217,6 +180,7 @@ export default function KarmandList() {
 
     const resetFilters = () => {
         setSearch('');
+        setDebouncedSearch('');
         setSelectedOstanId('');
         setSelectedMarkazId('');
         setVazeeat('true');
@@ -226,16 +190,20 @@ export default function KarmandList() {
     // ============================================================
     // استخراج استان‌های یکتا از مراکز
     // ============================================================
-    const uniqueOstans = markazList
-        ?.filter(m => m.codeOstan)
-        .reduce((acc, curr) => {
-            if (!acc.find(item => item.codeOstan === curr.codeOstan)) {
-                acc.push({ codeOstan: curr.codeOstan, naamOstan: curr.naamOstan });
-            }
-            return acc;
-        }, []) || [];
+    const uniqueOstans = useMemo(() => {
+        return markazList
+            ?.filter(m => m.codeOstan)
+            .reduce((acc, curr) => {
+                if (!acc.find(item => item.codeOstan === curr.codeOstan)) {
+                    acc.push({ codeOstan: curr.codeOstan, naamOstan: curr.naamOstan });
+                }
+                return acc;
+            }, []) || [];
+    }, [markazList]);
 
-    const filteredMarkaz = markazList?.filter(m => m.codeOstan === selectedOstanId) || [];
+    const filteredMarkaz = useMemo(() => {
+        return markazList?.filter(m => m.codeOstan === selectedOstanId) || [];
+    }, [markazList, selectedOstanId]);
 
     return (
         <div className="container-fluid">
@@ -302,7 +270,7 @@ export default function KarmandList() {
                                 <option value="">همه مراکز</option>
                                 {filteredMarkaz.map(markaz => (
                                     <option key={markaz.id} value={markaz.id}>
-                                        {markaz.naamMarkaz}
+                                        {getDisplayName(markaz) || markaz.naamMarkaz || `مرکز ${markaz.id}`}
                                     </option>
                                 ))}
                             </select>
@@ -383,7 +351,7 @@ export default function KarmandList() {
                                     <th>کد ملی</th>
                                     <th>نام</th>
                                     <th>نام خانوادگی</th>
-                                    <th>مرکز</th>
+                                    <th>مرکز محل خدمت</th>
                                     <th>تلفن</th>
                                     <th>ایمیل</th>
                                     <th>وضعیت</th>
@@ -399,7 +367,11 @@ export default function KarmandList() {
                                     </tr>
                                 ) : (
                                     karmands.map((k, index) => (
-                                        <tr key={k.id}>
+                                        <tr
+                                            key={k.id}
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => navigate(`/dashboard/personel/${k.id}`)}
+                                        >
                                             <td>{(pagination.page - 1) * pagination.pageSize + index + 1}</td>
                                             <td><code>{k.codeMelli}</code></td>
                                             <td>{k.naam}</td>
@@ -412,27 +384,44 @@ export default function KarmandList() {
                                                     {k.vazeeat ? 'فعال' : 'غیرفعال'}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <div className="btn-group btn-group-sm">
+                                            <td onClick={(e) => e.stopPropagation()}>
+                                                <div className="d-flex gap-1">
                                                     {/* ============================================================
-                                                        دکمه ویرایش → مودال
-                                                        ============================================================ */}
-                                                    <PermissionWrapper permission="Karmand.Update">
-                                                        <button
-                                                            className="btn btn-warning"
-                                                            onClick={() => openEditModal(k)}
-                                                            title="ویرایش"
-                                                        >
-                                                            <i className="bi bi-pencil"></i>
-                                                        </button>
-                                                    </PermissionWrapper>
+            دکمه مشاهده → رفتن به صفحه جزئیات
+            ============================================================ */}
+                                                    <button
+                                                        className="btn btn-outline-primary btn-sm"
+                                                        onClick={() => navigate(`/dashboard/personel/${k.id}`)}
+                                                        title="مشاهده جزئیات"
+                                                    >
+                                                        <i className="bi bi-eye"></i>
+                                                    </button>
 
                                                     {/* ============================================================
-                                                        دکمه حذف → مودال
-                                                        ============================================================ */}
+            دکمه مدیریت نقش‌ها
+            ============================================================ */}
+                                                    {k.userId ? (
+                                                        <PermissionWrapper permission="RoleAssignment.View">
+                                                            <button
+                                                                className="btn btn-info btn-sm"
+                                                                onClick={() => navigate(`/dashboard/personel/${k.id}/roles`)}
+                                                                title="مدیریت نقش‌ها"
+                                                            >
+                                                                <i className="bi bi-person-badge"></i>
+                                                            </button>
+                                                        </PermissionWrapper>
+                                                    ) : (
+                                                        <span className="text-muted small d-flex align-items-center" title="کاربری ثبت نشده">
+                                                            <i className="bi bi-person-x"></i>
+                                                        </span>
+                                                    )}
+
+                                                    {/* ============================================================
+            دکمه حذف → فقط ادمین سامانه
+            ============================================================ */}
                                                     <PermissionWrapper permission="Karmand.Delete">
                                                         <button
-                                                            className="btn btn-danger"
+                                                            className="btn btn-danger btn-sm"
                                                             onClick={() => openDeleteModal(k)}
                                                             title="حذف"
                                                         >
@@ -490,138 +479,6 @@ export default function KarmandList() {
             )}
 
             {/* ============================================================
-                مودال ویرایش
-                ============================================================ */}
-            {showEditModal && selectedKarmand && (
-                <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content">
-                            <form onSubmit={handleEditSubmit}>
-                                <div className="modal-header">
-                                    <h5 className="modal-title">
-                                        ویرایش کارمند: {selectedKarmand.naam} {selectedKarmand.naameKhanevadeghi}
-                                    </h5>
-                                    <button type="button" className="btn-close" onClick={closeModals}></button>
-                                </div>
-                                <div className="modal-body">
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">نام *</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.naam}
-                                                onChange={(e) => setEditFormData({ ...editFormData, naam: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">نام خانوادگی *</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.naameKhanevadeghi}
-                                                onChange={(e) => setEditFormData({ ...editFormData, naameKhanevadeghi: e.target.value })}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">مرکز خدمتی *</label>
-                                            <select
-                                                className="form-select"
-                                                value={editFormData.markazId}
-                                                onChange={(e) => setEditFormData({ ...editFormData, markazId: e.target.value })}
-                                                required
-                                            >
-                                                <option value="">انتخاب مرکز...</option>
-                                                {markazList?.map(m => (
-                                                    <option key={m.id} value={m.id}>{m.naamMarkaz}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">مرکز اصلی</label>
-                                            <select
-                                                className="form-select"
-                                                value={editFormData.markazAsliId}
-                                                onChange={(e) => setEditFormData({ ...editFormData, markazAsliId: e.target.value })}
-                                            >
-                                                <option value="">انتخاب مرکز...</option>
-                                                {markazList?.map(m => (
-                                                    <option key={m.id} value={m.id}>{m.naamMarkaz}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">تلفن همراه ۱</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.mobile}
-                                                onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">تلفن همراه ۲</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.mobile2}
-                                                onChange={(e) => setEditFormData({ ...editFormData, mobile2: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">ایمیل</label>
-                                            <input
-                                                type="email"
-                                                className="form-control"
-                                                value={editFormData.email}
-                                                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">امضا</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.emza}
-                                                onChange={(e) => setEditFormData({ ...editFormData, emza: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary"
-                                        onClick={closeModals}
-                                    >
-                                        انصراف
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                        disabled={editLoading}
-                                    >
-                                        {editLoading ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ============================================================
                 مودال تأیید حذف
                 ============================================================ */}
             {showDeleteModal && selectedKarmand && (
@@ -664,9 +521,9 @@ export default function KarmandList() {
             )}
 
             {/* ============================================================
-                پس‌زمینه مودال‌ها
+                پس‌زمینه مودال
                 ============================================================ */}
-            {(showEditModal || showDeleteModal) && (
+            {showDeleteModal && (
                 <div
                     className="modal-backdrop show"
                     style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1040 }}

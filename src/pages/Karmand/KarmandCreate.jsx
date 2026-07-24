@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import { toast } from 'react-toastify';
 import api from '../../api/axiosConfig';
+import MarkazSelector from '../../components/common/MarkazSelector';
 
 export default function KarmandCreate() {
     const navigate = useNavigate();
@@ -42,11 +43,24 @@ export default function KarmandCreate() {
         setFormData({ ...formData, [name]: value });
     };
 
+    const handleMarkazChange = (fieldName) => (value) => {
+        setFormData({ ...formData, [fieldName]: value });
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
         try {
+            // ============================================================
+            // 🔥 اعتبارسنجی کد ملی (۱۰ رقم)
+            // ============================================================
+            if (!/^[0-9]{10}$/.test(formData.codeMelli)) {
+                toast.error('کد ملی باید دقیقاً ۱۰ رقم باشد');
+                setLoading(false);
+                return;
+            }
+
             const payload = {
                 userName: formData.userName,
                 codeMelli: formData.codeMelli,
@@ -109,7 +123,15 @@ export default function KarmandCreate() {
                                     value={formData.codeMelli}
                                     onChange={handleChange}
                                     required
+                                    maxLength={10}
+                                    pattern="[0-9]{10}"
+                                    title="کد ملی باید دقیقاً ۱۰ رقم باشد"
+                                    placeholder="مثال: ۱۲۳۴۵۶۷۸۹۰"
                                 />
+                                <small className="text-muted">
+                                    <i className="bi bi-info-circle me-1"></i>
+                                    کد ملی باید دقیقاً ۱۰ رقم باشد
+                                </small>
                             </div>
                         </div>
 
@@ -146,33 +168,22 @@ export default function KarmandCreate() {
 
                         <div className="row mb-3">
                             <div className="col-md-6">
-                                <label className="form-label">مرکز خدمتی *</label>
-                                <select
-                                    className="form-select"
-                                    name="markazId"
+                                <MarkazSelector
+                                    label="مرکز خدمتی *"
                                     value={formData.markazId}
-                                    onChange={handleChange}
-                                    required
-                                >
-                                    <option value="">انتخاب مرکز...</option>
-                                    {markazList?.map(m => (
-                                        <option key={m.id} value={m.id}>{m.naamMarkaz}</option>
-                                    ))}
-                                </select>
+                                    onChange={handleMarkazChange('markazId')}
+                                    required={true}
+                                    placeholder="انتخاب مرکز خدمتی..."
+                                />
                             </div>
                             <div className="col-md-6">
-                                <label className="form-label">مرکز اصلی</label>
-                                <select
-                                    className="form-select"
-                                    name="markazAsliId"
+                                <MarkazSelector
+                                    label="مرکز اصلی"
                                     value={formData.markazAsliId}
-                                    onChange={handleChange}
-                                >
-                                    <option value="">انتخاب مرکز...</option>
-                                    {markazList?.map(m => (
-                                        <option key={m.id} value={m.id}>{m.naamMarkaz}</option>
-                                    ))}
-                                </select>
+                                    onChange={handleMarkazChange('markazAsliId')}
+                                    required={false}
+                                    placeholder="انتخاب مرکز اصلی..."
+                                />
                             </div>
                         </div>
 
@@ -184,7 +195,7 @@ export default function KarmandCreate() {
 
                         <div className="row mb-3">
                             <div className="col-md-6">
-                                <label className="form-label">تلفن همراه ۱</label>
+                                <label className="form-label">تلفن همراه  شخصی</label>
                                 <input
                                     type="text"
                                     className="form-control"
@@ -194,7 +205,7 @@ export default function KarmandCreate() {
                                 />
                             </div>
                             <div className="col-md-6">
-                                <label className="form-label">تلفن همراه ۲</label>
+                                <label className="form-label">تلفن همراه جهت نمایش عمومی</label>
                                 <input
                                     type="text"
                                     className="form-control"
@@ -250,10 +261,6 @@ export default function KarmandCreate() {
                                 />
                             </div>
                         </div>
-
-                        {/* ============================================================
-                            ❌ نقش و امضا حذف شدند
-                            ============================================================ */}
 
                         <div className="d-flex gap-2 mt-4">
                             <button

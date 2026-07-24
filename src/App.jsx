@@ -14,6 +14,9 @@ import RolePermissionList from './pages/RolePermission/RolePermissionList';
 import RoleList from './pages/Role/RoleList';
 import KarmandList from './pages/Karmand/KarmandList';
 import KarmandCreate from './pages/Karmand/KarmandCreate';
+import KarmandDetail from './pages/Karmand/KarmandDetail';
+
+import UserRoles from './pages/Role/UserRoles';
 
 
 // ============================================================
@@ -118,7 +121,20 @@ function App() {
                   <KarmandCreate />
                 </ProtectedRouteWithPermission>}
               />
-
+              <Route
+                path="personel/:id"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Karmand.View">
+                    <KarmandDetail />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="personel/:karmandId/roles"
+                element={<ProtectedRouteWithPermission requiredPermission="RoleAssignment.View">
+                  <UserRoles />
+                </ProtectedRouteWithPermission>}
+              />
               {/* پایان قسمت داشبورد */}
             </Route>
 

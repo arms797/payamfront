@@ -363,3 +363,87 @@ body {
     margin-right: 280px;
   }
 }
+
+/* ============================================================
+   Dropdown سفارشی
+   ============================================================ */
+
+.dropdown-custom {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-custom-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dropdown-custom-toggle.show {
+    background-color: #e9f0ff;
+    border-color: #0d6efd;
+}
+
+.dropdown-custom-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 200px;
+    padding: 8px 0;
+    margin-top: 4px;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 1050;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dropdown-custom-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    text-align: right;
+    color: #2c3e50;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.dropdown-custom-item:hover {
+    background-color: #f1f4f9;
+}
+
+.dropdown-custom-item.active {
+    background-color: #e9f0ff;
+    color: #0d6efd;
+    font-weight: 500;
+}
+
+.dropdown-custom-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dropdown-custom-item .bi-check2 {
+    font-size: 14px;
+}
+
+/* اسکرول برای منوی بلند */
+.dropdown-custom-menu::-webkit-scrollbar {
+    width: 4px;
+}
+
+.dropdown-custom-menu::-webkit-scrollbar-thumb {
+    background: #c1c7cd;
+    border-radius: 10px;
+}
+
+.dropdown-custom-menu::-webkit-scrollbar-track {
+    background: transparent;
+}

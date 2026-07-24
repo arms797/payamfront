@@ -6,7 +6,7 @@ const MenuContext = createContext();
 export const MenuProvider = ({ children }) => {
     const { menus: rawMenus, permissions } = useAuth();
 
-    console.log('🔍 rawMenus received:', JSON.stringify(rawMenus, null, 2));
+    //console.log('🔍 rawMenus received:', JSON.stringify(rawMenus, null, 2));
 
     // ============================================================
     // 1️⃣ فیلتر کردن منوها بر اساس مجوزها
@@ -24,7 +24,7 @@ export const MenuProvider = ({ children }) => {
         });
     }, [rawMenus, permissions]);
 
-    console.log('🔍 filteredMenus:', JSON.stringify(filteredMenus, null, 2));
+    //console.log('🔍 filteredMenus:', JSON.stringify(filteredMenus, null, 2));
 
     // ============================================================
     // 2️⃣ تبدیل منوهای مسطح (flat) به ساختار درختی
@@ -55,7 +55,7 @@ export const MenuProvider = ({ children }) => {
         }
     }, [filteredMenus]);
 
-    console.log('🔍 menuTree:', JSON.stringify(menuTree, null, 2));
+    //console.log('🔍 menuTree:', JSON.stringify(menuTree, null, 2));
 
     const value = {
         menus: menuTree,

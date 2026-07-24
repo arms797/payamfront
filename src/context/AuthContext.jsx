@@ -42,6 +42,11 @@ export const AuthProvider = ({ children }) => {
                     setPermissions(userData.permissions || []);
                     setCurrentRoleId(userData.currentRoleId || null);
                     setIsAuthenticated(true);
+
+                    // ============================================================
+                    // 🔥 تنظیم هدر Axios هنگام بارگذاری اولیه
+                    // ============================================================
+                    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                 }
             } catch (error) {
                 console.error('خطا در بارگذاری کاربر:', error);
@@ -52,7 +57,13 @@ export const AuthProvider = ({ children }) => {
 
         loadUser();
     }, []);
-
+    /*console.log("accessToken:", accessToken)
+    console.log("refreshToken:", refreshToken)
+    console.log("user:", user)
+    console.log("roles:", roles)
+    console.log("menus:", menus)
+    console.log("permissions:", permissions)
+    console.log("currentRoleId:", currentRoleId)*/
     // ============================================================
     // تابع ورود
     // ============================================================
@@ -66,6 +77,11 @@ export const AuthProvider = ({ children }) => {
         setPermissions(data.permissions || []);
         setCurrentRoleId(data.currentRoleId || null);
         setIsAuthenticated(true);
+
+        // ============================================================
+        // 🔥 تنظیم هدر Axios بعد از لاگین
+        // ============================================================
+        api.defaults.headers.common['Authorization'] = `Bearer ${data.accessToken}`;
     };
 
     // ============================================================
@@ -86,15 +102,24 @@ export const AuthProvider = ({ children }) => {
             setPermissions([]);
             setCurrentRoleId(null);
             setIsAuthenticated(false);
+
+            // ============================================================
+            // 🔥 حذف هدر Axios بعد از خروج
+            // ============================================================
+            delete api.defaults.headers.common['Authorization'];
+
             navigate('/');
         }
     };
 
     // ============================================================
-    // تابع بروزرسانی اطلاعات کاربر
+    // 🔥 تابع بروزرسانی اطلاعات کاربر (اصلاح‌شده)
     // ============================================================
     const updateUser = (newData) => {
+        // ذخیره در localStorage
         setUserData(newData);
+
+        // بروزرسانی Stateها
         setUser(newData);
         setAccessToken(newData.accessToken);
         setRefreshToken(newData.refreshToken);
@@ -102,6 +127,12 @@ export const AuthProvider = ({ children }) => {
         setMenus(newData.menus || []);
         setPermissions(newData.permissions || []);
         setCurrentRoleId(newData.currentRoleId || null);
+        setIsAuthenticated(true);
+
+        // ============================================================
+        // 🔥 بروزرسانی هدر Axios برای درخواست‌های بعدی
+        // ============================================================
+        api.defaults.headers.common['Authorization'] = `Bearer ${newData.accessToken}`;
     };
 
     // ============================================================
