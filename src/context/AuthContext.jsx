@@ -116,6 +116,8 @@ export const AuthProvider = ({ children }) => {
     // 🔥 تابع بروزرسانی اطلاعات کاربر (اصلاح‌شده)
     // ============================================================
     const updateUser = (newData) => {
+        //console.log('🔄 updateUser called with newData:', newData);
+
         // ذخیره در localStorage
         setUserData(newData);
 
@@ -130,9 +132,12 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
 
         // ============================================================
-        // 🔥 بروزرسانی هدر Axios برای درخواست‌های بعدی
+        // 🔥 بروزرسانی هدر Axios
         // ============================================================
         api.defaults.headers.common['Authorization'] = `Bearer ${newData.accessToken}`;
+
+        //console.log('✅ updateUser - Authorization header set to:',
+           // api.defaults.headers.common['Authorization']?.substring(0, 30) + '...');
     };
 
     // ============================================================

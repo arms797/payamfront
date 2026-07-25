@@ -16,15 +16,25 @@ const api = axios.create({
 // ============================================================
 // اینترسپتور برای افزودن توکن به هدر درخواست‌ها
 // ============================================================
+
 api.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
+    (config) => {
+        // ============================================================
+        // 🔥 همیشه از localStorage جدیدترین توکن را بخوان
+        // ============================================================
+        const token = getAccessToken();
+        //console.log('📤 Request interceptor - token from localStorage:', token?.substring(0, 30) + '...');
+        
+        if (token) {
+            // ============================================================
+            // 🔥 این خط باعث می‌شود که `api.headers` نیز به‌روز شود
+            // ============================================================
+            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
 );
 
 // ============================================================

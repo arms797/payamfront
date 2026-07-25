@@ -88,9 +88,25 @@ function DashboardContent() {
                 roleId,
                 markazId
             });
-
+            console.log('📦 Full response from change-role:', response);
             if (response.data?.data) {
                 const newUserData = response.data.data;
+
+                // ============================================================
+                // 🔥 این رو با دقت ببین
+                // ============================================================
+                console.log('🔍 NEW TOKEN ROLE ID:', newUserData.currentRoleId);
+                console.log('🔍 NEW TOKEN ROLE NAME:', newUserData.currentRoleName);
+                // ============================================================
+                // 🔥 توکن رو decode کن تا RoleId رو ببینی
+                // ============================================================
+                const tokenParts = newUserData.accessToken.split('.');
+                if (tokenParts.length === 3) {
+                    const payload = JSON.parse(atob(tokenParts[1]));
+                    console.log('🔍 Decoded token RoleId:', payload.RoleId);
+                    console.log('🔍 Decoded token Role:', payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']);
+                }
+
                 updateUser(newUserData);
                 changeRole(roleId);
 
@@ -101,6 +117,18 @@ function DashboardContent() {
 
                 setDropdownOpen(false);
                 toast.success('نقش با موفقیت تغییر کرد');
+                // ============================================================
+                // 🔥 به جای رفرش، فقط به داشبورد هدایت کن
+                // ============================================================
+                navigate('/dashboard', { replace: true });
+                // ============================================================
+                // 🔥 دیباگ: بررسی توکن جدید
+                // ============================================================
+                /*console.log('✅ New accessToken:', newUserData.accessToken?.substring(0, 30) + '...');
+                console.log('✅ localStorage token:', localStorage.getItem('accessToken')?.substring(0, 30) + '...');
+                console.log('✅ api.defaults.headers:', api.defaults.headers.common['Authorization']?.substring(0, 30) + '...');
+                console.log('🔑 localStorage token:', localStorage.getItem('accessToken'));
+                console.log('🔑 api headers:', api.defaults.headers.common['Authorization']);*/
             }
         } catch (error) {
             console.error('❌ Error in change role:', error);

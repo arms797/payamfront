@@ -2,17 +2,31 @@
 // ذخیره اطلاعات کاربر در localStorage
 // ============================================================
 export const setUserData = (data) => {
-  localStorage.setItem('accessToken', data.accessToken);
-  localStorage.setItem('refreshToken', data.refreshToken);
-  localStorage.setItem('user', JSON.stringify({
-    username: data.username,
-    email: data.email,
-    roles: data.roles,
-    currentRoleId: data.currentRoleId,
-    currentRoleName: data.currentRoleName,
-    menus: data.menus,
-    expiresIn: data.expiresIn
-  }));
+    /*console.log('💾 setUserData called with:', {
+        accessToken: data.accessToken?.substring(0, 30) + '...',
+        refreshToken: data.refreshToken?.substring(0, 30) + '...',
+        username: data.username
+    });*/
+    
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    localStorage.setItem('user', JSON.stringify({
+        username: data.username,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        roles: data.roles,
+        currentRoleId: data.currentRoleId,
+        currentRoleName: data.currentRoleName,
+        menus: data.menus,
+        permissions: data.permissions,
+        expiresIn: data.expiresIn
+    }));
+    
+    // ============================================================
+    // 🔥 دیباگ: بررسی اینکه آیا ذخیره شده است
+    // ============================================================
+    //console.log('✅ localStorage accessToken after set:', localStorage.getItem('accessToken')?.substring(0, 30) + '...');
 };
 
 // ============================================================
