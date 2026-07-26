@@ -2,11 +2,7 @@
 // ذخیره اطلاعات کاربر در localStorage
 // ============================================================
 export const setUserData = (data) => {
-    /*console.log('💾 setUserData called with:', {
-        accessToken: data.accessToken?.substring(0, 30) + '...',
-        refreshToken: data.refreshToken?.substring(0, 30) + '...',
-        username: data.username
-    });*/
+  try{    
     
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
@@ -18,15 +14,14 @@ export const setUserData = (data) => {
         roles: data.roles,
         currentRoleId: data.currentRoleId,
         currentRoleName: data.currentRoleName,
+        markazId: data.markazId,  // ← اضافه کن
         menus: data.menus,
         permissions: data.permissions,
         expiresIn: data.expiresIn
     }));
-    
-    // ============================================================
-    // 🔥 دیباگ: بررسی اینکه آیا ذخیره شده است
-    // ============================================================
-    //console.log('✅ localStorage accessToken after set:', localStorage.getItem('accessToken')?.substring(0, 30) + '...');
+  } catch (error) {
+        console.error('❌ setUserData error:', error);
+  }
 };
 
 // ============================================================

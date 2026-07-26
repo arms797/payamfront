@@ -26,12 +26,60 @@ export const AuthProvider = ({ children }) => {
     // ============================================================
     // بارگذاری اطلاعات کاربر از localStorage
     // ============================================================
+    /* useEffect(() => {
+         const loadUser = async () => {
+             try {
+                 console.log('🔍 loadUser STARTED');
+ 
+                 const token = getAccessToken();
+                 const refresh = getRefreshToken();
+                 const userData = getUserData();
+ 
+                 // ============================================================
+                 // 🔥 لاگ دقیق
+                 // ============================================================
+                 console.log('🔍 loadUser - token (first 30):', token?.substring(0, 30) + '...');
+                 console.log('🔍 loadUser - userData:', userData);
+                 console.log('🔍 loadUser - currentRoleId from userData:', userData?.currentRoleId);
+                 console.log('🔍 loadUser - currentRoleName from userData:', userData?.currentRoleName);
+ 
+                 if (token && refresh && userData) {
+                     setAccessToken(token);
+                     setRefreshToken(refresh);
+                     setUser(userData);
+                     setRoles(userData.roles || []);
+                     setMenus(userData.menus || []);
+                     setPermissions(userData.permissions || []);
+                     setCurrentRoleId(userData.currentRoleId || null);
+                     setIsAuthenticated(true);
+ 
+                     // ============================================================
+                     // 🔥 تنظیم هدر Axios هنگام بارگذاری اولیه
+                     // ============================================================
+                     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                 }
+                 else {
+                     console.log('❌ loadUser - missing data, not authenticated');
+                     setIsAuthenticated(false);
+                 }
+             } catch (error) {
+                 console.error('خطا در بارگذاری کاربر:', error);
+             } finally {
+                 setLoading(false);
+             }
+         };
+ 
+         loadUser();
+     }, []);*/
+
+    // در AuthContext.jsx - useEffect
     useEffect(() => {
         const loadUser = async () => {
             try {
                 const token = getAccessToken();
                 const refresh = getRefreshToken();
                 const userData = getUserData();
+
 
                 if (token && refresh && userData) {
                     setAccessToken(token);
@@ -42,28 +90,22 @@ export const AuthProvider = ({ children }) => {
                     setPermissions(userData.permissions || []);
                     setCurrentRoleId(userData.currentRoleId || null);
                     setIsAuthenticated(true);
-
-                    // ============================================================
-                    // 🔥 تنظیم هدر Axios هنگام بارگذاری اولیه
-                    // ============================================================
                     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                } else {
+
+                    setIsAuthenticated(false);
                 }
             } catch (error) {
-                console.error('خطا در بارگذاری کاربر:', error);
+                console.error('❌ loadUser error:', error);
+                setIsAuthenticated(false);
             } finally {
                 setLoading(false);
+                console.log('🔍 loadUser - loading set to false');
             }
         };
 
         loadUser();
     }, []);
-    /*console.log("accessToken:", accessToken)
-    console.log("refreshToken:", refreshToken)
-    console.log("user:", user)
-    console.log("roles:", roles)
-    console.log("menus:", menus)
-    console.log("permissions:", permissions)
-    console.log("currentRoleId:", currentRoleId)*/
     // ============================================================
     // تابع ورود
     // ============================================================
@@ -115,8 +157,11 @@ export const AuthProvider = ({ children }) => {
     // ============================================================
     // 🔥 تابع بروزرسانی اطلاعات کاربر (اصلاح‌شده)
     // ============================================================
+    // ============================================================
+    // 🔥 تابع بروزرسانی اطلاعات کاربر (اصلاح‌شده)
+    // ============================================================
     const updateUser = (newData) => {
-        //console.log('🔄 updateUser called with newData:', newData);
+        //console.log('🔄 updateUser called with:', newData);   // برای دیباگ
 
         // ذخیره در localStorage
         setUserData(newData);
@@ -131,13 +176,10 @@ export const AuthProvider = ({ children }) => {
         setCurrentRoleId(newData.currentRoleId || null);
         setIsAuthenticated(true);
 
-        // ============================================================
-        // 🔥 بروزرسانی هدر Axios
-        // ============================================================
-        api.defaults.headers.common['Authorization'] = `Bearer ${newData.accessToken}`;
-
-        //console.log('✅ updateUser - Authorization header set to:',
-           // api.defaults.headers.common['Authorization']?.substring(0, 30) + '...');
+        // 🔥 آپدیت هدر Axios (خیلی مهم)
+        if (newData.accessToken) {
+            api.defaults.headers.common['Authorization'] = `Bearer ${newData.accessToken}`;
+        }
     };
 
     // ============================================================

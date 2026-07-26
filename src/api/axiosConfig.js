@@ -22,9 +22,7 @@ api.interceptors.request.use(
         // ============================================================
         // 🔥 همیشه از localStorage جدیدترین توکن را بخوان
         // ============================================================
-        const token = getAccessToken();
-        //console.log('📤 Request interceptor - token from localStorage:', token?.substring(0, 30) + '...');
-        
+        const token = getAccessToken();        
         if (token) {
             // ============================================================
             // 🔥 این خط باعث می‌شود که `api.headers` نیز به‌روز شود

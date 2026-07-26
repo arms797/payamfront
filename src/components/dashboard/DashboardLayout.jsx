@@ -3,7 +3,7 @@ import { useNavigate, Outlet } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
-import { MarkazProvider, useMarkaz } from '../../context/MarkazContext';
+import { useMarkaz } from '../../context/MarkazContext';
 import api from '../../api/axiosConfig';
 
 function DashboardContent() {
@@ -23,27 +23,41 @@ function DashboardContent() {
     const [changingRole, setChangingRole] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const [isRoleChanging, setIsRoleChanging] = useState(false);
+    const [displayRole, setDisplayRole] = useState(null);
+
 
     // ============================================================
     // 🔥 State برای نقش انتخاب‌شده در کومبو
     // ============================================================
     const [selectedRole, setSelectedRole] = useState(() => {
-        // مقدار اولیه: نقشی که isDefault === true است
         const defaultRole = roles?.find(r => r.isDefault === true);
         return defaultRole || roles?.[0] || null;
     });
 
     // ============================================================
-    // 🔥 هر وقت roles یا currentRoleId تغییر کرد، selectedRole را همگام کن
+    // 🔥 همگام‌سازی selectedRole با roles و currentRoleId
+    // ============================================================
+    /*useEffect(() => {
+        if (isRoleChanging) return;   // ← جلوگیری از overwrite در حین تغییر
+
+        if (roles && roles.length > 0 && currentRoleId) {
+            const activeRole = roles.find(r => r.id === currentRoleId);
+            if (activeRole) {
+                console.log('✅ Active role updated to:', activeRole);
+                setSelectedRole(activeRole);
+            }
+        }
+    }, [roles, currentRoleId, isRoleChanging]);*/
+
+    // ============================================================
+    // همگام‌سازی displayRole
     // ============================================================
     useEffect(() => {
-        const defaultRole = roles?.find(r => r.isDefault === true);
-        if (defaultRole) {
-            setSelectedRole(defaultRole);
-        } else if (roles && roles.length > 0) {
-            setSelectedRole(roles[0]);
+        if (selectedRole) {
+            setDisplayRole(selectedRole);
         }
-    }, [roles, currentRoleId]);
+    }, [selectedRole]);
 
     // ============================================================
     // 🔥 پیدا کردن نام مرکز
@@ -55,28 +69,22 @@ function DashboardContent() {
     };
 
     // ============================================================
-    // 🔥 مقدار نمایشی دکمه (بر اساس selectedRole)
+    // 🔥 مقدار نمایشی دکمه
     // ============================================================
-    const displayName = selectedRole?.name || 'نقش نامشخص';
-    const displayMarkaz = getMarkazName(selectedRole?.markazId);
+    const displayName = displayRole?.name || 'نقش نامشخص';
+    const displayMarkaz = getMarkazName(displayRole?.markazId);
     const buttonText = `${displayName} - ${displayMarkaz}`;
 
-    // ============================================================
-    // 🔥 دیباگ
-    // ============================================================
-    /*console.log('🔍 selectedRole:', selectedRole);
-    console.log('📝 buttonText:', buttonText);
-    console.log('🔍 roles:', roles);*/
+    // و در map roles هم برای isActive:
+    //const isActive = displayRole?.id === role.id && displayRole?.markazId === role.markazId;
 
     // ============================================================
     // 🔥 تغییر نقش
     // ============================================================
     const handleRoleChange = async (roleId, markazId) => {
-        // پیدا کردن نقش جدید از آرایه roles
-        const newRole = roles?.find(r => r.id === roleId && r.markazId === markazId);
-        if (!newRole) return;
+        const baseRole = roles?.find(r => r.id === roleId);
+        if (!baseRole) return;
 
-        // اگر همان نقش انتخاب شده، فقط کومبو را ببند
         if (selectedRole?.id === roleId && selectedRole?.markazId === markazId) {
             setDropdownOpen(false);
             return;
@@ -84,59 +92,36 @@ function DashboardContent() {
 
         setChangingRole(true);
         try {
-            const response = await api.post('/Auth/change-role', {
-                roleId,
-                markazId
-            });
-            console.log('📦 Full response from change-role:', response);
-            if (response.data?.data) {
+            const response = await api.post('/Auth/change-role', { roleId, markazId });
+
+            if (response.data?.success && response.data?.data) {
                 const newUserData = response.data.data;
 
-                // ============================================================
-                // 🔥 این رو با دقت ببین
-                // ============================================================
-                console.log('🔍 NEW TOKEN ROLE ID:', newUserData.currentRoleId);
-                console.log('🔍 NEW TOKEN ROLE NAME:', newUserData.currentRoleName);
-                // ============================================================
-                // 🔥 توکن رو decode کن تا RoleId رو ببینی
-                // ============================================================
-                const tokenParts = newUserData.accessToken.split('.');
-                if (tokenParts.length === 3) {
-                    const payload = JSON.parse(atob(tokenParts[1]));
-                    console.log('🔍 Decoded token RoleId:', payload.RoleId);
-                    console.log('🔍 Decoded token Role:', payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']);
-                }
-
                 updateUser(newUserData);
-                changeRole(roleId);
 
-                // ============================================================
-                // 🔥 مهم: selectedRole را به‌روز کن (این باعث رندر مجدد می‌شود)
-                // ============================================================
-                setSelectedRole(newRole);
+                // ساخت نمایش نهایی
+                const finalDisplayRole = {
+                    ...baseRole,
+                    markazId: markazId,
+                    name: newUserData.currentRoleName || baseRole.name
+                };
+
+                setSelectedRole(finalDisplayRole);
+                setDisplayRole(finalDisplayRole);
+
+                //console.log('✅ Final Display Role:', finalDisplayRole);
 
                 setDropdownOpen(false);
                 toast.success('نقش با موفقیت تغییر کرد');
-                // ============================================================
-                // 🔥 به جای رفرش، فقط به داشبورد هدایت کن
-                // ============================================================
-                navigate('/dashboard', { replace: true });
-                // ============================================================
-                // 🔥 دیباگ: بررسی توکن جدید
-                // ============================================================
-                /*console.log('✅ New accessToken:', newUserData.accessToken?.substring(0, 30) + '...');
-                console.log('✅ localStorage token:', localStorage.getItem('accessToken')?.substring(0, 30) + '...');
-                console.log('✅ api.defaults.headers:', api.defaults.headers.common['Authorization']?.substring(0, 30) + '...');
-                console.log('🔑 localStorage token:', localStorage.getItem('accessToken'));
-                console.log('🔑 api headers:', api.defaults.headers.common['Authorization']);*/
             }
         } catch (error) {
             console.error('❌ Error in change role:', error);
-            toast.error('خطا در تغییر نقش');
+            toast.error(error.response?.data?.message || 'خطا در تغییر نقش');
         } finally {
             setChangingRole(false);
         }
     };
+
 
     const handleLogout = async () => {
         await logout();
@@ -196,7 +181,7 @@ function DashboardContent() {
                         {roles && roles.length > 0 && (
                             <div className="dropdown-custom" ref={dropdownRef}>
                                 <button
-                                    key={selectedRole?.id + '_' + selectedRole?.markazId}  // ← این خط مهم است
+                                    key={selectedRole?.id + '_' + selectedRole?.markazId}
                                     className={`btn btn-outline-primary btn-sm dropdown-custom-toggle ${dropdownOpen ? 'show' : ''}`}
                                     onClick={() => setDropdownOpen(!dropdownOpen)}
                                     disabled={changingRole}
@@ -209,7 +194,7 @@ function DashboardContent() {
                                     <div className="dropdown-custom-menu">
                                         {roles.map((role) => {
                                             const roleMarkazName = getMarkazName(role.markazId);
-                                            const isActive = selectedRole?.id === role.id && selectedRole?.markazId === role.markazId;
+                                            const isActive = displayRole?.id === role.id && displayRole?.markazId === role.markazId;
 
                                             return (
                                                 <button
@@ -257,9 +242,5 @@ function DashboardContent() {
 }
 
 export default function DashboardLayout() {
-    return (
-        <MarkazProvider>
-            <DashboardContent />
-        </MarkazProvider>
-    );
+    return <DashboardContent />;
 }
