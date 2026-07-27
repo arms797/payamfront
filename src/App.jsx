@@ -12,11 +12,16 @@ import PermissionList from './pages/Permission/PermissionList';
 import MenuList from './pages/Menu/MenuList';
 import RolePermissionList from './pages/RolePermission/RolePermissionList';
 import RoleList from './pages/Role/RoleList';
+import UserRoles from './pages/Role/UserRoles';
+
 import KarmandList from './pages/Karmand/KarmandList';
 import KarmandCreate from './pages/Karmand/KarmandCreate';
 import KarmandDetail from './pages/Karmand/KarmandDetail';
 
-import UserRoles from './pages/Role/UserRoles';
+import OstadList from './pages/Ostad/OstadList';
+//import OstadDetail from './pages/Ostad/OstadDetail';
+import OstadCreate from './pages/Ostad/OstadCreate';
+//import OstadEdit from './pages/Ostad/OstadEdit';
 
 
 // ============================================================
@@ -148,6 +153,42 @@ function App() {
                   <UserRoles />
                 </ProtectedRouteWithPermission>}
               />
+              <Route
+                path="ostad"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Ostad.View">
+                    <OstadList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="ostad/create"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Ostad.Create">
+                    <OstadCreate />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              {/*  
+              <Route
+                path="ostad/:id"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Ostad.View">
+                    <OstadDetail />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              
+              <Route
+                path="ostad/edit/:id"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Ostad.Update">
+                    <OstadEdit />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              */}
+
               {/* پایان قسمت داشبورد */}
             </Route>
 
