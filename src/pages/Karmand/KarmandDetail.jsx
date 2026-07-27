@@ -236,9 +236,9 @@ export default function KarmandDetail() {
         }
 
         const newStatus = !userInfo.vazeeyatMovaghat;
-        const statusText = newStatus ? 'مسدود' : 'عادی';
+        const statusText = newStatus ? 'مسدود موقت' : 'عادی';
 
-        if (!window.confirm(`آیا از ${newStatus ? 'مسدود' : 'عادی'} کردن کاربر "${userInfo.userName}" مطمئن هستید؟`)) return;
+        if (!window.confirm(`آیا از ${newStatus ? 'مسدود موقت' : 'عادی'} کردن کاربر "${userInfo.userName}" مطمئن هستید؟`)) return;
 
         setTogglingTempStatus(true);
         try {
@@ -330,13 +330,15 @@ export default function KarmandDetail() {
                             ویرایش
                         </button>
                     </PermissionWrapper>
-                    <button
-                        className="btn btn-info"
-                        onClick={() => navigate(`/dashboard/personel/${karmand.id}/roles`)}
-                    >
-                        <i className="bi bi-person-badge me-1"></i>
-                        مدیریت نقش‌ها
-                    </button>
+                    <PermissionWrapper permission="RoleAssignment.View">
+                        <button
+                            className="btn btn-info"
+                            onClick={() => navigate(`/dashboard/personel/${karmand.id}/roles`)}
+                        >
+                            <i className="bi bi-person-badge me-1"></i>
+                            نقش‌ها کاربر
+                        </button>
+                    </PermissionWrapper>
                     <PermissionWrapper permission="Karmand.Delete">
                         <button
                             className="btn btn-danger"
@@ -478,14 +480,14 @@ export default function KarmandDetail() {
                                     <div className="col-4 fw-bold">وضعیت موقت:</div>
                                     <div className="col-8 d-flex align-items-center gap-2">
                                         <span className={`badge ${userInfo.vazeeyatMovaghat ? 'bg-warning' : 'bg-secondary'}`}>
-                                            {userInfo.vazeeyatMovaghat ? 'مسدود' : 'عادی'}
+                                            {userInfo.vazeeyatMovaghat ? 'فعال' : 'غیر فعال'}
                                         </span>
                                         <PermissionWrapper permission="User.Update">
                                             <button
                                                 className={`btn btn-sm ${userInfo.vazeeyatMovaghat ? 'btn-success' : 'btn-warning'}`}
                                                 onClick={handleToggleTempStatus}
                                                 disabled={togglingTempStatus}
-                                                title={userInfo.vazeeyatMovaghat ? 'رفع مسدودیت' : 'مسدود کردن'}
+                                                title={userInfo.vazeeyatMovaghat ? 'غیرفعال کردن' : 'فعال کردن'}
                                             >
                                                 {togglingTempStatus ? (
                                                     <span className="spinner-border spinner-border-sm" role="status"></span>

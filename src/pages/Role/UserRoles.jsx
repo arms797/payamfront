@@ -5,6 +5,7 @@ import { useMarkaz } from '../../context/MarkazContext';
 import { toast } from 'react-toastify';
 import api from '../../api/axiosConfig';
 import MarkazSelector from '../../components/common/MarkazSelector';
+import { PermissionWrapper } from '../../components/PermissionWrapper';
 
 export default function UserRoles() {
     const navigate = useNavigate();
@@ -465,20 +466,25 @@ export default function UserRoles() {
                                             </td>
                                             <td>
                                                 <div className="btn-group btn-group-sm">
-                                                    <button
-                                                        className="btn btn-warning"
-                                                        onClick={() => openEditModal(role)}
-                                                        title="ویرایش"
-                                                    >
-                                                        <i className="bi bi-pencil"></i>
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-danger"
-                                                        onClick={() => handleDelete(role.id, role.roleName)}
-                                                        title="حذف"
-                                                    >
-                                                        <i className="bi bi-trash"></i>
-                                                    </button>
+                                                    <PermissionWrapper permission="RoleAssignment.Update">
+                                                        <button
+                                                            className="btn btn-warning"
+                                                            onClick={() => openEditModal(role)}
+                                                            title="ویرایش"
+                                                        >
+                                                            <i className="bi bi-pencil"></i>
+                                                        </button>
+                                                    </PermissionWrapper>
+                                                    <PermissionWrapper permission="RoleAssignment.Delete">
+                                                        <button
+                                                            className="btn btn-danger"
+                                                            onClick={() => handleDelete(role.id, role.roleName)}
+                                                            title="حذف"
+                                                        >
+                                                            <i className="bi bi-trash"></i>
+                                                        </button>
+                                                    </PermissionWrapper>
+
                                                 </div>
                                             </td>
                                         </tr>

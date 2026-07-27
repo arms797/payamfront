@@ -32,6 +32,7 @@ export default function KarmandList() {
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
     const [vazeeat, setVazeeat] = useState('true');
+    const [vazeeatMovaghat, setVazeeatMovaghat] = useState('true');
 
     // ============================================================
     // Stateهای مودال حذف
@@ -353,8 +354,8 @@ export default function KarmandList() {
                                     <th>نام خانوادگی</th>
                                     <th>مرکز محل خدمت</th>
                                     <th>تلفن</th>
-                                    <th>ایمیل</th>
                                     <th>وضعیت</th>
+                                    <th>وضعیت موقت</th>
                                     <th>عملیات</th>
                                 </tr>
                             </thead>
@@ -378,10 +379,14 @@ export default function KarmandList() {
                                             <td><strong>{k.naameKhanevadeghi}</strong></td>
                                             <td>{k.markazName}</td>
                                             <td>{k.mobile || '-'}</td>
-                                            <td>{k.email || '-'}</td>
                                             <td>
                                                 <span className={`badge ${k.vazeeat ? 'bg-success' : 'bg-danger'}`}>
                                                     {k.vazeeat ? 'فعال' : 'غیرفعال'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${k.vazeeatMovaghat ? 'bg-success' : 'bg-danger'}`}>
+                                                    {k.vazeeatMovaghat ? 'فعال' : 'غیرفعال'}
                                                 </span>
                                             </td>
                                             <td onClick={(e) => e.stopPropagation()}>
