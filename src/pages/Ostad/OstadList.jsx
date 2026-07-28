@@ -32,8 +32,6 @@ export default function OstadList() {
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
     const [selectedNoeHamkari, setSelectedNoeHamkari] = useState('');
     const [vazeeat, setVazeeat] = useState('true');
-    const [vazeeatMovaghat, setVazeeatMovaghat] = useState('true');
-
     const [reshteh, setReshteh] = useState('');
     const [debouncedReshteh, setDebouncedReshteh] = useState('');
 
@@ -179,26 +177,15 @@ export default function OstadList() {
                 ============================================================ */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4>مدیریت اساتید</h4>
-                <div className="d-flex gap-2">
-                    <PermissionWrapper permission="Ostad.BulkUpload">
-                        <button
-                            className="btn btn-success"
-                            onClick={() => {/* باز کردن مودال آپلود اکسل */ }}
-                        >
-                            <i className="bi bi-file-earmark-excel me-2"></i>
-                            آپلود اکسل
-                        </button>
-                    </PermissionWrapper>
-                    <PermissionWrapper permission="Ostad.Create">
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => navigate('/dashboard/ostad/create')}
-                        >
-                            <i className="bi bi-plus-circle me-2"></i>
-                            استاد جدید
-                        </button>
-                    </PermissionWrapper>
-                </div>
+                <PermissionWrapper permission="Ostad.Create">
+                    <button
+                        className="btn btn-primary"
+                        onClick={() => navigate('/dashboard/ostad/create')}
+                    >
+                        <i className="bi bi-plus-circle me-2"></i>
+                        استاد جدید
+                    </button>
+                </PermissionWrapper>
             </div>
 
             {/* ============================================================
@@ -345,14 +332,13 @@ export default function OstadList() {
                                     <th>رشته تحصیلی</th>
                                     <th>نوع همکاری</th>
                                     <th>وضعیت</th>
-                                    <th>وضعیت موقت</th>
                                     <th>عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {ostads.length === 0 ? (
                                     <tr>
-                                        <td colSpan="9" className="text-center text-muted">
+                                        <td colSpan="8" className="text-center text-muted">
                                             هیچ استادی یافت نشد
                                         </td>
                                     </tr>
@@ -383,39 +369,11 @@ export default function OstadList() {
                                                     {ostad.vazeeat ? 'فعال' : 'غیرفعال'}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <span className={`badge ${ostad.vazeeatMovaghat ? 'bg-success' : 'bg-danger'}`}>
-                                                    {ostad.vazeeatMovaghat ? 'فعال' : 'غیرفعال'}
-                                                </span>
-                                            </td>
                                             <td onClick={(e) => e.stopPropagation()}>
-                                                <div className="d-flex gap-1">
-                                                    <button
-                                                        className="btn btn-outline-primary btn-sm"
-                                                        onClick={() => navigate(`/dashboard/ostad/${ostad.id}`)}
-                                                        title="مشاهده"
-                                                    >
-                                                        <i className="bi bi-eye"></i>
-                                                    </button>
-                                                    <PermissionWrapper permission="Ostad.Update">
-                                                        <button
-                                                            className="btn btn-warning btn-sm"
-                                                            onClick={() => navigate(`/dashboard/ostad/edit/${ostad.id}`)}
-                                                            title="ویرایش"
-                                                        >
-                                                            <i className="bi bi-pencil"></i>
-                                                        </button>
-                                                    </PermissionWrapper>
-                                                    <PermissionWrapper permission="Ostad.Delete">
-                                                        <button
-                                                            className="btn btn-danger btn-sm"
-                                                            onClick={() => {/* باز کردن مودال حذف */ }}
-                                                            title="حذف"
-                                                        >
-                                                            <i className="bi bi-trash"></i>
-                                                        </button>
-                                                    </PermissionWrapper>
-                                                </div>
+                                                {/* ============================================================
+                                                    ❌ عملیات - خالی (فقط برای کلیک روی ردیف)
+                                                    ============================================================ */}
+                                                <span className="text-muted small">-</span>
                                             </td>
                                         </tr>
                                     ))

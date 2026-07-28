@@ -71,7 +71,6 @@ export default function OstadDetail() {
         setLoading(true);
         setError(null);
         try {
-            // 1️⃣ دریافت اطلاعات استاد
             const response = await api.get(`/Ostad/${id}`);
             if (response.data?.success) {
                 setOstad(response.data.data);
@@ -79,7 +78,6 @@ export default function OstadDetail() {
                 setError('استاد یافت نشد');
             }
 
-            // 2️⃣ دریافت اطلاعات کاربر مرتبط
             try {
                 const userResponse = await api.get(`/User/by-ostad/${id}`);
                 if (userResponse.data?.success) {
@@ -330,6 +328,18 @@ export default function OstadDetail() {
             4: 'هیات علمی پیام نور (سایر استان‌ها)'
         };
         return map[noe] || '-';
+    };
+
+    // ============================================================
+    // مقطع به فارسی
+    // ============================================================
+    const getMaghtaText = (maghta) => {
+        const map = {
+            5: 'کارشناسی',
+            10: 'کارشناسی ارشد',
+            15: 'دکتری'
+        };
+        return map[maghta] || maghta || '-';
     };
 
     return (
@@ -589,13 +599,25 @@ export default function OstadDetail() {
             </div>
 
             {/* ============================================================
-                🔥 مدارک تحصیلی (در پایین صفحه)
+                🔥 مدارک تحصیلی
                 ============================================================ */}
-            <div className="row mt-3">
+            <div className="row mt-4">
                 <div className="col-12">
                     <div className="card">
-                        <div className="card-header bg-secondary text-white">
-                            <h5 className="mb-0">مدارک تحصیلی</h5>
+                        <div className="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0">
+                                <i className="bi bi-book me-2"></i>
+                                مدارک تحصیلی
+                            </h5>
+                            <PermissionWrapper permission="Ostad.Update">
+                                <button
+                                    className="btn btn-sm btn-light"
+                                    onClick={() => {/* باز کردن مودال افزودن مدرک */ }}
+                                >
+                                    <i className="bi bi-plus-circle me-1"></i>
+                                    افزودن مدرک
+                                </button>
+                            </PermissionWrapper>
                         </div>
                         <div className="card-body">
                             {ostad.ostadMadraks && ostad.ostadMadraks.length > 0 ? (
@@ -608,7 +630,9 @@ export default function OstadDetail() {
                                                 <th>گرایش</th>
                                                 <th>مقطع</th>
                                                 <th>محل اخذ</th>
+                                                <th>گروه آموزشی</th>
                                                 <th>پیش‌فرض</th>
+                                                <th>عملیات</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -617,12 +641,37 @@ export default function OstadDetail() {
                                                     <td>{index + 1}</td>
                                                     <td>{madrak.reshteh || '-'}</td>
                                                     <td>{madrak.grayesh || '-'}</td>
-                                                    <td>{madrak.maghta || '-'}</td>
+                                                    <td>{getMaghtaText(madrak.maghta)}</td>
                                                     <td>{madrak.mahalAkhz || '-'}</td>
+                                                    <td>{madrak.grooheAmoozeshiName || '-'}</td>
                                                     <td>
-                                                        {madrak.pishFarz && (
+                                                        {madrak.pishFarz ? (
                                                             <span className="badge bg-info">پیش‌فرض</span>
+                                                        ) : (
+                                                            <span className="text-muted">-</span>
                                                         )}
+                                                    </td>
+                                                    <td>
+                                                        <div className="d-flex gap-1">
+                                                            <PermissionWrapper permission="Ostad.Update">
+                                                                <button
+                                                                    className="btn btn-warning btn-sm"
+                                                                    onClick={() => {/* ویرایش مدرک */ }}
+                                                                    title="ویرایش"
+                                                                >
+                                                                    <i className="bi bi-pencil"></i>
+                                                                </button>
+                                                            </PermissionWrapper>
+                                                            <PermissionWrapper permission="Ostad.Update">
+                                                                <button
+                                                                    className="btn btn-danger btn-sm"
+                                                                    onClick={() => {/* حذف مدرک */ }}
+                                                                    title="حذف"
+                                                                >
+                                                                    <i className="bi bi-trash"></i>
+                                                                </button>
+                                                            </PermissionWrapper>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -630,7 +679,10 @@ export default function OstadDetail() {
                                     </table>
                                 </div>
                             ) : (
-                                <p className="text-muted text-center">هیچ مدرکی ثبت نشده است</p>
+                                <div className="text-center text-muted py-4">
+                                    <i className="bi bi-book fs-1 d-block mb-2"></i>
+                                    <p>هیچ مدرک تحصیلی برای این استاد ثبت نشده است</p>
+                                </div>
                             )}
                         </div>
                     </div>
