@@ -19,7 +19,7 @@ import KarmandCreate from './pages/Karmand/KarmandCreate';
 import KarmandDetail from './pages/Karmand/KarmandDetail';
 
 import OstadList from './pages/Ostad/OstadList';
-//import OstadDetail from './pages/Ostad/OstadDetail';
+import OstadDetail from './pages/Ostad/OstadDetail';
 import OstadCreate from './pages/Ostad/OstadCreate';
 //import OstadEdit from './pages/Ostad/OstadEdit';
 
@@ -169,7 +169,7 @@ function App() {
                   </ProtectedRouteWithPermission>
                 }
               />
-              {/*  
+
               <Route
                 path="ostad/:id"
                 element={
@@ -178,7 +178,15 @@ function App() {
                   </ProtectedRouteWithPermission>
                 }
               />
-              
+              <Route
+                path="ostad/:id/roles"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="RoleAssignment.View">
+                    <UserRoles />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              {/*
               <Route
                 path="ostad/edit/:id"
                 element={

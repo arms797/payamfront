@@ -128,7 +128,7 @@ export default function OstadList() {
                 page: pagination.page,
                 pageSize: pagination.pageSize,
                 search: debouncedSearch || undefined,
-                vazeeat: vazeeat === 'all' ? undefined : vazeeat === 'true',                
+                vazeeat: vazeeat === 'all' ? undefined : vazeeat === 'true',
                 reshteh: debouncedReshteh || undefined,
                 noeHamkari: selectedNoeHamkari || undefined
             };
@@ -345,7 +345,7 @@ export default function OstadList() {
                                     <th>رشته تحصیلی</th>
                                     <th>نوع همکاری</th>
                                     <th>وضعیت</th>
-                                    <th>وضعیت</th>
+                                    <th>وضعیت موقت</th>
                                     <th>عملیات</th>
                                 </tr>
                             </thead>

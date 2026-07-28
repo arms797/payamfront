@@ -153,6 +153,9 @@ export default function OstadCreate() {
     // ============================================================
     // آپلود فایل اکسل
     // ============================================================
+    // ============================================================
+    // آپلود فایل اکسل
+    // ============================================================
     const handleUploadExcel = async () => {
         if (!selectedFile) {
             toast.warning('لطفاً ابتدا فایل را انتخاب کنید');
@@ -165,21 +168,48 @@ export default function OstadCreate() {
 
         try {
             const response = await api.post('/Ostad/bulk-upload', formDataFile, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
+                responseType: 'blob'  // ← مهم: برای دریافت فایل
             });
 
-            if (response.data?.success) {
-                const msg = response.data.message;
-                const errors = response.data.errors;
-                if (errors && errors.length > 0) {
-                    toast.warning(`${msg} - ${errors.length} خطا وجود دارد`);
-                    console.log('خطاهای بارگذاری:', errors);
-                } else {
-                    toast.success(msg);
-                }
+            // ============================================================
+            // 🔥 بررسی نوع پاسخ (فایل یا JSON)
+            // ============================================================
+            const contentType = response.headers['content-type'];
+
+            if (contentType && contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+                // ============================================================
+                // 🔥 اگر پاسخ یک فایل اکسل است (فایل خطاها)
+                // ============================================================
+                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'خطاهای_بارگذاری_اساتید.xlsx');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+
+                toast.warning('برخی رکوردها با خطا مواجه شدند. فایل خطاها دانلود شد.');
                 setSelectedFile(null);
                 document.getElementById('fileInput').value = '';
                 navigate('/dashboard/ostad');
+            } else {
+                // ============================================================
+                // 🔥 اگر پاسخ JSON است (همه رکوردها موفق)
+                // ============================================================
+                // تبدیل blob به متن برای خواندن JSON
+                const text = await response.data.text();
+                const data = JSON.parse(text);
+
+                if (data.success) {
+                    toast.success(data.message);
+                    setSelectedFile(null);
+                    document.getElementById('fileInput').value = '';
+                    navigate('/dashboard/ostad');
+                } else {
+                    toast.error(data.message || 'خطا در بارگذاری فایل');
+                }
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در بارگذاری فایل');
