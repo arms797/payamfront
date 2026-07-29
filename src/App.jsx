@@ -148,7 +148,7 @@ function App() {
                 }
               />
               <Route
-                path="personel/:karmandId/roles"
+                path="personel/:id/roles"
                 element={<ProtectedRouteWithPermission requiredPermission="RoleAssignment.View">
                   <UserRoles />
                 </ProtectedRouteWithPermission>}

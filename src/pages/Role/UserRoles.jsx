@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import { toast } from 'react-toastify';
@@ -9,7 +9,15 @@ import { PermissionWrapper } from '../../components/PermissionWrapper';
 
 export default function UserRoles() {
     const navigate = useNavigate();
-    const { karmandId } = useParams();
+    const location = useLocation();
+    const { id } = useParams();
+
+    // ============================================================
+    // 🔥 دریافت نوع کاربر از query params
+    // ============================================================
+    const queryParams = new URLSearchParams(location.search);
+    const userType = queryParams.get('type') || 'karmand'; // پیش‌فرض: کارمند
+
     const { hasPermission, user } = useAuth();
     const { markazList } = useMarkaz();
 
@@ -17,7 +25,7 @@ export default function UserRoles() {
     // Stateهای اصلی
     // ============================================================
     const [userInfo, setUserInfo] = useState(null);
-    const [appUserId, setAppUserId] = useState(null);  // ← 🔥 اضافه شد: شناسه AppUser
+    const [appUserId, setAppUserId] = useState(null);
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,21 +67,20 @@ export default function UserRoles() {
     }
 
     // ============================================================
-    // دریافت اطلاعات کاربر
+    // دریافت اطلاعات کاربر (با API واحد)
     // ============================================================
     const fetchUserInfo = async () => {
-        try {
-            const response = await api.get(`/Karmand/${karmandId}`);
-            if (response.data?.success) {
-                setUserInfo(response.data.data);
+        if (!id) return;
 
-                // ============================================================
-                // 🔥 دریافت UserId از AppUser متناظر با این کارمند
-                // ============================================================
-                const userResponse = await api.get(`/User/by-karmand/${karmandId}`);
-                if (userResponse.data?.success) {
-                    setAppUserId(userResponse.data.data.id);
-                }
+        try {
+            const userResponse = await api.get(`/User/by-type`, {
+                params: { type: userType, id: parseInt(id) }
+            });
+
+            if (userResponse.data?.success) {
+                const data = userResponse.data.data;
+                setUserInfo(data);
+                setAppUserId(data.id);
             }
         } catch (error) {
             console.error('خطا در دریافت اطلاعات کاربر:', error);
@@ -85,6 +92,8 @@ export default function UserRoles() {
     // دریافت نقش‌های کاربر
     // ============================================================
     const fetchUserRoles = async () => {
+        if (!appUserId) return;
+
         setLoading(true);
         try {
             const response = await api.get(`/RoleAssignment/by-user/${appUserId}`);
@@ -103,10 +112,10 @@ export default function UserRoles() {
     // بارگذاری اولیه
     // ============================================================
     useEffect(() => {
-        if (karmandId) {
+        if (id) {
             fetchUserInfo();
         }
-    }, [karmandId]);
+    }, [id, userType]);
 
     // ============================================================
     // بارگذاری نقش‌ها بعد از دریافت AppUserId
@@ -342,6 +351,31 @@ export default function UserRoles() {
         return name;
     };
 
+    // ============================================================
+    // تابع کمکی برای نمایش عنوان صفحه
+    // ============================================================
+    const getPageTitle = () => {
+        switch (userType) {
+            case 'karmand':
+                return 'کارمند';
+            case 'ostad':
+                return 'استاد';
+            case 'daneshjoo':
+                return 'دانشجو';
+            case 'admin':
+                return 'ادمین';
+            default:
+                return 'کاربر';
+        }
+    };
+
+    const getUserFullName = () => {
+        if (!userInfo) return '';
+        const firstName = userInfo.firstName || userInfo.naam || '';
+        const lastName = userInfo.lastName || userInfo.naameKhanevadeghi || '';
+        return `${firstName} ${lastName}`.trim() || userInfo.userName || '';
+    };
+
     return (
         <div className="container-fluid">
             {/* ============================================================
@@ -351,12 +385,14 @@ export default function UserRoles() {
                 <div>
                     <button
                         className="btn btn-outline-secondary me-3"
-                        onClick={() => navigate('/dashboard/personel')}
+                        onClick={() => navigate(-1)}
                     >
                         <i className="bi bi-arrow-right me-1"></i>
                         بازگشت
                     </button>
-                    <h4 className="d-inline-block mb-0">مدیریت نقش‌های کاربر</h4>
+                    <h4 className="d-inline-block mb-0">
+                        مدیریت نقش‌های {getPageTitle()}
+                    </h4>
                 </div>
                 <button
                     className="btn btn-primary"
@@ -374,21 +410,19 @@ export default function UserRoles() {
                 <div className="card mb-4">
                     <div className="card-body">
                         <div className="row">
-                            <div className="col-md-3">
+                            <div className="col-md-4">
                                 <small className="text-muted">نام کاربری</small>
                                 <p className="fw-bold">{userInfo.userName || '-'}</p>
                             </div>
-                            <div className="col-md-3">
-                                <small className="text-muted">نام</small>
-                                <p className="fw-bold">{userInfo.naam || '-'}</p>
+                            <div className="col-md-4">
+                                <small className="text-muted">نام و نام خانوادگی</small>
+                                <p className="fw-bold">{getUserFullName() || '-'}</p>
                             </div>
-                            <div className="col-md-3">
-                                <small className="text-muted">نام خانوادگی</small>
-                                <p className="fw-bold">{userInfo.naameKhanevadeghi || '-'}</p>
-                            </div>
-                            <div className="col-md-3">
-                                <small className="text-muted">مرکز</small>
-                                <p className="fw-bold">{userInfo.markazName || '-'}</p>
+                            <div className="col-md-4">
+                                <small className="text-muted">نوع کاربر</small>
+                                <p className="fw-bold">
+                                    <span className="badge bg-info">{getPageTitle()}</span>
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -484,7 +518,6 @@ export default function UserRoles() {
                                                             <i className="bi bi-trash"></i>
                                                         </button>
                                                     </PermissionWrapper>
-
                                                 </div>
                                             </td>
                                         </tr>

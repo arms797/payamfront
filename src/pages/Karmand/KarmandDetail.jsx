@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import { PermissionWrapper } from '../../components/PermissionWrapper';
@@ -9,6 +9,7 @@ import MarkazSelector from '../../components/common/MarkazSelector';
 
 export default function KarmandDetail() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { id } = useParams();
     const { hasPermission } = useAuth();
     const { markazList } = useMarkaz();
@@ -18,6 +19,7 @@ export default function KarmandDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [resettingPassword, setResettingPassword] = useState(false);
+
     // ============================================================
     // Stateهای تغییر وضعیت
     // ============================================================
@@ -64,7 +66,6 @@ export default function KarmandDetail() {
         setLoading(true);
         setError(null);
         try {
-            // 1️⃣ دریافت اطلاعات کارمند
             const response = await api.get(`/Karmand/${id}`);
             if (response.data?.success) {
                 setKarmand(response.data.data);
@@ -72,7 +73,6 @@ export default function KarmandDetail() {
                 setError('کارمند یافت نشد');
             }
 
-            // 2️⃣ دریافت اطلاعات کاربر مرتبط
             try {
                 const userResponse = await api.get(`/User/by-karmand/${id}`);
                 if (userResponse.data?.success) {
@@ -161,7 +161,7 @@ export default function KarmandDetail() {
             const response = await api.delete(`/Karmand/delete/${karmand.id}`);
             if (response.data?.success) {
                 toast.success('کارمند با موفقیت حذف شد');
-                navigate('/dashboard/personel', { state: { fromDetail: true } });
+                handleBackToList();
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف کارمند');
@@ -194,6 +194,7 @@ export default function KarmandDetail() {
             setResettingPassword(false);
         }
     };
+
     // ============================================================
     // 🔥 تغییر وضعیت فعال/غیرفعال
     // ============================================================
@@ -216,7 +217,6 @@ export default function KarmandDetail() {
 
             if (response.data?.success) {
                 toast.success(`وضعیت کاربر با موفقیت به "${statusText}" تغییر کرد`);
-                // به‌روزرسانی اطلاعات کاربر
                 setUserInfo(prev => ({ ...prev, vazeeyat: newStatus }));
             }
         } catch (error) {
@@ -256,6 +256,7 @@ export default function KarmandDetail() {
             setTogglingTempStatus(false);
         }
     };
+
     // ============================================================
     // تغییر فیلدهای مرکز
     // ============================================================
@@ -268,6 +269,23 @@ export default function KarmandDetail() {
     // ============================================================
     const closeEditModal = () => {
         setShowEditModal(false);
+    };
+
+    // ============================================================
+    // 🔥 بازگشت به لیست با حفظ موقعیت
+    // ============================================================
+    const handleBackToList = () => {
+        navigate('/dashboard/personel', {
+            state: {
+                fromDetail: true,
+                page: location.state?.page || 1,
+                pageSize: location.state?.pageSize || 50,
+                search: location.state?.search || '',
+                ostanId: location.state?.ostanId || '',
+                markazId: location.state?.markazId || '',
+                vazeeat: location.state?.vazeeat || 'true'
+            }
+        });
     };
 
     // ============================================================
@@ -295,7 +313,7 @@ export default function KarmandDetail() {
                 </div>
                 <button
                     className="btn btn-secondary"
-                    onClick={() => navigate('/dashboard/personel', { state: { fromDetail: true } })}
+                    onClick={handleBackToList}
                 >
                     <i className="bi bi-arrow-right me-1"></i>
                     بازگشت به لیست کارمندان
@@ -313,7 +331,7 @@ export default function KarmandDetail() {
                 <div>
                     <button
                         className="btn btn-outline-secondary me-3"
-                        onClick={() => navigate('/dashboard/personel', { state: { fromDetail: true } })}
+                        onClick={handleBackToList}
                     >
                         <i className="bi bi-arrow-right me-1"></i>
                         بازگشت
@@ -333,10 +351,10 @@ export default function KarmandDetail() {
                     <PermissionWrapper permission="RoleAssignment.View">
                         <button
                             className="btn btn-info"
-                            onClick={() => navigate(`/dashboard/personel/${karmand.id}/roles`)}
+                            onClick={() => navigate(`/dashboard/personel/${karmand.id}/roles?type=karmand`)}
                         >
                             <i className="bi bi-person-badge me-1"></i>
-                            نقش‌ها کاربر
+                            نقش‌ها
                         </button>
                     </PermissionWrapper>
                     <PermissionWrapper permission="Karmand.Delete">
@@ -423,20 +441,19 @@ export default function KarmandDetail() {
                     </div>
 
                     {/* ============================================================
-    🔥 اطلاعات کاربری (AppUser)
-    ============================================================ */}
+                        🔥 اطلاعات کاربری (AppUser)
+                        ============================================================ */}
                     {userInfo ? (
                         <div className="card mb-4">
-                            <div className="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                            <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                                 <h5 className="mb-0">اطلاعات کاربری</h5>
                                 <div className="d-flex gap-1">
-                                    {/* دکمه ریست رمز */}
-                                    <PermissionWrapper permission="User.Update">
+                                    <PermissionWrapper permission="Karmand.Update">
                                         <button
                                             className="btn btn-warning btn-sm"
                                             onClick={handleResetPassword}
                                             disabled={resettingPassword}
-                                            title="ریست رمز عبور "
+                                            title="ریست رمز عبور"
                                         >
                                             {resettingPassword ? (
                                                 <span className="spinner-border spinner-border-sm" role="status"></span>
@@ -459,7 +476,7 @@ export default function KarmandDetail() {
                                         <span className={`badge ${userInfo.vazeeyat ? 'bg-success' : 'bg-danger'}`}>
                                             {userInfo.vazeeyat ? 'فعال' : 'غیرفعال'}
                                         </span>
-                                        <PermissionWrapper permission="User.Update">
+                                        <PermissionWrapper permission="Karmand.Update">
                                             <button
                                                 className={`btn btn-sm ${userInfo.vazeeyat ? 'btn-danger' : 'btn-success'}`}
                                                 onClick={handleToggleStatus}
@@ -480,14 +497,14 @@ export default function KarmandDetail() {
                                     <div className="col-4 fw-bold">وضعیت موقت:</div>
                                     <div className="col-8 d-flex align-items-center gap-2">
                                         <span className={`badge ${userInfo.vazeeyatMovaghat ? 'bg-warning' : 'bg-secondary'}`}>
-                                            {userInfo.vazeeyatMovaghat ? 'فعال' : 'غیر فعال'}
+                                            {userInfo.vazeeyatMovaghat ? 'مسدود' : 'عادی'}
                                         </span>
-                                        <PermissionWrapper permission="User.Update">
+                                        <PermissionWrapper permission="Karmand.Update">
                                             <button
                                                 className={`btn btn-sm ${userInfo.vazeeyatMovaghat ? 'btn-success' : 'btn-warning'}`}
                                                 onClick={handleToggleTempStatus}
                                                 disabled={togglingTempStatus}
-                                                title={userInfo.vazeeyatMovaghat ? 'غیرفعال کردن' : 'فعال کردن'}
+                                                title={userInfo.vazeeyatMovaghat ? 'رفع مسدودیت' : 'مسدود کردن'}
                                             >
                                                 {togglingTempStatus ? (
                                                     <span className="spinner-border spinner-border-sm" role="status"></span>
@@ -653,7 +670,6 @@ export default function KarmandDetail() {
                                         </div>
                                     </div>
 
-                                    {/* امضا - غیرفعال */}
                                     <div className="row">
                                         <div className="col-md-6 mb-3">
                                             <label className="form-label">امضا</label>
@@ -693,9 +709,6 @@ export default function KarmandDetail() {
                 </div>
             )}
 
-            {/* ============================================================
-                پس‌زمینه مودال
-                ============================================================ */}
             {showEditModal && (
                 <div
                     className="modal-backdrop show"

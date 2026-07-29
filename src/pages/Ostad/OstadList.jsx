@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import { PermissionWrapper } from '../../components/PermissionWrapper';
@@ -8,6 +8,7 @@ import api from '../../api/axiosConfig';
 
 export default function OstadList() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { hasPermission, user } = useAuth();
     const { markazList } = useMarkaz();
 
@@ -36,6 +37,39 @@ export default function OstadList() {
     const [debouncedReshteh, setDebouncedReshteh] = useState('');
 
     // ============================================================
+    // 🔥 بازیابی موقعیت هنگام بازگشت از جزئیات
+    // ============================================================
+    useEffect(() => {
+        if (location.state?.fromDetail) {
+            const savedPage = location.state.page;
+            const savedPageSize = location.state.pageSize;
+            const savedSearch = location.state.search;
+            const savedOstanId = location.state.ostanId;
+            const savedMarkazId = location.state.markazId;
+            const savedNoeHamkari = location.state.noeHamkari;
+            const savedVazeeat = location.state.vazeeat;
+            const savedReshteh = location.state.reshteh;
+
+            if (savedPage) {
+                setPagination(prev => ({
+                    ...prev,
+                    page: savedPage,
+                    pageSize: savedPageSize || prev.pageSize
+                }));
+            }
+            if (savedSearch !== undefined) setSearch(savedSearch || '');
+            if (savedOstanId !== undefined) setSelectedOstanId(savedOstanId || '');
+            if (savedMarkazId !== undefined) setSelectedMarkazId(savedMarkazId || '');
+            if (savedNoeHamkari !== undefined) setSelectedNoeHamkari(savedNoeHamkari || '');
+            if (savedVazeeat !== undefined) setVazeeat(savedVazeeat || 'true');
+            if (savedReshteh !== undefined) setReshteh(savedReshteh || '');
+
+            // پاک کردن state تا دوباره استفاده نشود
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
+    // ============================================================
     // 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
     // ============================================================
     const getDisplayName = useCallback((markaz) => {
@@ -53,7 +87,7 @@ export default function OstadList() {
     }, []);
 
     // ============================================================
-    // 🔥 Debounce برای جستجو (تاخیر ۵۰۰ میلی‌ثانیه)
+    // 🔥 Debounce برای جستجو (تاخیر ۷۰۰ میلی‌ثانیه)
     // ============================================================
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -64,7 +98,7 @@ export default function OstadList() {
     }, [search]);
 
     // ============================================================
-    // 🔥 Debounce برای رشته تحصیلی (تاخیر ۵۰۰ میلی‌ثانیه)
+    // 🔥 Debounce برای رشته تحصیلی (تاخیر ۷۰۰ میلی‌ثانیه)
     // ============================================================
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -170,6 +204,25 @@ export default function OstadList() {
         setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
     };
 
+    // ============================================================
+    // 🔥 کلیک روی ردیف - ذخیره موقعیت
+    // ============================================================
+    const handleRowClick = (ostadId) => {
+        navigate(`/dashboard/ostad/${ostadId}`, {
+            state: {
+                fromList: true,
+                page: pagination.page,
+                pageSize: pagination.pageSize,
+                search: search,
+                ostanId: selectedOstanId,
+                markazId: selectedMarkazId,
+                noeHamkari: selectedNoeHamkari,
+                vazeeat: vazeeat,
+                reshteh: reshteh
+            }
+        });
+    };
+
     return (
         <div className="container-fluid">
             {/* ============================================================
@@ -194,7 +247,6 @@ export default function OstadList() {
             <div className="card mb-4">
                 <div className="card-body">
                     <div className="row g-2 align-items-end">
-                        {/* جستجو */}
                         <div className="col-md-2">
                             <label className="form-label">جستجو</label>
                             <input
@@ -206,7 +258,6 @@ export default function OstadList() {
                             />
                         </div>
 
-                        {/* رشته تحصیلی */}
                         <div className="col-md-2">
                             <label className="form-label">رشته تحصیلی</label>
                             <input
@@ -218,7 +269,6 @@ export default function OstadList() {
                             />
                         </div>
 
-                        {/* استان */}
                         <div className="col-md-2">
                             <label className="form-label">استان</label>
                             <select
@@ -238,7 +288,6 @@ export default function OstadList() {
                             </select>
                         </div>
 
-                        {/* مرکز */}
                         <div className="col-md-2">
                             <label className="form-label">مرکز</label>
                             <select
@@ -256,7 +305,6 @@ export default function OstadList() {
                             </select>
                         </div>
 
-                        {/* نوع همکاری */}
                         <div className="col-md-2">
                             <label className="form-label">نوع همکاری</label>
                             <select
@@ -272,7 +320,6 @@ export default function OstadList() {
                             </select>
                         </div>
 
-                        {/* وضعیت */}
                         <div className="col-md-2">
                             <label className="form-label">وضعیت</label>
                             <select
@@ -338,7 +385,7 @@ export default function OstadList() {
                             <tbody>
                                 {ostads.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="text-center text-muted">
+                                        <td colSpan="9" className="text-center text-muted">
                                             هیچ استادی یافت نشد
                                         </td>
                                     </tr>
@@ -347,7 +394,7 @@ export default function OstadList() {
                                         <tr
                                             key={ostad.id}
                                             style={{ cursor: 'pointer' }}
-                                            onClick={() => navigate(`/dashboard/ostad/${ostad.id}`)}
+                                            onClick={() => handleRowClick(ostad.id)}
                                         >
                                             <td>{(pagination.page - 1) * pagination.pageSize + index + 1}</td>
                                             <td><code>{ostad.codeOstadi}</code></td>
@@ -370,9 +417,6 @@ export default function OstadList() {
                                                 </span>
                                             </td>
                                             <td onClick={(e) => e.stopPropagation()}>
-                                                {/* ============================================================
-                                                    ❌ عملیات - خالی (فقط برای کلیک روی ردیف)
-                                                    ============================================================ */}
                                                 <span className="text-muted small">-</span>
                                             </td>
                                         </tr>
@@ -382,9 +426,6 @@ export default function OstadList() {
                         </table>
                     </div>
 
-                    {/* ============================================================
-                        صفحه‌بندی
-                        ============================================================ */}
                     {pagination.totalPages > 1 && (
                         <nav>
                             <ul className="pagination justify-content-center">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import { PermissionWrapper } from '../../components/PermissionWrapper';
@@ -9,6 +9,7 @@ import MarkazSelector from '../../components/common/MarkazSelector';
 
 export default function OstadDetail() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { id } = useParams();
     const { hasPermission } = useAuth();
     const { markazList } = useMarkaz();
@@ -173,7 +174,7 @@ export default function OstadDetail() {
             const response = await api.delete(`/Ostad/delete/${ostad.id}`);
             if (response.data?.success) {
                 toast.success('استاد با موفقیت حذف شد');
-                navigate('/dashboard/ostad', { state: { fromDetail: true } });
+                handleBackToList();
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف استاد');
@@ -284,6 +285,25 @@ export default function OstadDetail() {
     };
 
     // ============================================================
+    // 🔥 بازگشت به لیست با حفظ موقعیت
+    // ============================================================
+    const handleBackToList = () => {
+        navigate('/dashboard/ostad', {
+            state: {
+                fromDetail: true,
+                page: location.state?.page || 1,
+                pageSize: location.state?.pageSize || 50,
+                search: location.state?.search || '',
+                ostanId: location.state?.ostanId || '',
+                markazId: location.state?.markazId || '',
+                noeHamkari: location.state?.noeHamkari || '',
+                vazeeat: location.state?.vazeeat || 'true',
+                reshteh: location.state?.reshteh || ''
+            }
+        });
+    };
+
+    // ============================================================
     // نمایش لودینگ
     // ============================================================
     if (loading) {
@@ -308,7 +328,7 @@ export default function OstadDetail() {
                 </div>
                 <button
                     className="btn btn-secondary"
-                    onClick={() => navigate('/dashboard/ostad', { state: { fromDetail: true } })}
+                    onClick={handleBackToList}
                 >
                     <i className="bi bi-arrow-right me-1"></i>
                     بازگشت به لیست اساتید
@@ -351,7 +371,7 @@ export default function OstadDetail() {
                 <div>
                     <button
                         className="btn btn-outline-secondary me-3"
-                        onClick={() => navigate('/dashboard/ostad', { state: { fromDetail: true } })}
+                        onClick={handleBackToList}
                     >
                         <i className="bi bi-arrow-right me-1"></i>
                         بازگشت
@@ -371,7 +391,7 @@ export default function OstadDetail() {
                     <PermissionWrapper permission="RoleAssignment.View">
                         <button
                             className="btn btn-info"
-                            onClick={() => navigate(`/dashboard/ostad/${ostad.id}/roles`)}
+                            onClick={() => navigate(`/dashboard/ostad/${ostad.id}/roles?type=ostad`)}
                         >
                             <i className="bi bi-person-badge me-1"></i>
                             نقش‌ها

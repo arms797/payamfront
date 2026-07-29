@@ -32,7 +32,6 @@ export default function KarmandList() {
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
     const [vazeeat, setVazeeat] = useState('true');
-    const [vazeeatMovaghat, setVazeeatMovaghat] = useState('true');
 
     // ============================================================
     // Stateهای مودال حذف
@@ -40,6 +39,34 @@ export default function KarmandList() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedKarmand, setSelectedKarmand] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // ============================================================
+    // 🔥 بازیابی موقعیت هنگام بازگشت از جزئیات
+    // ============================================================
+    useEffect(() => {
+        if (location.state?.fromDetail) {
+            const savedPage = location.state.page;
+            const savedPageSize = location.state.pageSize;
+            const savedSearch = location.state.search;
+            const savedOstanId = location.state.ostanId;
+            const savedMarkazId = location.state.markazId;
+            const savedVazeeat = location.state.vazeeat;
+
+            if (savedPage) {
+                setPagination(prev => ({
+                    ...prev,
+                    page: savedPage,
+                    pageSize: savedPageSize || prev.pageSize
+                }));
+            }
+            if (savedSearch !== undefined) setSearch(savedSearch || '');
+            if (savedOstanId !== undefined) setSelectedOstanId(savedOstanId || '');
+            if (savedMarkazId !== undefined) setSelectedMarkazId(savedMarkazId || '');
+            if (savedVazeeat !== undefined) setVazeeat(savedVazeeat || 'true');
+
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     // ============================================================
     // 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
@@ -118,18 +145,37 @@ export default function KarmandList() {
         }
     }, [pagination.page, pagination.pageSize, debouncedSearch, selectedOstanId, selectedMarkazId, vazeeat]);
 
-    // ============================================================
-    // بارگذاری مجدد هنگام بازگشت از صفحه جزئیات
-    // ============================================================
-    useEffect(() => {
-        if (location.state?.fromDetail) {
-            fetchKarmands();
-        }
-    }, [location.state, fetchKarmands]);
-
     useEffect(() => {
         fetchKarmands();
     }, [fetchKarmands]);
+
+    // ============================================================
+    // تغییر صفحه
+    // ============================================================
+    const handlePageChange = (newPage) => {
+        setPagination(prev => ({ ...prev, page: newPage }));
+    };
+
+    const handlePageSizeChange = (e) => {
+        setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
+    };
+
+    // ============================================================
+    // 🔥 کلیک روی ردیف - ذخیره موقعیت
+    // ============================================================
+    const handleRowClick = (karmandId) => {
+        navigate(`/dashboard/personel/${karmandId}`, {
+            state: {
+                fromList: true,
+                page: pagination.page,
+                pageSize: pagination.pageSize,
+                search: search,
+                ostanId: selectedOstanId,
+                markazId: selectedMarkazId,
+                vazeeat: vazeeat
+            }
+        });
+    };
 
     // ============================================================
     // باز کردن مودال حذف
@@ -166,26 +212,6 @@ export default function KarmandList() {
         } finally {
             setDeleteLoading(false);
         }
-    };
-
-    // ============================================================
-    // تغییر صفحه
-    // ============================================================
-    const handlePageChange = (newPage) => {
-        setPagination(prev => ({ ...prev, page: newPage }));
-    };
-
-    const handlePageSizeChange = (e) => {
-        setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
-    };
-
-    const resetFilters = () => {
-        setSearch('');
-        setDebouncedSearch('');
-        setSelectedOstanId('');
-        setSelectedMarkazId('');
-        setVazeeat('true');
-        setPagination(prev => ({ ...prev, page: 1 }));
     };
 
     // ============================================================
@@ -303,7 +329,14 @@ export default function KarmandList() {
                             </button>
                             <button
                                 className="btn btn-outline-secondary"
-                                onClick={resetFilters}
+                                onClick={() => {
+                                    setSearch('');
+                                    setDebouncedSearch('');
+                                    setSelectedOstanId('');
+                                    setSelectedMarkazId('');
+                                    setVazeeat('true');
+                                    setPagination(prev => ({ ...prev, page: 1 }));
+                                }}
                             >
                                 <i className="bi bi-arrow-counterclockwise me-1"></i>
                                 ریست
@@ -371,7 +404,7 @@ export default function KarmandList() {
                                         <tr
                                             key={k.id}
                                             style={{ cursor: 'pointer' }}
-                                            onClick={() => navigate(`/dashboard/personel/${k.id}`)}
+                                            onClick={() => handleRowClick(k.id)}
                                         >
                                             <td>{(pagination.page - 1) * pagination.pageSize + index + 1}</td>
                                             <td><code>{k.codeMelli}</code></td>
@@ -385,55 +418,12 @@ export default function KarmandList() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <span className={`badge ${k.vazeeatMovaghat ? 'bg-success' : 'bg-danger'}`}>
-                                                    {k.vazeeatMovaghat ? 'فعال' : 'غیرفعال'}
+                                                <span className={`badge ${k.vazeeatMovaghat ? 'bg-warning' : 'bg-secondary'}`}>
+                                                    {k.vazeeatMovaghat ? 'مسدود' : 'عادی'}
                                                 </span>
                                             </td>
                                             <td onClick={(e) => e.stopPropagation()}>
-                                                <div className="d-flex gap-1">
-                                                    {/* ============================================================
-            دکمه مشاهده → رفتن به صفحه جزئیات
-            ============================================================ */}
-                                                    <button
-                                                        className="btn btn-outline-primary btn-sm"
-                                                        onClick={() => navigate(`/dashboard/personel/${k.id}`)}
-                                                        title="مشاهده جزئیات"
-                                                    >
-                                                        <i className="bi bi-eye"></i>
-                                                    </button>
-
-                                                    {/* ============================================================
-            دکمه مدیریت نقش‌ها
-            ============================================================ */}
-                                                    {k.userId ? (
-                                                        <PermissionWrapper permission="RoleAssignment.View">
-                                                            <button
-                                                                className="btn btn-info btn-sm"
-                                                                onClick={() => navigate(`/dashboard/personel/${k.id}/roles`)}
-                                                                title="مدیریت نقش‌ها"
-                                                            >
-                                                                <i className="bi bi-person-badge"></i>
-                                                            </button>
-                                                        </PermissionWrapper>
-                                                    ) : (
-                                                        <span className="text-muted small d-flex align-items-center" title="کاربری ثبت نشده">
-                                                            <i className="bi bi-person-x"></i>
-                                                        </span>
-                                                    )}
-
-                                                    {/* ============================================================
-            دکمه حذف → فقط ادمین سامانه
-            ============================================================ */}
-                                                    <PermissionWrapper permission="Karmand.Delete">
-                                                        <button
-                                                            className="btn btn-danger btn-sm"
-                                                            onClick={() => openDeleteModal(k)}
-                                                            title="حذف"
-                                                        >
-                                                            <i className="bi bi-trash"></i>
-                                                        </button>
-                                                    </PermissionWrapper>
-                                                </div>
+                                                <span className="text-muted small">-</span>
                                             </td>
                                         </tr>
                                     ))
@@ -442,9 +432,6 @@ export default function KarmandList() {
                         </table>
                     </div>
 
-                    {/* ============================================================
-                        صفحه‌بندی
-                        ============================================================ */}
                     {pagination.totalPages > 1 && (
                         <nav>
                             <ul className="pagination justify-content-center">
@@ -525,9 +512,6 @@ export default function KarmandList() {
                 </div>
             )}
 
-            {/* ============================================================
-                پس‌زمینه مودال
-                ============================================================ */}
             {showDeleteModal && (
                 <div
                     className="modal-backdrop show"
