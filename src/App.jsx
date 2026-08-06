@@ -23,6 +23,10 @@ import OstadDetail from './pages/Ostad/OstadDetail';
 import OstadCreate from './pages/Ostad/OstadCreate';
 //import OstadEdit from './pages/Ostad/OstadEdit';
 
+import FaaliatList from './pages/Schedule/Faaliat/FaaliatList';
+import ElmiTermList from './pages/Schedule/ElmiTerm/ElmiTermList';
+
+
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -196,6 +200,23 @@ function App() {
                 }
               />
               */}
+              <Route
+                path="faaliat"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Faaliat.View">
+                    <FaaliatList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+
+              <Route
+                path="elmi-term"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="ElmiTerm.View">
+                    <ElmiTermList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
 
               {/* پایان قسمت داشبورد */}
             </Route>

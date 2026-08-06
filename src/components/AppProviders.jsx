@@ -2,15 +2,18 @@
 import React from 'react';
 import { AuthProvider } from '../context/AuthContext';
 import { MenuProvider } from '../context/MenuContext';
-import { MarkazProvider } from '../context/MarkazContext';  // ← اضافه کن
+import { MarkazProvider } from '../context/MarkazContext';
+import { TermProvider } from '../context/TermContext';
 
 const AppProviders = ({ children }) => {
     return (
         <AuthProvider>
-            <MarkazProvider>  {/* ← اینجا اضافه کن */}
-                <MenuProvider>
-                    {children}
-                </MenuProvider>
+            <MarkazProvider>
+                <TermProvider>
+                        <MenuProvider>
+                            {children}
+                        </MenuProvider>
+                </TermProvider>
             </MarkazProvider>
         </AuthProvider>
     );

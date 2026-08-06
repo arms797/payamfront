@@ -6,6 +6,7 @@ import { PermissionWrapper } from '../../components/PermissionWrapper';
 import { toast } from 'react-toastify';
 import api from '../../api/axiosConfig';
 import MarkazSelector from '../../components/common/MarkazSelector';
+import PersianNumber from '../../components/common/PersianNumber';
 
 export default function KarmandDetail() {
     const navigate = useNavigate();
@@ -74,7 +75,9 @@ export default function KarmandDetail() {
             }
 
             try {
-                const userResponse = await api.get(`/User/by-karmand/${id}`);
+                const userResponse = await api.get(`/User/by-type`, {
+                    params: { type: 'karmand', id: parseInt(id) }
+                });
                 if (userResponse.data?.success) {
                     setUserInfo(userResponse.data.data);
                 }
@@ -341,6 +344,20 @@ export default function KarmandDetail() {
                 <div className="d-flex gap-2">
                     <PermissionWrapper permission="Karmand.Update">
                         <button
+                            className="btn btn-warning btn-sm"
+                            onClick={handleResetPassword}
+                            disabled={resettingPassword}
+                            title="ریست رمز عبور"
+                        >
+                            {resettingPassword ? (
+                                <span className="spinner-border spinner-border-sm" role="status"></span>
+                            ) : (
+                                <i className="bi bi-key">  ریست رمز عبور</i>
+                            )}
+                        </button>
+                    </PermissionWrapper>
+                    <PermissionWrapper permission="Karmand.Update">
+                        <button
                             className="btn btn-warning"
                             onClick={openEditModal}
                         >
@@ -373,7 +390,7 @@ export default function KarmandDetail() {
                 کارت اطلاعات شخصی
                 ============================================================ */}
             <div className="row">
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <div className="card mb-4">
                         <div className="card-header bg-primary text-white">
                             <h5 className="mb-0">اطلاعات شخصی</h5>
@@ -381,7 +398,7 @@ export default function KarmandDetail() {
                         <div className="card-body">
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">کد ملی:</div>
-                                <div className="col-8"><code>{karmand.codeMelli || '-'}</code></div>
+                                <div className="col-8"><PersianNumber>{karmand.codeMelli || '-'}</PersianNumber></div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">نام:</div>
@@ -407,7 +424,7 @@ export default function KarmandDetail() {
                     </div>
                 </div>
 
-                <div className="col-md-6">
+                <div className="col-md-4">
                     <div className="card mb-4">
                         <div className="card-header bg-success text-white">
                             <h5 className="mb-0">اطلاعات تماس</h5>
@@ -415,23 +432,23 @@ export default function KarmandDetail() {
                         <div className="card-body">
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">تلفن همراه اصلی:</div>
-                                <div className="col-8">{karmand.mobile || '-'}</div>
+                                <div className="col-8"><PersianNumber>{karmand.mobile || '-'}</PersianNumber></div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">تلفن همراه جهت عمومی:</div>
-                                <div className="col-8">{karmand.mobile2 || '-'}</div>
+                                <div className="col-8"><PersianNumber>{karmand.mobile2 || '-'}</PersianNumber></div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">تلفن مستقیم:</div>
-                                <div className="col-8">{karmand.telefonMostaghim || '-'}</div>
+                                <div className="col-8"><PersianNumber>{karmand.telefonMostaghim || '-'}</PersianNumber></div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">تلفن غیر مستقیم:</div>
-                                <div className="col-8">{karmand.telefonGhayreMostaghim || '-'}</div>
+                                <div className="col-8"><PersianNumber>{karmand.telefonGhayreMostaghim || '-'}</PersianNumber></div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">شماره داخلی:</div>
-                                <div className="col-8">{karmand.telefonDakheli || '-'}</div>
+                                <div className="col-8"><PersianNumber>{karmand.telefonDakheli || '-'}</PersianNumber></div>
                             </div>
                             <div className="row mb-2">
                                 <div className="col-4 fw-bold">ایمیل:</div>
@@ -439,7 +456,8 @@ export default function KarmandDetail() {
                             </div>
                         </div>
                     </div>
-
+                </div>
+                <div className="col-md-4">
                     {/* ============================================================
                         🔥 اطلاعات کاربری (AppUser)
                         ============================================================ */}
@@ -447,27 +465,11 @@ export default function KarmandDetail() {
                         <div className="card mb-4">
                             <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                                 <h5 className="mb-0">اطلاعات کاربری</h5>
-                                <div className="d-flex gap-1">
-                                    <PermissionWrapper permission="Karmand.Update">
-                                        <button
-                                            className="btn btn-warning btn-sm"
-                                            onClick={handleResetPassword}
-                                            disabled={resettingPassword}
-                                            title="ریست رمز عبور"
-                                        >
-                                            {resettingPassword ? (
-                                                <span className="spinner-border spinner-border-sm" role="status"></span>
-                                            ) : (
-                                                <i className="bi bi-key"></i>
-                                            )}
-                                        </button>
-                                    </PermissionWrapper>
-                                </div>
                             </div>
                             <div className="card-body">
                                 <div className="row mb-2">
                                     <div className="col-4 fw-bold">نام کاربری:</div>
-                                    <div className="col-8">{userInfo.userName || '-'}</div>
+                                    <div className="col-8"><PersianNumber>{userInfo.userName || '-'}</PersianNumber></div>
                                 </div>
 
                                 <div className="row mb-2 align-items-center">
@@ -496,15 +498,15 @@ export default function KarmandDetail() {
                                 <div className="row mb-2 align-items-center">
                                     <div className="col-4 fw-bold">وضعیت موقت:</div>
                                     <div className="col-8 d-flex align-items-center gap-2">
-                                        <span className={`badge ${userInfo.vazeeyatMovaghat ? 'bg-warning' : 'bg-secondary'}`}>
-                                            {userInfo.vazeeyatMovaghat ? 'مسدود' : 'عادی'}
+                                        <span className={`badge ${userInfo.vazeeyatMovaghat ? 'bg-success' : 'bg-danger'}`}>
+                                            {userInfo.vazeeyatMovaghat ? 'فعال' : 'غیر فعال'}
                                         </span>
                                         <PermissionWrapper permission="Karmand.Update">
                                             <button
-                                                className={`btn btn-sm ${userInfo.vazeeyatMovaghat ? 'btn-success' : 'btn-warning'}`}
+                                                className={`btn btn-sm ${userInfo.vazeeyatMovaghat ? 'btn-danger' : 'btn-success'}`}
                                                 onClick={handleToggleTempStatus}
                                                 disabled={togglingTempStatus}
-                                                title={userInfo.vazeeyatMovaghat ? 'رفع مسدودیت' : 'مسدود کردن'}
+                                                title={userInfo.vazeeyatMovaghat ? 'غیر فعال کردن' : 'فعال کردن'}
                                             >
                                                 {togglingTempStatus ? (
                                                     <span className="spinner-border spinner-border-sm" role="status"></span>
@@ -518,7 +520,7 @@ export default function KarmandDetail() {
 
                                 <div className="row mb-2">
                                     <div className="col-4 fw-bold">شناسه کاربر:</div>
-                                    <div className="col-8"><code>{userInfo.id}</code></div>
+                                    <div className="col-8"><PersianNumber>{userInfo.id}</PersianNumber></div>
                                 </div>
                             </div>
                         </div>
@@ -539,183 +541,187 @@ export default function KarmandDetail() {
             {/* ============================================================
                 مودال ویرایش
                 ============================================================ */}
-            {showEditModal && karmand && (
-                <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div className="modal-dialog modal-lg">
-                        <div className="modal-content">
-                            <form onSubmit={handleEditSubmit}>
-                                <div className="modal-header">
-                                    <h5 className="modal-title">
-                                        ویرایش کارمند: {karmand.naam} {karmand.naameKhanevadeghi}
-                                    </h5>
-                                    <button type="button" className="btn-close" onClick={closeEditModal}></button>
-                                </div>
-                                <div className="modal-body">
-                                    {/* اطلاعات شخصی */}
-                                    <h6 className="text-primary">اطلاعات شخصی</h6>
-                                    <hr />
+            {
+                showEditModal && karmand && (
+                    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <form onSubmit={handleEditSubmit}>
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">
+                                            ویرایش کارمند: {karmand.naam} {karmand.naameKhanevadeghi}
+                                        </h5>
+                                        <button type="button" className="btn-close" onClick={closeEditModal}></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        {/* اطلاعات شخصی */}
+                                        <h6 className="text-primary">اطلاعات شخصی</h6>
+                                        <hr />
 
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">نام *</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.naam}
-                                                onChange={(e) => setEditFormData({ ...editFormData, naam: e.target.value })}
-                                                required
-                                            />
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">نام *</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.naam}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, naam: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">نام خانوادگی *</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.naameKhanevadeghi}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, naameKhanevadeghi: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">نام خانوادگی *</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.naameKhanevadeghi}
-                                                onChange={(e) => setEditFormData({ ...editFormData, naameKhanevadeghi: e.target.value })}
-                                                required
-                                            />
+
+                                        {/* اطلاعات شغلی */}
+                                        <h6 className="text-primary mt-3">اطلاعات شغلی</h6>
+                                        <hr />
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <MarkazSelector
+                                                    label="مرکز خدمتی *"
+                                                    value={editFormData.markazId}
+                                                    onChange={handleEditMarkazChange('markazId')}
+                                                    required={true}
+                                                    placeholder="انتخاب مرکز خدمتی..."
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <MarkazSelector
+                                                    label="مرکز اصلی"
+                                                    value={editFormData.markazAsliId || ''}
+                                                    onChange={handleEditMarkazChange('markazAsliId')}
+                                                    required={false}
+                                                    placeholder="انتخاب مرکز اصلی..."
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* اطلاعات تماس */}
+                                        <h6 className="text-primary mt-3">اطلاعات تماس</h6>
+                                        <hr />
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">شماره موبایل اصلی</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.mobile}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">شماره جهت نمایش عمومی</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.mobile2}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, mobile2: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">تلفن مستقیم</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.telefonMostaghim}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, telefonMostaghim: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">تلفن غیر مستقیم</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.telefonGhayreMostaghim}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, telefonGhayreMostaghim: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">شماره داخلی</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.telefonDakheli}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, telefonDakheli: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">ایمیل</label>
+                                                <input
+                                                    type="email"
+                                                    className="form-control"
+                                                    value={editFormData.email}
+                                                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">امضا</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={editFormData.emza}
+                                                    disabled
+                                                    style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }}
+                                                />
+                                                <small className="text-muted">
+                                                    <i className="bi bi-lock-fill me-1"></i>
+                                                    این فیلد قابل ویرایش نیست
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    {/* اطلاعات شغلی */}
-                                    <h6 className="text-primary mt-3">اطلاعات شغلی</h6>
-                                    <hr />
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <MarkazSelector
-                                                label="مرکز خدمتی *"
-                                                value={editFormData.markazId}
-                                                onChange={handleEditMarkazChange('markazId')}
-                                                required={true}
-                                                placeholder="انتخاب مرکز خدمتی..."
-                                            />
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <MarkazSelector
-                                                label="مرکز اصلی"
-                                                value={editFormData.markazAsliId || ''}
-                                                onChange={handleEditMarkazChange('markazAsliId')}
-                                                required={false}
-                                                placeholder="انتخاب مرکز اصلی..."
-                                            />
-                                        </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary"
+                                            onClick={closeEditModal}
+                                        >
+                                            انصراف
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="btn btn-primary"
+                                            disabled={editLoading}
+                                        >
+                                            {editLoading ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
+                                        </button>
                                     </div>
-
-                                    {/* اطلاعات تماس */}
-                                    <h6 className="text-primary mt-3">اطلاعات تماس</h6>
-                                    <hr />
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">شماره موبایل اصلی</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.mobile}
-                                                onChange={(e) => setEditFormData({ ...editFormData, mobile: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">شماره جهت نمایش عمومی</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.mobile2}
-                                                onChange={(e) => setEditFormData({ ...editFormData, mobile2: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">تلفن مستقیم</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.telefonMostaghim}
-                                                onChange={(e) => setEditFormData({ ...editFormData, telefonMostaghim: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">تلفن غیر مستقیم</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.telefonGhayreMostaghim}
-                                                onChange={(e) => setEditFormData({ ...editFormData, telefonGhayreMostaghim: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">شماره داخلی</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.telefonDakheli}
-                                                onChange={(e) => setEditFormData({ ...editFormData, telefonDakheli: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">ایمیل</label>
-                                            <input
-                                                type="email"
-                                                className="form-control"
-                                                value={editFormData.email}
-                                                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="row">
-                                        <div className="col-md-6 mb-3">
-                                            <label className="form-label">امضا</label>
-                                            <input
-                                                type="text"
-                                                className="form-control"
-                                                value={editFormData.emza}
-                                                disabled
-                                                style={{ backgroundColor: '#e9ecef', cursor: 'not-allowed' }}
-                                            />
-                                            <small className="text-muted">
-                                                <i className="bi bi-lock-fill me-1"></i>
-                                                این فیلد قابل ویرایش نیست
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="modal-footer">
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary"
-                                        onClick={closeEditModal}
-                                    >
-                                        انصراف
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="btn btn-primary"
-                                        disabled={editLoading}
-                                    >
-                                        {editLoading ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
-                                    </button>
-                                </div>
-                            </form>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {showEditModal && (
-                <div
-                    className="modal-backdrop show"
-                    style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1040 }}
-                    onClick={closeEditModal}
-                ></div>
-            )}
-        </div>
+            {
+                showEditModal && (
+                    <div
+                        className="modal-backdrop show"
+                        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1040 }}
+                        onClick={closeEditModal}
+                    ></div>
+                )
+            }
+        </div >
     );
 }

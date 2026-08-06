@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
@@ -19,13 +19,11 @@ function DashboardContent() {
 
     const { markazList, loading: markazLoading } = useMarkaz();
     const navigate = useNavigate();
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const [changingRole, setChangingRole] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
-    const [isRoleChanging, setIsRoleChanging] = useState(false);
     const [displayRole, setDisplayRole] = useState(null);
-
 
     // ============================================================
     // 🔥 State برای نقش انتخاب‌شده در کومبو
@@ -36,36 +34,36 @@ function DashboardContent() {
     });
 
     // ============================================================
-    // 🔥 همگام‌سازی selectedRole با roles و currentRoleId
+    // همگام‌سازی selectedRole با roles و currentRoleId
     // ============================================================
-    /*useEffect(() => {
-        if (isRoleChanging) return;   // ← جلوگیری از overwrite در حین تغییر
-
+    useEffect(() => {
         if (roles && roles.length > 0 && currentRoleId) {
             const activeRole = roles.find(r => r.id === currentRoleId);
             if (activeRole) {
-                console.log('✅ Active role updated to:', activeRole);
                 setSelectedRole(activeRole);
+                setDisplayRole(activeRole);
             }
         }
-    }, [roles, currentRoleId, isRoleChanging]);*/
+    }, [roles, currentRoleId]);
 
     // ============================================================
-    // همگام‌سازی displayRole
-    // ============================================================
-    useEffect(() => {
-        if (selectedRole) {
-            setDisplayRole(selectedRole);
-        }
-    }, [selectedRole]);
-
-    // ============================================================
-    // 🔥 پیدا کردن نام مرکز
+    // 🔥 پیدا کردن نام مرکز (با پشتیبانی از Level)
     // ============================================================
     const getMarkazName = (markazId) => {
         if (!markazId) return 'مرکز اصلی';
         const markaz = markazList?.find(m => m.id === markazId);
-        return markaz?.naamMarkaz || 'مرکز اصلی';
+        if (!markaz) return 'مرکز اصلی';
+
+        // بر اساس Level نام مناسب را نمایش بده
+        if (markaz.level === 2) {
+            return 'سازمان مرکزی';
+        } else if (markaz.level === 3) {
+            return `استان ${markaz.naamOstan || ''}`.trim() || 'استان';
+        } else if (markaz.level === 4) {
+            return markaz.naamMarkaz || 'مرکز';
+        }
+
+        return markaz.naamMarkaz || 'مرکز اصلی';
     };
 
     // ============================================================
@@ -74,9 +72,6 @@ function DashboardContent() {
     const displayName = displayRole?.name || 'نقش نامشخص';
     const displayMarkaz = getMarkazName(displayRole?.markazId);
     const buttonText = `${displayName} - ${displayMarkaz}`;
-
-    // و در map roles هم برای isActive:
-    //const isActive = displayRole?.id === role.id && displayRole?.markazId === role.markazId;
 
     // ============================================================
     // 🔥 تغییر نقش
@@ -97,6 +92,9 @@ function DashboardContent() {
             if (response.data?.success && response.data?.data) {
                 const newUserData = response.data.data;
 
+                // ============================================================
+                // 🔥 بروزرسانی اطلاعات کاربر در AuthContext
+                // ============================================================
                 updateUser(newUserData);
 
                 // ساخت نمایش نهایی
@@ -108,11 +106,14 @@ function DashboardContent() {
 
                 setSelectedRole(finalDisplayRole);
                 setDisplayRole(finalDisplayRole);
-
-                //console.log('✅ Final Display Role:', finalDisplayRole);
-
                 setDropdownOpen(false);
                 toast.success('نقش با موفقیت تغییر کرد');
+
+                // ============================================================
+                // 🔥 رفرش صفحه برای به‌روزرسانی منوها و مجوزها
+                // ============================================================
+                // به جای navigate، از reload استفاده کن تا همه چیز از نو بارگذاری شود
+                window.location.href = '/dashboard';
             }
         } catch (error) {
             console.error('❌ Error in change role:', error);
@@ -121,7 +122,6 @@ function DashboardContent() {
             setChangingRole(false);
         }
     };
-
 
     const handleLogout = async () => {
         await logout();
@@ -152,6 +152,16 @@ function DashboardContent() {
         };
     }, []);
 
+    // ============================================================
+    // 🔥 همگام‌سازی name کاربر با user
+    // ============================================================
+    const userDisplayName = useMemo(() => {
+        if (!user) return '';
+        const firstName = user.firstName || '';
+        const lastName = user.lastName || '';
+        return `${firstName} ${lastName}`.trim() || user.username || 'کاربر';
+    }, [user]);
+
     if (markazLoading) {
         return (
             <div className="d-flex justify-content-center align-items-center vh-100">
@@ -174,8 +184,11 @@ function DashboardContent() {
                     </div>
 
                     <div className="d-flex align-items-center gap-3">
+                        {/* ============================================================
+                            🔥 نمایش نام کاربر (با useMemo برای به‌روزرسانی)
+                            ============================================================ */}
                         <span className="fw-semibold text-dark">
-                            {user?.firstName} {user?.lastName}
+                            {userDisplayName}
                         </span>
 
                         {roles && roles.length > 0 && (

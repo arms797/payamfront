@@ -5,6 +5,7 @@ import { useMarkaz } from '../../context/MarkazContext';
 import { PermissionWrapper } from '../../components/PermissionWrapper';
 import { toast } from 'react-toastify';
 import api from '../../api/axiosConfig';
+import PersianNumber from '../../components/common/PersianNumber';
 
 export default function OstadList() {
     const navigate = useNavigate();
@@ -32,84 +33,124 @@ export default function OstadList() {
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
     const [selectedNoeHamkari, setSelectedNoeHamkari] = useState('');
-    const [vazeeat, setVazeeat] = useState('true');
+    const [vazeeat, setVazeeat] = useState(1);
     const [reshteh, setReshteh] = useState('');
     const [debouncedReshteh, setDebouncedReshteh] = useState('');
+
+    // ============================================================
+    // 🔥 Refs برای ذخیره آخرین مقادیر
+    // ============================================================
+    const pageRef = useRef(1);
+    const pageSizeRef = useRef(50);
+    const searchRef = useRef('');
+    const ostanIdRef = useRef('');
+    const markazIdRef = useRef('');
+    const noeHamkariRef = useRef('');
+    const vazeeatRef = useRef(1);
+    const reshtehRef = useRef('');
+
+    // ============================================================
+    // 🔥 همگام‌سازی Refs با Stateها
+    // ============================================================
+    useEffect(() => {
+        pageRef.current = pagination.page;
+    }, [pagination.page]);
+
+    useEffect(() => {
+        pageSizeRef.current = pagination.pageSize;
+    }, [pagination.pageSize]);
+
+    useEffect(() => {
+        searchRef.current = search;
+    }, [search]);
+
+    useEffect(() => {
+        ostanIdRef.current = selectedOstanId;
+    }, [selectedOstanId]);
+
+    useEffect(() => {
+        markazIdRef.current = selectedMarkazId;
+    }, [selectedMarkazId]);
+
+    useEffect(() => {
+        noeHamkariRef.current = selectedNoeHamkari;
+    }, [selectedNoeHamkari]);
+
+    useEffect(() => {
+        vazeeatRef.current = vazeeat;
+    }, [vazeeat]);
+
+    useEffect(() => {
+        reshtehRef.current = reshteh;
+    }, [reshteh]);
 
     // ============================================================
     // 🔥 بازیابی موقعیت هنگام بازگشت از جزئیات
     // ============================================================
     useEffect(() => {
         if (location.state?.fromDetail) {
-            const savedPage = location.state.page;
-            const savedPageSize = location.state.pageSize;
-            const savedSearch = location.state.search;
-            const savedOstanId = location.state.ostanId;
-            const savedMarkazId = location.state.markazId;
-            const savedNoeHamkari = location.state.noeHamkari;
-            const savedVazeeat = location.state.vazeeat;
-            const savedReshteh = location.state.reshteh;
+            const savedPage = location.state.page || 1;
+            const savedPageSize = location.state.pageSize || 50;
+            const savedSearch = location.state.search || '';
+            const savedOstanId = location.state.ostanId || '';
+            const savedMarkazId = location.state.markazId || '';
+            const savedNoeHamkari = location.state.noeHamkari || '';
+            const savedVazeeat = location.state.vazeeat || 1;
+            const savedReshteh = location.state.reshteh || '';
 
-            if (savedPage) {
-                setPagination(prev => ({
-                    ...prev,
-                    page: savedPage,
-                    pageSize: savedPageSize || prev.pageSize
-                }));
-            }
-            if (savedSearch !== undefined) setSearch(savedSearch || '');
-            if (savedOstanId !== undefined) setSelectedOstanId(savedOstanId || '');
-            if (savedMarkazId !== undefined) setSelectedMarkazId(savedMarkazId || '');
-            if (savedNoeHamkari !== undefined) setSelectedNoeHamkari(savedNoeHamkari || '');
-            if (savedVazeeat !== undefined) setVazeeat(savedVazeeat || 'true');
-            if (savedReshteh !== undefined) setReshteh(savedReshteh || '');
+            // تنظیم Stateها
+            setPagination(prev => ({
+                ...prev,
+                page: savedPage,
+                pageSize: savedPageSize
+            }));
+            setSearch(savedSearch);
+            setSelectedOstanId(savedOstanId);
+            setSelectedMarkazId(savedMarkazId);
+            setSelectedNoeHamkari(savedNoeHamkari);
+            setVazeeat(savedVazeeat);
+            setReshteh(savedReshteh);
 
-            // پاک کردن state تا دوباره استفاده نشود
+            // 🔥 مستقیماً Refها را هم تنظیم کن تا fetch درست کار کند
+            pageRef.current = savedPage;
+            pageSizeRef.current = savedPageSize;
+            searchRef.current = savedSearch;
+            ostanIdRef.current = savedOstanId;
+            markazIdRef.current = savedMarkazId;
+            noeHamkariRef.current = savedNoeHamkari;
+            vazeeatRef.current = savedVazeeat;
+            reshtehRef.current = savedReshteh;
+
+            // پاک کردن state
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);
 
     // ============================================================
-    // 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
+    // تابع کمکی
     // ============================================================
     const getDisplayName = useCallback((markaz) => {
         if (!markaz) return '';
-
-        if (markaz.level === 2) {
-            return 'سازمان مرکزی';
-        }
-
-        if (markaz.level === 3) {
-            return `ستاد استان ${markaz.naamOstan || ''}`;
-        }
-
+        if (markaz.level === 2) return 'سازمان مرکزی';
+        if (markaz.level === 3) return `ستاد استان ${markaz.naamOstan || ''}`;
         return markaz.naamMarkaz || '';
     }, []);
 
     // ============================================================
-    // 🔥 Debounce برای جستجو (تاخیر ۷۰۰ میلی‌ثانیه)
+    // Debounce
     // ============================================================
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearch(search);
-        }, 700);
-
+        const timer = setTimeout(() => setDebouncedSearch(search), 700);
         return () => clearTimeout(timer);
     }, [search]);
 
-    // ============================================================
-    // 🔥 Debounce برای رشته تحصیلی (تاخیر ۷۰۰ میلی‌ثانیه)
-    // ============================================================
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedReshteh(reshteh);
-        }, 700);
-
+        const timer = setTimeout(() => setDebouncedReshteh(reshteh), 700);
         return () => clearTimeout(timer);
     }, [reshteh]);
 
     // ============================================================
-    // استخراج استان‌های یکتا از مراکز
+    // استخراج استان‌ها
     // ============================================================
     const uniqueOstans = useMemo(() => {
         return markazList
@@ -127,7 +168,7 @@ export default function OstadList() {
     }, [markazList, selectedOstanId]);
 
     // ============================================================
-    // تعیین استان پیش‌فرض بر اساس نقش کاربر
+    // استان پیش‌فرض
     // ============================================================
     useEffect(() => {
         if (markazList && user?.markazId) {
@@ -139,7 +180,7 @@ export default function OstadList() {
     }, [markazList, user?.markazId]);
 
     // ============================================================
-    // بررسی مجوز مشاهده
+    // بررسی مجوز
     // ============================================================
     if (!hasPermission('Ostad.View')) {
         return (
@@ -151,25 +192,25 @@ export default function OstadList() {
     }
 
     // ============================================================
-    // دریافت لیست اساتید
+    // 🔥 دریافت لیست اساتید (با استفاده از Refs)
     // ============================================================
     const fetchOstads = useCallback(async () => {
         setLoading(true);
         try {
             const params = {
-                page: pagination.page,
-                pageSize: pagination.pageSize,
-                search: debouncedSearch || undefined,
-                vazeeat: vazeeat === 'all' ? undefined : vazeeat === 'true',
+                page: pageRef.current,
+                pageSize: pageSizeRef.current,
+                search: searchRef.current || undefined,
+                vazeeat: vazeeatRef.current,
                 reshteh: debouncedReshteh || undefined,
-                noeHamkari: selectedNoeHamkari || undefined
+                noeHamkari: noeHamkariRef.current || undefined
             };
 
-            if (selectedOstanId && !selectedMarkazId) {
-                params.ostanId = parseInt(selectedOstanId);
-            } else if (selectedOstanId && selectedMarkazId) {
-                params.ostanId = parseInt(selectedOstanId);
-                params.markazId = parseInt(selectedMarkazId);
+            if (ostanIdRef.current && !markazIdRef.current) {
+                params.ostanId = parseInt(ostanIdRef.current);
+            } else if (ostanIdRef.current && markazIdRef.current) {
+                params.ostanId = parseInt(ostanIdRef.current);
+                params.markazId = parseInt(markazIdRef.current);
             }
 
             const response = await api.get('/Ostad/list', { params });
@@ -187,8 +228,11 @@ export default function OstadList() {
         } finally {
             setLoading(false);
         }
-    }, [pagination.page, pagination.pageSize, debouncedSearch, debouncedReshteh, selectedOstanId, selectedMarkazId, vazeeat, selectedNoeHamkari]);
+    }, [debouncedReshteh]);
 
+    // ============================================================
+    // 🔥 اجرای fetch
+    // ============================================================
     useEffect(() => {
         fetchOstads();
     }, [fetchOstads]);
@@ -198,14 +242,20 @@ export default function OstadList() {
     // ============================================================
     const handlePageChange = (newPage) => {
         setPagination(prev => ({ ...prev, page: newPage }));
+        pageRef.current = newPage;
+        fetchOstads();
     };
 
     const handlePageSizeChange = (e) => {
-        setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
+        const newSize = parseInt(e.target.value);
+        setPagination(prev => ({ ...prev, pageSize: newSize, page: 1 }));
+        pageSizeRef.current = newSize;
+        pageRef.current = 1;
+        fetchOstads();
     };
 
     // ============================================================
-    // 🔥 کلیک روی ردیف - ذخیره موقعیت
+    // کلیک روی ردیف
     // ============================================================
     const handleRowClick = (ostadId) => {
         navigate(`/dashboard/ostad/${ostadId}`, {
@@ -223,11 +273,84 @@ export default function OstadList() {
         });
     };
 
+    // ============================================================
+    // صفحه‌بندی
+    // ============================================================
+    const renderPagination = () => {
+        const { page, totalPages } = pagination;
+        if (totalPages <= 1) return null;
+
+        const maxVisible = 5;
+        let pages = [];
+        let start = Math.max(1, page - 2);
+        let end = Math.min(totalPages, start + maxVisible - 1);
+
+        if (end - start < maxVisible - 1) {
+            start = Math.max(1, end - maxVisible + 1);
+        }
+
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+
+        return (
+            <nav className="mt-3">
+                <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted small">
+                        صفحه {page} از {totalPages}
+                    </span>
+                    <ul className="pagination mb-0">
+                        <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                            <button className="page-link" onClick={() => handlePageChange(page - 1)}>
+                                قبلی
+                            </button>
+                        </li>
+
+                        {start > 1 && (
+                            <>
+                                <li className="page-item">
+                                    <button className="page-link" onClick={() => handlePageChange(1)}>1</button>
+                                </li>
+                                {start > 2 && <li className="page-item disabled"><span className="page-link">...</span></li>}
+                            </>
+                        )}
+
+                        {pages.map(num => (
+                            <li key={num} className={`page-item ${page === num ? 'active' : ''}`}>
+                                <button className="page-link" onClick={() => handlePageChange(num)}>
+                                    {num}
+                                </button>
+                            </li>
+                        ))}
+
+                        {end < totalPages && (
+                            <>
+                                {end < totalPages - 1 && <li className="page-item disabled"><span className="page-link">...</span></li>}
+                                <li className="page-item">
+                                    <button className="page-link" onClick={() => handlePageChange(totalPages)}>
+                                        {totalPages}
+                                    </button>
+                                </li>
+                            </>
+                        )}
+
+                        <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+                            <button className="page-link" onClick={() => handlePageChange(page + 1)}>
+                                بعدی
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        );
+    };
+
+    // ============================================================
+    // رندر اصلی
+    // ============================================================
     return (
         <div className="container-fluid">
-            {/* ============================================================
-                هدر
-                ============================================================ */}
+            {/* هدر */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4>مدیریت اساتید</h4>
                 <PermissionWrapper permission="Ostad.Create">
@@ -241,9 +364,7 @@ export default function OstadList() {
                 </PermissionWrapper>
             </div>
 
-            {/* ============================================================
-                فیلترها
-                ============================================================ */}
+            {/* فیلترها */}
             <div className="card mb-4">
                 <div className="card-body">
                     <div className="row g-2 align-items-end">
@@ -327,18 +448,16 @@ export default function OstadList() {
                                 value={vazeeat}
                                 onChange={(e) => setVazeeat(e.target.value)}
                             >
-                                <option value="true">فعال</option>
-                                <option value="false">غیرفعال</option>
-                                <option value="all">همه</option>
+                                <option value="1">فعال</option>
+                                <option value="2">غیرفعال</option>
+                                <option value="3">همه</option>
                             </select>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* ============================================================
-                جدول اساتید
-                ============================================================ */}
+            {/* جدول */}
             {loading ? (
                 <div className="text-center py-5">
                     <div className="spinner-border text-primary" role="status">
@@ -396,8 +515,10 @@ export default function OstadList() {
                                             style={{ cursor: 'pointer' }}
                                             onClick={() => handleRowClick(ostad.id)}
                                         >
-                                            <td>{(pagination.page - 1) * pagination.pageSize + index + 1}</td>
-                                            <td><code>{ostad.codeOstadi}</code></td>
+                                            <td>
+                                                <PersianNumber>{(pagination.page - 1) * pagination.pageSize + index + 1}</PersianNumber>
+                                            </td>
+                                            <td><PersianNumber>{ostad.codeOstadi}</PersianNumber></td>
                                             <td>{ostad.naam}</td>
                                             <td><strong>{ostad.naamKhanevadegi}</strong></td>
                                             <td>{ostad.markazName}</td>
@@ -412,9 +533,18 @@ export default function OstadList() {
                                                 </span>
                                             </td>
                                             <td>
-                                                <span className={`badge ${ostad.vazeeat ? 'bg-success' : 'bg-danger'}`}>
-                                                    {ostad.vazeeat ? 'فعال' : 'غیرفعال'}
-                                                </span>
+                                                {ostad.vazeeat && ostad.vazeeatMovaghat && (
+                                                    <span className="badge bg-success">فعال</span>
+                                                )}
+                                                {!ostad.vazeeat && !ostad.vazeeatMovaghat && (
+                                                    <span className="badge bg-danger">غیرفعال دائم</span>
+                                                )}
+                                                {ostad.vazeeat && !ostad.vazeeatMovaghat && (
+                                                    <span className="badge bg-warning text-dark">موقتا غیرفعال</span>
+                                                )}
+                                                {!ostad.vazeeat && ostad.vazeeatMovaghat && (
+                                                    <span className="badge bg-info"> غیرفعال</span>
+                                                )}
                                             </td>
                                             <td onClick={(e) => e.stopPropagation()}>
                                                 <span className="text-muted small">-</span>
@@ -426,41 +556,7 @@ export default function OstadList() {
                         </table>
                     </div>
 
-                    {pagination.totalPages > 1 && (
-                        <nav>
-                            <ul className="pagination justify-content-center">
-                                <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pagination.page - 1)}
-                                    >
-                                        قبلی
-                                    </button>
-                                </li>
-                                {[...Array(pagination.totalPages).keys()].map(num => (
-                                    <li
-                                        key={num + 1}
-                                        className={`page-item ${pagination.page === num + 1 ? 'active' : ''}`}
-                                    >
-                                        <button
-                                            className="page-link"
-                                            onClick={() => handlePageChange(num + 1)}
-                                        >
-                                            {num + 1}
-                                        </button>
-                                    </li>
-                                ))}
-                                <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pagination.page + 1)}
-                                    >
-                                        بعدی
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
-                    )}
+                    {renderPagination()}
                 </>
             )}
         </div>

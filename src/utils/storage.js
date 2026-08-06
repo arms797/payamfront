@@ -3,10 +3,13 @@
 // ============================================================
 export const setUserData = (data) => {
   try{    
-    
+            //console.log('🔍 setUserData data:', data);  // ← این رو اضافه کن
+
+
     localStorage.setItem('accessToken', data.accessToken);
     localStorage.setItem('refreshToken', data.refreshToken);
     localStorage.setItem('user', JSON.stringify({
+        id:data.id,
         username: data.username,
         email: data.email,
         firstName: data.firstName,

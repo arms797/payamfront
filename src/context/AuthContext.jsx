@@ -96,11 +96,11 @@ export const AuthProvider = ({ children }) => {
                     setIsAuthenticated(false);
                 }
             } catch (error) {
-                console.error('❌ loadUser error:', error);
+                //console.error('❌ loadUser error:', error);
                 setIsAuthenticated(false);
             } finally {
                 setLoading(false);
-                console.log('🔍 loadUser - loading set to false');
+                //console.log('🔍 loadUser - loading set to false');
             }
         };
 
@@ -154,15 +154,11 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // ============================================================
-    // 🔥 تابع بروزرسانی اطلاعات کاربر (اصلاح‌شده)
-    // ============================================================
+
     // ============================================================
     // 🔥 تابع بروزرسانی اطلاعات کاربر (اصلاح‌شده)
     // ============================================================
     const updateUser = (newData) => {
-        //console.log('🔄 updateUser called with:', newData);   // برای دیباگ
-
         // ذخیره در localStorage
         setUserData(newData);
 

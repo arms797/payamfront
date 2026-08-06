@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import { PermissionWrapper } from '../../components/PermissionWrapper';
 import { toast } from 'react-toastify';
 import api from '../../api/axiosConfig';
+import PersianNumber from '../../components/common/PersianNumber';
 
 export default function KarmandList() {
     const navigate = useNavigate();
@@ -31,7 +32,44 @@ export default function KarmandList() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
-    const [vazeeat, setVazeeat] = useState('true');
+    const [vazeeat, setVazeeat] = useState(1);
+
+    // ============================================================
+    // 🔥 Refs برای ذخیره آخرین مقادیر
+    // ============================================================
+    const pageRef = useRef(1);
+    const pageSizeRef = useRef(50);
+    const searchRef = useRef('');
+    const ostanIdRef = useRef('');
+    const markazIdRef = useRef('');
+    const vazeeatRef = useRef(1);
+
+    // ============================================================
+    // 🔥 همگام‌سازی Refs با Stateها
+    // ============================================================
+    useEffect(() => {
+        pageRef.current = pagination.page;
+    }, [pagination.page]);
+
+    useEffect(() => {
+        pageSizeRef.current = pagination.pageSize;
+    }, [pagination.pageSize]);
+
+    useEffect(() => {
+        searchRef.current = search;
+    }, [search]);
+
+    useEffect(() => {
+        ostanIdRef.current = selectedOstanId;
+    }, [selectedOstanId]);
+
+    useEffect(() => {
+        markazIdRef.current = selectedMarkazId;
+    }, [selectedMarkazId]);
+
+    useEffect(() => {
+        vazeeatRef.current = vazeeat;
+    }, [vazeeat]);
 
     // ============================================================
     // Stateهای مودال حذف
@@ -45,24 +83,31 @@ export default function KarmandList() {
     // ============================================================
     useEffect(() => {
         if (location.state?.fromDetail) {
-            const savedPage = location.state.page;
-            const savedPageSize = location.state.pageSize;
-            const savedSearch = location.state.search;
-            const savedOstanId = location.state.ostanId;
-            const savedMarkazId = location.state.markazId;
-            const savedVazeeat = location.state.vazeeat;
+            const savedPage = location.state.page || 1;
+            const savedPageSize = location.state.pageSize || 50;
+            const savedSearch = location.state.search || '';
+            const savedOstanId = location.state.ostanId || '';
+            const savedMarkazId = location.state.markazId || '';
+            const savedVazeeat = location.state.vazeeat || 1;
 
-            if (savedPage) {
-                setPagination(prev => ({
-                    ...prev,
-                    page: savedPage,
-                    pageSize: savedPageSize || prev.pageSize
-                }));
-            }
-            if (savedSearch !== undefined) setSearch(savedSearch || '');
-            if (savedOstanId !== undefined) setSelectedOstanId(savedOstanId || '');
-            if (savedMarkazId !== undefined) setSelectedMarkazId(savedMarkazId || '');
-            if (savedVazeeat !== undefined) setVazeeat(savedVazeeat || 'true');
+            // تنظیم Stateها
+            setPagination(prev => ({
+                ...prev,
+                page: savedPage,
+                pageSize: savedPageSize
+            }));
+            setSearch(savedSearch);
+            setSelectedOstanId(savedOstanId);
+            setSelectedMarkazId(savedMarkazId);
+            setVazeeat(savedVazeeat);
+
+            // 🔥 مستقیماً Refها را هم تنظیم کن
+            pageRef.current = savedPage;
+            pageSizeRef.current = savedPageSize;
+            searchRef.current = savedSearch;
+            ostanIdRef.current = savedOstanId;
+            markazIdRef.current = savedMarkazId;
+            vazeeatRef.current = savedVazeeat;
 
             window.history.replaceState({}, document.title);
         }
@@ -73,15 +118,8 @@ export default function KarmandList() {
     // ============================================================
     const getDisplayName = useCallback((markaz) => {
         if (!markaz) return '';
-
-        if (markaz.level === 2) {
-            return 'سازمان مرکزی';
-        }
-
-        if (markaz.level === 3) {
-            return `ستاد استان ${markaz.naamOstan || ''}`;
-        }
-
+        if (markaz.level === 2) return 'سازمان مرکزی';
+        if (markaz.level === 3) return `ستاد استان ${markaz.naamOstan || ''}`;
         return markaz.naamMarkaz || '';
     }, []);
 
@@ -92,7 +130,6 @@ export default function KarmandList() {
         const timer = setTimeout(() => {
             setDebouncedSearch(search);
         }, 700);
-
         return () => clearTimeout(timer);
     }, [search]);
 
@@ -109,23 +146,23 @@ export default function KarmandList() {
     }
 
     // ============================================================
-    // دریافت لیست کارمندان
+    // 🔥 دریافت لیست کارمندان (با استفاده از Refs)
     // ============================================================
     const fetchKarmands = useCallback(async () => {
         setLoading(true);
         try {
             const params = {
-                page: pagination.page,
-                pageSize: pagination.pageSize,
-                search: debouncedSearch || undefined,
-                vazeeat: vazeeat === 'all' ? undefined : vazeeat === 'true'
+                page: pageRef.current,
+                pageSize: pageSizeRef.current,
+                search: searchRef.current || undefined,
+                vazeeat: vazeeatRef.current
             };
 
-            if (selectedOstanId && !selectedMarkazId) {
-                params.ostanId = parseInt(selectedOstanId);
-            } else if (selectedOstanId && selectedMarkazId) {
-                params.ostanId = parseInt(selectedOstanId);
-                params.markazId = parseInt(selectedMarkazId);
+            if (ostanIdRef.current && !markazIdRef.current) {
+                params.ostanId = parseInt(ostanIdRef.current);
+            } else if (ostanIdRef.current && markazIdRef.current) {
+                params.ostanId = parseInt(ostanIdRef.current);
+                params.markazId = parseInt(markazIdRef.current);
             }
 
             const response = await api.get('/Karmand/list', { params });
@@ -143,8 +180,11 @@ export default function KarmandList() {
         } finally {
             setLoading(false);
         }
-    }, [pagination.page, pagination.pageSize, debouncedSearch, selectedOstanId, selectedMarkazId, vazeeat]);
+    }, []);
 
+    // ============================================================
+    // 🔥 اجرای fetch
+    // ============================================================
     useEffect(() => {
         fetchKarmands();
     }, [fetchKarmands]);
@@ -154,14 +194,20 @@ export default function KarmandList() {
     // ============================================================
     const handlePageChange = (newPage) => {
         setPagination(prev => ({ ...prev, page: newPage }));
+        pageRef.current = newPage;
+        fetchKarmands();
     };
 
     const handlePageSizeChange = (e) => {
-        setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
+        const newSize = parseInt(e.target.value);
+        setPagination(prev => ({ ...prev, pageSize: newSize, page: 1 }));
+        pageSizeRef.current = newSize;
+        pageRef.current = 1;
+        fetchKarmands();
     };
 
     // ============================================================
-    // 🔥 کلیک روی ردیف - ذخیره موقعیت
+    // کلیک روی ردیف - ذخیره موقعیت
     // ============================================================
     const handleRowClick = (karmandId) => {
         navigate(`/dashboard/personel/${karmandId}`, {
@@ -215,7 +261,7 @@ export default function KarmandList() {
     };
 
     // ============================================================
-    // استخراج استان‌های یکتا از مراکز
+    // استخراج استان‌های یکتا
     // ============================================================
     const uniqueOstans = useMemo(() => {
         return markazList
@@ -231,6 +277,78 @@ export default function KarmandList() {
     const filteredMarkaz = useMemo(() => {
         return markazList?.filter(m => m.codeOstan === selectedOstanId) || [];
     }, [markazList, selectedOstanId]);
+
+    // ============================================================
+    // 🔥 صفحه‌بندی با نمایش تعداد کل صفحات
+    // ============================================================
+    const renderPagination = () => {
+        const { page, totalPages } = pagination;
+        if (totalPages <= 1) return null;
+
+        const maxVisible = 5;
+        let pages = [];
+        let start = Math.max(1, page - 2);
+        let end = Math.min(totalPages, start + maxVisible - 1);
+
+        if (end - start < maxVisible - 1) {
+            start = Math.max(1, end - maxVisible + 1);
+        }
+
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+
+        return (
+            <nav className="mt-3">
+                <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted small">
+                        صفحه {page} از {totalPages}
+                    </span>
+                    <ul className="pagination mb-0">
+                        <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                            <button className="page-link" onClick={() => handlePageChange(page - 1)}>
+                                قبلی
+                            </button>
+                        </li>
+
+                        {start > 1 && (
+                            <>
+                                <li className="page-item">
+                                    <button className="page-link" onClick={() => handlePageChange(1)}>1</button>
+                                </li>
+                                {start > 2 && <li className="page-item disabled"><span className="page-link">...</span></li>}
+                            </>
+                        )}
+
+                        {pages.map(num => (
+                            <li key={num} className={`page-item ${page === num ? 'active' : ''}`}>
+                                <button className="page-link" onClick={() => handlePageChange(num)}>
+                                    {num}
+                                </button>
+                            </li>
+                        ))}
+
+                        {end < totalPages && (
+                            <>
+                                {end < totalPages - 1 && <li className="page-item disabled"><span className="page-link">...</span></li>}
+                                <li className="page-item">
+                                    <button className="page-link" onClick={() => handlePageChange(totalPages)}>
+                                        {totalPages}
+                                    </button>
+                                </li>
+                            </>
+                        )}
+
+                        <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+                            <button className="page-link" onClick={() => handlePageChange(page + 1)}>
+                                بعدی
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        );
+    };
 
     return (
         <div className="container-fluid">
@@ -310,37 +428,10 @@ export default function KarmandList() {
                                 value={vazeeat}
                                 onChange={(e) => setVazeeat(e.target.value)}
                             >
-                                <option value="true">فعال</option>
-                                <option value="false">غیرفعال</option>
-                                <option value="all">همه</option>
+                                <option value="1">فعال</option>
+                                <option value="2">غیرفعال</option>
+                                <option value="3">همه</option>
                             </select>
-                        </div>
-
-                        <div className="col-md-3 d-flex gap-2">
-                            <button
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    setPagination(prev => ({ ...prev, page: 1 }));
-                                    fetchKarmands();
-                                }}
-                            >
-                                <i className="bi bi-search me-1"></i>
-                                جستجو
-                            </button>
-                            <button
-                                className="btn btn-outline-secondary"
-                                onClick={() => {
-                                    setSearch('');
-                                    setDebouncedSearch('');
-                                    setSelectedOstanId('');
-                                    setSelectedMarkazId('');
-                                    setVazeeat('true');
-                                    setPagination(prev => ({ ...prev, page: 1 }));
-                                }}
-                            >
-                                <i className="bi bi-arrow-counterclockwise me-1"></i>
-                                ریست
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -387,15 +478,14 @@ export default function KarmandList() {
                                     <th>نام خانوادگی</th>
                                     <th>مرکز محل خدمت</th>
                                     <th>تلفن</th>
-                                    <th>وضعیت</th>
-                                    <th>وضعیت موقت</th>
+                                    <th>وضعیت کاربر</th>
                                     <th>عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {karmands.length === 0 ? (
                                     <tr>
-                                        <td colSpan="9" className="text-center text-muted">
+                                        <td colSpan="8" className="text-center text-muted">
                                             هیچ کارمندی یافت نشد
                                         </td>
                                     </tr>
@@ -406,21 +496,25 @@ export default function KarmandList() {
                                             style={{ cursor: 'pointer' }}
                                             onClick={() => handleRowClick(k.id)}
                                         >
-                                            <td>{(pagination.page - 1) * pagination.pageSize + index + 1}</td>
-                                            <td><code>{k.codeMelli}</code></td>
+                                            <td><PersianNumber>{(pagination.page - 1) * pagination.pageSize + index + 1}</PersianNumber></td>
+                                            <td><PersianNumber>{k.codeMelli}</PersianNumber></td>
                                             <td>{k.naam}</td>
                                             <td><strong>{k.naameKhanevadeghi}</strong></td>
                                             <td>{k.markazName}</td>
-                                            <td>{k.mobile || '-'}</td>
+                                            <td><PersianNumber>{k.mobile || '-'}</PersianNumber></td>
                                             <td>
-                                                <span className={`badge ${k.vazeeat ? 'bg-success' : 'bg-danger'}`}>
-                                                    {k.vazeeat ? 'فعال' : 'غیرفعال'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`badge ${k.vazeeatMovaghat ? 'bg-warning' : 'bg-secondary'}`}>
-                                                    {k.vazeeatMovaghat ? 'مسدود' : 'عادی'}
-                                                </span>
+                                                {k.vazeeat && k.vazeeatMovaghat && (
+                                                    <span className="badge bg-success">فعال</span>
+                                                )}
+                                                {!k.vazeeat && !k.vazeeatMovaghat && (
+                                                    <span className="badge bg-danger">غیرفعال دائم</span>
+                                                )}
+                                                {k.vazeeat && !k.vazeeatMovaghat && (
+                                                    <span className="badge bg-warning text-dark">موقتا غیرفعال</span>
+                                                )}
+                                                {!k.vazeeat && k.vazeeatMovaghat && (
+                                                    <span className="badge bg-info">غیرفعال</span>
+                                                )}
                                             </td>
                                             <td onClick={(e) => e.stopPropagation()}>
                                                 <span className="text-muted small">-</span>
@@ -432,41 +526,7 @@ export default function KarmandList() {
                         </table>
                     </div>
 
-                    {pagination.totalPages > 1 && (
-                        <nav>
-                            <ul className="pagination justify-content-center">
-                                <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pagination.page - 1)}
-                                    >
-                                        قبلی
-                                    </button>
-                                </li>
-                                {[...Array(pagination.totalPages).keys()].map(num => (
-                                    <li
-                                        key={num + 1}
-                                        className={`page-item ${pagination.page === num + 1 ? 'active' : ''}`}
-                                    >
-                                        <button
-                                            className="page-link"
-                                            onClick={() => handlePageChange(num + 1)}
-                                        >
-                                            {num + 1}
-                                        </button>
-                                    </li>
-                                ))}
-                                <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => handlePageChange(pagination.page + 1)}
-                                    >
-                                        بعدی
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
-                    )}
+                    {renderPagination()}
                 </>
             )}
 
