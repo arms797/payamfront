@@ -7,7 +7,7 @@ import api from '../../../api/axiosConfig';
 import { PermissionWrapper } from '../../../components/PermissionWrapper';
 import { useMarkaz } from '../../../context/MarkazContext';
 import PersianNumber from '../../../components/common/PersianNumber'
-
+import { useConfirm } from '../../../hooks/useConfirm';
 
 // import کامپوننت‌های مودال
 import CreateModal from './modals/CreateModal';
@@ -22,6 +22,7 @@ import {
 } from './ElmiTermHelpers';
 
 export default function ElmiTermList() {
+    // کانتکست ها
     const { hasPermission, user } = useAuth();
     const { markazList } = useMarkaz();
     const {
@@ -31,8 +32,6 @@ export default function ElmiTermList() {
         pastTerms,
         loading: termLoading
     } = useTerm();
-
-
     // ============================================================
     // Stateهای اصلی
     // ============================================================
@@ -44,7 +43,6 @@ export default function ElmiTermList() {
         totalCount: 0,
         totalPages: 0
     });
-
     // ============================================================
     // Stateهای فیلتر
     // ============================================================
@@ -54,7 +52,6 @@ export default function ElmiTermList() {
     const [approveStatus, setApproveStatus] = useState('');
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
-
     // ============================================================
     // Stateهای مودال
     // ============================================================
@@ -63,7 +60,6 @@ export default function ElmiTermList() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [submitting, setSubmitting] = useState(false);
-
     // ============================================================
     // Stateهای فرم
     // ============================================================
@@ -79,6 +75,10 @@ export default function ElmiTermList() {
         file: null,
         copyFromId: ''
     });
+    // ============================================================
+    // هوک مودال تایید
+    // ============================================================
+    const { confirm, ConfirmModal } = useConfirm();
 
     // ============================================================
     // بررسی آیا کاربر استاد است
@@ -278,7 +278,7 @@ export default function ElmiTermList() {
     // ============================================================
     // باز کردن مودال ویرایش
     // ============================================================
-    const openEditModal = (item) => {
+    const openEditModal = async (item) => {
         if (!canEdit(item)) {
             toast.warning('امکان ویرایش این درخواست وجود ندارد');
             return;
@@ -286,8 +286,14 @@ export default function ElmiTermList() {
 
         // ✅ اگر قبلاً بررسی شده و مدیر است، هشدار بده
         if (item.approveStatus !== 0 && isManager) {
-            const statusText = item.approveStatus === 1 ? 'تایید' : 'رد';
-            if (!window.confirm(`این درخواست قبلاً ${statusText} شده است. آیا از ویرایش آن مطمئن هستید؟`)) {
+            const confirmed = await confirm({
+                title: "هشدار",
+                message: `این درخواست قبلاً ${statusText} شده است. آیا از ویرایش آن مطمئن هستید؟`,
+                confirmText: 'بله',
+                confirmVariant: 'warning'
+            });
+            //const statusText = item.approveStatus === 1 ? 'تایید' : 'رد';
+            if (!confirmed) {
                 return;
             }
         }
@@ -333,7 +339,7 @@ export default function ElmiTermList() {
     // ============================================================
     // تایید/رد درخواست
     // ============================================================
-    const handleApprove = (item, status) => {
+    const handleApprove = async (item, status) => {
         if (!canApprove(item)) {
             toast.warning('امکان تایید/رد این درخواست وجود ندارد');
             return;
@@ -343,13 +349,26 @@ export default function ElmiTermList() {
         if (item.approveStatus !== 0) {
             const currentStatus = item.approveStatus === 1 ? 'تایید' : 'رد';
             const newStatus = status === 1 ? 'تایید' : 'رد';
-            if (!window.confirm(`این درخواست قبلاً ${currentStatus} شده است. آیا از تغییر آن به ${newStatus} مطمئن هستید؟`)) {
+            const confirmed = await confirm({
+                title: "هشدار",
+                message: `این درخواست قبلاً ${currentStatus} شده است. آیا از تغییر آن به ${newStatus} مطمئن هستید؟`,
+                confirmText: 'بله',
+                confirmVariant: 'warning'
+            });
+
+            if (!confirmed) {
                 return;
             }
         }
 
         const actionText = status === 1 ? 'تایید' : 'رد';
-        if (!window.confirm(`آیا از ${actionText} این درخواست مطمئن هستید؟`)) return;
+        const confirmed = await confirm({
+            title: "هشدار",
+            message: `آیا از ${actionText} این درخواست مطمئن هستید؟`,
+            confirmText: 'بله',
+            confirmVariant: 'warning'
+        });
+        if (!confirmed) return;
 
         executeApprove(item.id, status);
     };
@@ -375,7 +394,7 @@ export default function ElmiTermList() {
     // ============================================================
     // حذف درخواست
     // ============================================================
-    const handleDelete = (item) => {
+    const handleDelete = async (item) => {
         if (!canDelete(item)) {
             toast.warning('امکان حذف این درخواست وجود ندارد');
             return;
@@ -384,12 +403,23 @@ export default function ElmiTermList() {
         // ✅ اگر قبلاً بررسی شده و مدیر است، هشدار بده
         if (item.approveStatus !== 0 && isManager) {
             const statusText = item.approveStatus === 1 ? 'تایید' : 'رد';
-            if (!window.confirm(`این درخواست قبلاً ${statusText} شده است. آیا از حذف آن مطمئن هستید؟`)) {
+            const confirmed = await confirm({
+                title: "هشدار",
+                message: `این درخواست قبلاً ${statusText} شده است. آیا از حذف آن مطمئن هستید؟`,
+                confirmText: 'بله',
+                confirmVariant: 'warning'
+            });
+            if (!confirmed) {
                 return;
             }
         }
-
-        if (!window.confirm('آیا از حذف این درخواست مطمئن هستید؟')) return;
+        const confirmed = await confirm({
+            title: "هشدار",
+            message: 'آیا از حذف این درخواست مطمئن هستید؟',
+            confirmText: 'بله',
+            confirmVariant: 'warning'
+        });
+        if (!confirmed) return;
 
         executeDelete(item);
     };
@@ -601,7 +631,14 @@ export default function ElmiTermList() {
     };
 
     const handleResetPending = async (id) => {
-        if (!window.confirm('آیا از بازگشت این درخواست به حالت "در انتظار بررسی" مطمئن هستید؟')) return;
+        console.log('test 1')
+        const confirmed = await confirm({
+            title: "هشدار",
+            message: 'آیا از بازگشت این درخواست به حالت "در انتظار بررسی" مطمئن هستید؟',
+            confirmText: 'بله',
+            confirmVariant: 'warning'
+        });
+        if (!confirmed) return;
 
         try {
             const response = await api.patch(`/ElmiTerm/reset-pending/${id}`);
@@ -1059,6 +1096,7 @@ export default function ElmiTermList() {
                     }}
                 ></div>
             )}
+            <ConfirmModal />
         </div>
     );
 }

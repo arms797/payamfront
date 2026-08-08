@@ -26,6 +26,9 @@ import OstadCreate from './pages/Ostad/OstadCreate';
 import FaaliatList from './pages/Schedule/Faaliat/FaaliatList';
 import ElmiTermList from './pages/Schedule/ElmiTerm/ElmiTermList';
 
+import HamjavarList from './pages/Schedule/Hamjavar/HamjavarList';
+import HamjavarDetail from './pages/Schedule/Hamjavar/HamjavarDetail';
+import HamjavarCreate from './pages/Schedule/Hamjavar/HamjavarCreate';
 
 
 // ============================================================
@@ -214,6 +217,31 @@ function App() {
                 element={
                   <ProtectedRouteWithPermission requiredPermission="ElmiTerm.View">
                     <ElmiTermList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+
+              <Route
+                path="tadris-hamjavar-list"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="	Hamjavar.View">
+                    <HamjavarList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="tadris-hamjavar-create"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="	Hamjavar.Create">
+                    <HamjavarCreate />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="tadris-hamjavar-detailes"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="	Hamjavar.View">
+                    <HamjavarCreate />
                   </ProtectedRouteWithPermission>
                 }
               />

@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import api from '../../api/axiosConfig';
 import MarkazSelector from '../../components/common/MarkazSelector';
 import PersianNumber from '../../components/common/PersianNumber';
+import { useConfirm } from '../../hooks/useConfirm';
 
 export default function OstadDetail() {
     const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function OstadDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [resettingPassword, setResettingPassword] = useState(false);
+    const { confirm, ConfirmModal } = useConfirm();
 
     // ============================================================
     // Stateهای تغییر وضعیت
@@ -268,7 +270,11 @@ export default function OstadDetail() {
     // ============================================================
     const handleDelete = async () => {
         if (!ostad) return;
-        if (!window.confirm(`آیا از حذف استاد "${ostad.naam} ${ostad.naamKhanevadegi}" مطمئن هستید؟`)) return;
+        const confirmed = await confirm({
+            title: 'هشدار',
+            message: `آیا از حذف استاد "${ostad.naam} ${ostad.naamKhanevadegi}" مطمئن هستید؟`
+        });
+        if (!confirmed) return;
 
         try {
             const response = await api.delete(`/Ostad/delete/${ostad.id}`);
@@ -319,8 +325,11 @@ export default function OstadDetail() {
 
         const newStatus = !userInfo.vazeeyat;
         const statusText = newStatus ? 'فعال' : 'غیرفعال';
-
-        if (!window.confirm(`آیا از ${newStatus ? 'فعال' : 'غیرفعال'} کردن کاربر "${userInfo.userName}" مطمئن هستید؟`)) return;
+        const confirmed = await confirm({
+            title: 'هشدار',
+            message: `آیا از ${newStatus ? 'فعال' : 'غیرفعال'} کردن کاربر "${userInfo.userName}" مطمئن هستید؟`
+        });
+        if (!confirmed) return;
 
         setTogglingStatus(true);
         try {
@@ -350,8 +359,11 @@ export default function OstadDetail() {
 
         const newStatus = !userInfo.vazeeyatMovaghat;
         const statusText = newStatus ? 'مسدود موقت' : 'عادی';
-
-        if (!window.confirm(`آیا از ${newStatus ? 'مسدود موقت' : 'عادی'} کردن کاربر "${userInfo.userName}" مطمئن هستید؟`)) return;
+        const confirmed = await confirm({
+            title: 'هشدار',
+            message: `آیا از ${newStatus ? 'مسدود موقت' : 'عادی'} کردن کاربر "${userInfo.userName}" مطمئن هستید؟`
+        });
+        if (!confirmed) return;
 
         setTogglingTempStatus(true);
         try {
@@ -533,7 +545,11 @@ export default function OstadDetail() {
     // توابع مدیریت تایید/لغو تایید
     // ============================================================
     const handleApprove = async (madrakId) => {
-        if (!window.confirm('آیا از تایید این مدرک مطمئن هستید؟')) return;
+        const confirmed = await confirm({
+            title: 'تاییدیه',
+            message: 'آیا از تایید این مدرک مطمئن هستید؟'
+        });
+        if (!confirmed) return;
 
         try {
             const response = await api.patch(`/OstadMadrak/approve/${madrakId}`);
@@ -547,7 +563,11 @@ export default function OstadDetail() {
     };
 
     const handleUnapprove = async (madrakId) => {
-        if (!window.confirm('آیا از لغو تایید این مدرک مطمئن هستید؟')) return;
+        const confirmed = await confirm({
+            title: 'تاییدیه',
+            message: 'آیا از لغو تایید این مدرک مطمئن هستید؟'
+        });
+        if (!confirmed) return;
 
         try {
             const response = await api.patch(`/OstadMadrak/unapprove/${madrakId}`);
@@ -564,7 +584,11 @@ export default function OstadDetail() {
     // توابع مدیریت مدارک
     // ============================================================
     const handleDeleteMadrak = async (madrakId) => {
-        if (!window.confirm('آیا از حذف این مدرک مطمئن هستید؟')) return;
+        const confirmed = await confirm({
+            title: 'هشدار',
+            message: 'آیا از حذف این مدرک مطمئن هستید؟'
+        });
+        if (!confirmed) return;
 
         try {
             const response = await api.delete(`/OstadMadrak/delete/${madrakId}`);
@@ -1406,6 +1430,7 @@ export default function OstadDetail() {
                     onClick={closeAddMadrakModal}
                 ></div>
             )}
+            <ConfirmModal />
         </div >
     );
 }
