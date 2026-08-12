@@ -1,21 +1,23 @@
 // src/pages/Schedule/Hamjavar/HamjavarDetail.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useMarkaz } from '../../../context/MarkazContext';
+import { useTerm } from '../../../context/TermContext';
 import { toast } from 'react-toastify';
 import api from '../../../api/axiosConfig';
 import PersianNumber from '../../../components/common/PersianNumber';
 import { useConfirm } from '../../../hooks/useConfirm';
-import ReviewModal from './modals/ReviewModal';
-import { getStatusBadge, getStatusDisplay } from './HamjavarHelpers';
+import { getStatusBadge } from './HamjavarHelpers';
 
 export default function HamjavarDetail() {
     const navigate = useNavigate();
     const { id } = useParams();
     const { user, hasPermission } = useAuth();
     const { markazList } = useMarkaz();
+    const { termList } = useTerm();
     const { confirm, ConfirmModal } = useConfirm();
+    const printRef = useRef();
 
     // ============================================================
     // تشخیص نقش کاربر
@@ -32,12 +34,15 @@ export default function HamjavarDetail() {
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
     // ============================================================
     // State مودال ثبت نظر
     // ============================================================
     const [showReviewModal, setShowReviewModal] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+    const [reviewRole, setReviewRole] = useState(null);
+    const [reviewNazar, setReviewNazar] = useState('');
+    const [reviewTedadRooz, setReviewTedadRooz] = useState([]);
 
     // ============================================================
     // دریافت جزئیات درخواست
@@ -67,13 +72,20 @@ export default function HamjavarDetail() {
     }, [id]);
 
     // ============================================================
-    // عملیات: امضاء و ارسال (توسط استاد)
+    // تابع پرینت
+    // ============================================================
+    const handlePrint = () => {
+        window.print();
+    };
+
+    // ============================================================
+    // عملیات: تایید نهایی توسط استاد
     // ============================================================
     const handleSignSend = async () => {
         const confirmed = await confirm({
-            title: 'امضاء و ارسال',
-            message: `آیا از ارسال درخواست "${item?.ostadName}" برای ترم ${item?.termCode} مطمئن هستید؟`,
-            confirmText: 'امضاء و ارسال',
+            title: 'تایید نهایی',
+            message: `آیا از تایید نهایی درخواست "${item?.ostadName}" برای ترم ${item?.termCode} مطمئن هستید؟`,
+            confirmText: 'تایید',
             confirmVariant: 'success'
         });
         if (!confirmed) return;
@@ -81,10 +93,10 @@ export default function HamjavarDetail() {
         setSubmitting(true);
         try {
             const response = await api.patch(`/Hamjavar/confirm-submit-by-ostad/${id}`, {
-                nazar: 'درخواست تایید و ارسال شد'
+                nazar: 2  // تایید
             });
             if (response.data?.success) {
-                toast.success('درخواست با موفقیت تایید و ارسال شد');
+                toast.success('درخواست با موفقیت تایید شد');
                 fetchDetail();
             }
         } catch (error) {
@@ -111,7 +123,7 @@ export default function HamjavarDetail() {
             const response = await api.delete(`/Hamjavar/delete/${id}`);
             if (response.data?.success) {
                 toast.success('درخواست با موفقیت حذف شد');
-                navigate('/dashboard/hamjavar');
+                navigate('/dashboard/tadris-hamjavar-list');
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف درخواست');
@@ -121,20 +133,67 @@ export default function HamjavarDetail() {
     };
 
     // ============================================================
-    // عملیات: ثبت نظر (از مودال)
+    // باز کردن مودال ثبت نظر
     // ============================================================
-    const handleReview = async (reviewData) => {
+    const openReviewModal = (role) => {
+        setReviewRole(role);
+
+        const tedadList = item?.hamjavar1s?.map(detail => {
+            if (role === 'raeis') return detail.tedadRoozRaeis || '';
+            if (role === 'khadamat') return detail.tedadRoozKhadamat || '';
+            if (role === 'moaven') return detail.tedadRoozMoaven || '';
+            return '';
+        }) || [];
+
+        setReviewTedadRooz(tedadList);
+        setReviewNazar('');
+        setShowReviewModal(true);
+    };
+
+    // ============================================================
+    // بستن مودال ثبت نظر
+    // ============================================================
+    const closeReviewModal = () => {
+        setShowReviewModal(false);
+        setReviewRole(null);
+        setReviewNazar('');
+        setReviewTedadRooz([]);
+    };
+
+    // ============================================================
+    // تغییر تعداد روز در مودال
+    // ============================================================
+    const handleTedadChange = (index, value) => {
+        const newList = [...reviewTedadRooz];
+        newList[index] = value;
+        setReviewTedadRooz(newList);
+    };
+
+    // ============================================================
+    // ثبت نظر
+    // ============================================================
+    const handleReviewSubmit = async () => {
+        const confirmed = await confirm({
+            title: 'ثبت نظر',
+            message: 'آیا از ثبت نظر مطمئن هستید؟',
+            confirmText: 'ثبت',
+            confirmVariant: 'primary'
+        });
+        if (!confirmed) return;
+
         setSubmitting(true);
         try {
-            const endpoint = isRaeis ? '/Hamjavar/review-raeis' :
-                isKhadamat ? '/Hamjavar/review-khadamat' :
+            const endpoint = reviewRole === 'raeis' ? '/Hamjavar/review-raeis' :
+                reviewRole === 'khadamat' ? '/Hamjavar/review-khadamat' :
                     '/Hamjavar/review-moaven';
+
+            const tedadRoozList = reviewTedadRooz.map(v => v ? parseInt(v) : null);
 
             const response = await api.patch(endpoint, {
                 hamjavarId: parseInt(id),
-                tedadRoozList: reviewData.tedadRoozList,
-                nazar: reviewData.nazar,
-                upload: reviewData.upload
+                tedadRoozList: tedadRoozList,
+                nazar: parseInt(reviewNazar),
+                tozihat: reviewNazar ? `نظر: ${reviewNazar}` : ''  // اگر توضیحات نیاز بود
             });
 
             if (response.data?.success) {
@@ -150,28 +209,34 @@ export default function HamjavarDetail() {
     };
 
     // ============================================================
-    // بررسی امکان ثبت نظر برای نقش فعلی
+    // بررسی امکان ثبت نظر برای نقش فعلی (بر اساس وضعیت‌های جدید)
     // ============================================================
     const canReview = useMemo(() => {
-        if (!item) return false;
+        if (!item) return null;
 
-        // رئیس: فقط درخواست‌های تایید شده توسط استاد
-        if (isRaeis && item.akharinTaghaza === 'TaeedSabt') return true;
+        // رئیس: فقط زمانی که وضعیت "تایید" باشد و نظر رئیس ثبت نشده باشد
+        if (isRaeis && item.akharinTaghaza === 'Taeed' && (item.nazarRaeis === null || item.nazarRaeis === 0)) {
+            return 'raeis';
+        }
 
-        // خدمات: فقط درخواست‌های تایید شده توسط رئیس
-        if (isKhadamat && item.akharinTaghaza === 'TaeedRaeis') return true;
+        // خدمات: فقط زمانی که نظر رئیس ثبت شده باشد و نظر خدمات ثبت نشده باشد
+        if (isKhadamat && item.akharinTaghaza === 'Taeed' && item.nazarRaeis >= 2 && (item.nazarKhadamat === null || item.nazarKhadamat === 0)) {
+            return 'khadamat';
+        }
 
-        // معاون: فقط درخواست‌های تایید شده توسط خدمات
-        if (isMoaven && item.akharinTaghaza === 'TaeedKhadamat') return true;
+        // معاون: فقط زمانی که نظر خدمات ثبت شده باشد (معاون می‌تواند بازنویسی کند)
+        if (isMoaven && item.akharinTaghaza === 'Taeed' && item.nazarKhadamat >= 2) {
+            return 'moaven';
+        }
 
-        return false;
+        return null;
     }, [item, isRaeis, isKhadamat, isMoaven]);
 
     // ============================================================
-    // بررسی امکان امضاء و ارسال (برای استاد)
+    // بررسی امکان امضاء و ارسال (برای استاد) - بر اساس وضعیت جدید
     // ============================================================
     const canSignSend = useMemo(() => {
-        return isOstad && item?.akharinTaghaza === 'PishNevis';
+        return isOstad && item?.akharinTaghaza === 'PishNevis' && (item.nazarElmi === null || item.nazarElmi === 1);
     }, [isOstad, item]);
 
     // ============================================================
@@ -189,42 +254,22 @@ export default function HamjavarDetail() {
     }, [isOstad, item, isAdmin]);
 
     // ============================================================
-    // دریافت نقش بررسی‌کننده فعلی
-    // ============================================================
-    const getReviewRole = () => {
-        if (isRaeis) return 'raeis';
-        if (isKhadamat) return 'khadamat';
-        if (isMoaven) return 'moaven';
-        return null;
-    };
-
-    // ============================================================
-    // دریافت وضعیت بررسی هر نقش
+    // دریافت وضعیت بررسی هر نقش (بر اساس فیلدهای عددی)
     // ============================================================
     const getReviewStatus = (role) => {
         if (!item) return null;
+
         const statusMap = {
-            raeis: item.amaliatRaeis,
-            khadamat: item.amaliatKhadamat,
-            moaven: item.amaliatMoaven
+            raeis: item.nazarRaeis,
+            khadamat: item.nazarKhadamat,
+            moaven: item.nazarMoaven
         };
         const value = statusMap[role];
-        if (value === 1) return { label: 'تایید', className: 'bg-success' };
-        if (value === 0) return { label: 'رد', className: 'bg-danger' };
-        return { label: 'در انتظار', className: 'bg-warning text-dark' };
-    };
 
-    // ============================================================
-    // دریافت تاریخ دریافت هر نقش
-    // ============================================================
-    const getDaryaftDate = (role) => {
-        if (!item) return null;
-        const map = {
-            raeis: item.tarikhDaryaftRaeis,
-            khadamat: item.tarikhDaryaftKhadamat,
-            moaven: item.tarikhDaryaftMoaven
-        };
-        return map[role];
+        if (value === 2) return { label: 'تایید ✅', className: 'bg-success' };
+        if (value === 3) return { label: 'رد ❌', className: 'bg-danger' };
+        if (value === 4) return { label: 'اصلاح ✏️', className: 'bg-warning text-dark' };
+        return { label: 'در انتظار ⏳', className: 'bg-warning text-dark' };
     };
 
     // ============================================================
@@ -237,6 +282,14 @@ export default function HamjavarDetail() {
             moaven: 'معاونت آموزشی استان'
         };
         return map[role] || role;
+    };
+
+    // ============================================================
+    // دریافت عنوان ترم
+    // ============================================================
+    const getTermTitle = (codeTerm) => {
+        const term = termList?.find(t => t.codeTerm === codeTerm);
+        return term?.onvanTerm || codeTerm;
     };
 
     // ============================================================
@@ -264,7 +317,7 @@ export default function HamjavarDetail() {
                 </div>
                 <button
                     className="btn btn-secondary"
-                    onClick={() => navigate('/dashboard/hamjavar')}
+                    onClick={() => navigate('/dashboard/tadris-hamjavar-list')}
                 >
                     <i className="bi bi-arrow-right me-1"></i>
                     بازگشت به لیست
@@ -273,24 +326,56 @@ export default function HamjavarDetail() {
         );
     }
 
+    const reviewRoleType = canReview;
+
+    // ============================================================
+    // دانلود فایل
+    // ============================================================
+    const downloadFile = async (filePath, fileName) => {
+        if (!filePath) {
+            toast.warning('فایلی برای دانلود وجود ندارد');
+            return;
+        }
+
+        try {
+            // اگر filePath یک مسیر کامل است، از آن استفاده کن
+            const url = filePath.startsWith('/uploads/')
+                ? filePath
+                : `/uploads/hamjavar/${filePath}`;
+
+            // دانلود فایل با لینک مستقیم
+            window.open(url, '_blank');
+        } catch (error) {
+            console.error('خطا در دانلود فایل:', error);
+            toast.error('خطا در دانلود فایل');
+        }
+    };
+
     return (
-        <div className="container-fluid">
+        <div className="container-fluid" ref={printRef}>
             {/* ============================================================
-                هدر
+                هدر با دکمه‌های عملیات
                 ============================================================ */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-4 no-print">
                 <div>
                     <button
                         className="btn btn-outline-secondary me-3"
-                        onClick={() => navigate('/dashboard/hamjavar')}
+                        onClick={() => navigate('/dashboard/tadris-hamjavar-list')}
                     >
                         <i className="bi bi-arrow-right me-1"></i>
                         بازگشت
                     </button>
-                    <h4 className="d-inline-block mb-0">جزئیات درخواست هم‌جاوری</h4>
                 </div>
-                <div className="d-flex gap-2">
-                    {/* دکمه امضاء و ارسال - فقط برای استاد در پیش‌نویس */}
+                <div className="d-flex gap-2 flex-wrap">
+                    <button
+                        className="btn btn-outline-secondary"
+                        onClick={handlePrint}
+                        title="پرینت"
+                    >
+                        <i className="bi bi-printer me-1"></i>
+                        پرینت
+                    </button>
+
                     {canSignSend && (
                         <button
                             className="btn btn-success"
@@ -298,33 +383,30 @@ export default function HamjavarDetail() {
                             disabled={submitting}
                         >
                             <i className="bi bi-check2-circle me-1"></i>
-                            {submitting ? 'در حال ارسال...' : 'امضاء و ارسال'}
+                            {submitting ? 'در حال ارسال...' : 'تایید نهایی'}
                         </button>
                     )}
 
-                    {/* دکمه ویرایش - فقط برای استاد در پیش‌نویس */}
                     {canEdit && (
                         <button
                             className="btn btn-warning"
-                            onClick={() => navigate(`/dashboard/hamjavar/edit/${item.id}`)}
+                            onClick={() => navigate(`/dashboard/tadris-hamjavar-edit/${item.id}`)}
                         >
                             <i className="bi bi-pencil me-1"></i>
                             ویرایش
                         </button>
                     )}
 
-                    {/* دکمه بررسی - برای رئیس/خدمات/معاون */}
-                    {canReview && (
+                    {reviewRoleType && (
                         <button
                             className="btn btn-primary"
-                            onClick={() => setShowReviewModal(true)}
+                            onClick={() => openReviewModal(reviewRoleType)}
                         >
                             <i className="bi bi-pencil-square me-1"></i>
-                            ثبت نظر
+                            ثبت نظر {getRoleName(reviewRoleType)}
                         </button>
                     )}
 
-                    {/* دکمه حذف - برای استاد در پیش‌نویس یا ادمین */}
                     {canDelete && (
                         <button
                             className="btn btn-danger"
@@ -339,274 +421,621 @@ export default function HamjavarDetail() {
             </div>
 
             {/* ============================================================
+                عنوان و اطلاعات ایجاد کننده
+                ============================================================ */}
+            <div className="mb-4">
+                <h3 className="text-center mb-2">
+                    درخواست تدریس در سایر مراکز - نیمسال <PersianNumber>{item.termCode}</PersianNumber>
+                </h3>
+                <p className="text-center text-muted mb-0">
+                    ایجاد کننده: {item.ostadName} {item.ostadLastName}
+                    {item.roleMarkazSabtKonandeh && ` (${item.roleMarkazSabtKonandeh})`}
+                </p>
+            </div>
+
+            {/* ============================================================
                 وضعیت درخواست
                 ============================================================ */}
             <div className="row mb-4">
-                <div className="col-md-12">
-                    <div className="d-flex flex-wrap gap-3 align-items-center p-3 bg-light rounded">
+                <div className="col-12">
+                    <div className="d-flex flex-wrap gap-3 align-items-center p-3 bg-light rounded border">
                         <span className="fw-bold">وضعیت فعلی:</span>
                         {getStatusBadge(item.akharinTaghaza)}
                         <span className="text-muted ms-2">
-                            آخرین مرحله: {item.kharinBarrasi || '-'}
-                        </span>
-                        <span className="text-muted ms-2">
-                            ترم: {item.termCode} - {item.termName || ''}
+                            آخرین مرحله: {item.aKharinBarrasi || '-'}
                         </span>
                     </div>
                 </div>
             </div>
 
-            <div className="row">
-                {/* ============================================================
-                    ستون راست: اطلاعات استاد
-                    ============================================================ */}
-                <div className="col-md-4">
-                    <div className="card mb-4">
-                        <div className="card-header bg-primary text-white">
-                            <h6 className="mb-0">اطلاعات استاد</h6>
+            {/* ============================================================
+                اطلاعات استاد
+                ============================================================ */}
+            <div className="card mb-4">
+                <div className="card-header bg-primary text-white">
+                    <h6 className="mb-0">
+                        <i className="bi bi-person-badge me-2"></i>
+                        اطلاعات استاد
+                    </h6>
+                </div>
+                <div className="card-body">
+                    {/* خط اول: کد استادی، نام، نام خانوادگی */}
+                    <div className="row mb-2">
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">کد استادی:</span>
+                            <span className="me-3"><PersianNumber>{item.ostadCode || '-'}</PersianNumber></span>
                         </div>
-                        <div className="card-body">
-                            <div className="row mb-2">
-                                <div className="col-5 fw-bold">نام:</div>
-                                <div className="col-7">{item.ostadName}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-5 fw-bold">کد استادی:</div>
-                                <div className="col-7"><PersianNumber>{item.ostadCode}</PersianNumber></div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-5 fw-bold">مرکز:</div>
-                                <div className="col-7">{item.ostadMarkaz || '-'}</div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-5 fw-bold">ترم:</div>
-                                <div className="col-7">{item.termCode}</div>
-                            </div>
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">نام:</span>
+                            <span className="me-3">{item.ostadName || '-'}</span>
+                        </div>
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">نام خانوادگی:</span>
+                            <span>{item.ostadLastName || '-'}</span>
                         </div>
                     </div>
 
-                    {/* اطلاعات تدریس */}
-                    <div className="card mb-4">
-                        <div className="card-header bg-success text-white">
-                            <h6 className="mb-0">اطلاعات تدریس</h6>
+                    {/* خط دوم: مرکز فعلی، مرتبه علمی، رشته تحصیلی */}
+                    <div className="row mb-2">
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">مرکز فعلی:</span>
+                            <span className="me-3">{item.ostadMarkaz || '-'}</span>
                         </div>
-                        <div className="card-body">
-                            <div className="row mb-2">
-                                <div className="col-6 fw-bold">واحد موظف:</div>
-                                <div className="col-6"><PersianNumber>{item.vahedMovazaf || 0}</PersianNumber></div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-6 fw-bold">محل خدمت:</div>
-                                <div className="col-6"><PersianNumber>{item.tedadVahedMahalKhedmat || 0}</PersianNumber></div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-6 fw-bold">حضوری در مراکز دیگر:</div>
-                                <div className="col-6"><PersianNumber>{item.tedadVahedHamjavar || 0}</PersianNumber></div>
-                            </div>
-                            <div className="row mb-2">
-                                <div className="col-6 fw-bold">مجازی در مراکز دیگر:</div>
-                                <div className="col-6"><PersianNumber>{item.tedadVahedMajazi || 0}</PersianNumber></div>
-                            </div>
-                            {item.dalil && (
-                                <div className="row mb-2">
-                                    <div className="col-12">
-                                        <span className="fw-bold">دلایل تقاضا:</span>
-                                        <p className="mb-0 mt-1">{item.dalil}</p>
-                                    </div>
-                                </div>
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">مرتبه علمی:</span>
+                            <span className="me-3">{item.ostadMartabeElmi || '-'}</span>
+                        </div>
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">رشته تحصیلی:</span>
+                            <span>{item.ostadReshteh || '-'}</span>
+                        </div>
+                    </div>
+
+                    <hr className="my-2" />
+
+                    {/* خط سوم: آخرین وضعیت، سمت اجرایی */}
+                    <div className="row mb-2">
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">آخرین وضعیت:</span>
+                            <span className="me-3">{item.akharinVazeeat || '-'}</span>
+                        </div>
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">سمت اجرایی:</span>
+                            <span className="me-3">
+                                {item.isEjeari ? (
+                                    <span className="badge bg-success">دارد</span>
+                                ) : (
+                                    <span className="badge bg-secondary">ندارد</span>
+                                )}
+                            </span>
+                        </div>
+                        <div className="col-md-4">
+                            {item.isEjeari && (
+                                <>
+                                    <span className="fw-bold text-muted">عنوان سمت:</span>
+                                    <span>{item.onvanEjraei || '-'}</span>
+                                </>
                             )}
-                            {item.shahrZendegi && (
-                                <div className="row">
-                                    <div className="col-12">
-                                        <span className="fw-bold">شهر سکونت:</span>
-                                        <span className="ms-2">{item.shahrZendegi}</span>
-                                    </div>
-                                </div>
-                            )}
+                        </div>
+                    </div>
+
+                    {/* خط چهارم: نوع همکاری، ساعت موظف هفتگی */}
+                    <div className="row mb-2">
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">نوع همکاری:</span>
+                            <span className="me-3">
+                                <span className={`badge ${item.fullTime ? 'bg-success' : 'bg-warning'}`}>
+                                    {item.fullTime ? 'تمام وقت' : 'پاره وقت'}
+                                </span>
+                            </span>
+                        </div>
+                        <div className="col-md-4">
+                            <span className="fw-bold text-muted">ساعت موظف هفتگی:</span>
+                            <span>
+                                {item.fullTime ? (
+                                    <span className="badge bg-primary"><PersianNumber>۴۰</PersianNumber> ساعت</span>
+                                ) : (
+                                    <span className="badge bg-info"><PersianNumber>{item.tedadSaatMovazafi || '۰'}</PersianNumber> ساعت</span>
+                                )}
+                            </span>
+                        </div>
+                    </div>
+
+                    <hr className="my-2" />
+
+                    {/* خط پنجم: واحدها */}
+                    <div className="row mb-2">
+                        <div className="col-md-3">
+                            <span className="fw-bold text-muted">واحد موظف:</span>
+                            <span className="me-3"><PersianNumber>{item.vahedMovazaf || 0}</PersianNumber></span>
+                        </div>
+                        <div className="col-md-3">
+                            <span className="fw-bold text-muted">تکمیل در محل خدمت:</span>
+                            <span className="me-3"><PersianNumber>{item.tedadVahedMahalKhedmat || 0}</PersianNumber></span>
+                        </div>
+                        <div className="col-md-3">
+                            <span className="fw-bold text-muted">حضوری در مراکز دیگر:</span>
+                            <span className="me-3"><PersianNumber>{item.tedadVahedHamjavar || 0}</PersianNumber></span>
+                        </div>
+                        <div className="col-md-3">
+                            <span className="fw-bold text-muted">مجازی در مراکز دیگر:</span>
+                            <span><PersianNumber>{item.tedadVahedMajazi || 0}</PersianNumber></span>
+                        </div>
+                    </div>
+
+                    {/* خط ششم: دلایل تقاضا */}
+                    <div className="row mb-2">
+                        <div className="col-12">
+                            <span className="fw-bold text-muted">دلایل تقاضا:</span>
+                            <span className="me-3">{item.dalil || '-'}</span>
+                        </div>
+                    </div>
+
+                    {/* خط هفتم: شهر محل سکونت */}
+                    <div className="row">
+                        <div className="col-12">
+                            <span className="fw-bold text-muted">شهر محل سکونت:</span>
+                            <span>{item.shahrZendegi || '-'}</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* ============================================================
-                    ستون وسط: موارد تقاضا (Hamjavar1)
-                    ============================================================ */}
-                <div className="col-md-4">
-                    <div className="card mb-4">
-                        <div className="card-header bg-info text-white">
-                            <h6 className="mb-0">موارد تقاضا</h6>
-                            <small className="text-white-50">({item.hamjavar1s?.length || 0} مورد)</small>
+            {/* ============================================================
+                موارد تقاضا (Hamjavar1)
+                ============================================================ */}
+            <div className="card mb-4">
+                <div className="card-header bg-info text-white">
+                    <h6 className="mb-0">
+                        <i className="bi bi-list-check me-2"></i>
+                        موارد تقاضا
+                        <span className="badge bg-light text-dark ms-2">
+                            {item.hamjavar1s?.length || 0} مورد
+                        </span>
+                    </h6>
+                </div>
+                <div className="card-body p-0">
+                    {item.hamjavar1s?.length === 0 ? (
+                        <div className="text-center text-muted py-4">
+                            <i className="bi bi-info-circle me-1"></i>
+                            هیچ موردی ثبت نشده است
                         </div>
-                        <div className="card-body p-0">
-                            {item.hamjavar1s?.length === 0 ? (
-                                <div className="text-center text-muted py-3">
-                                    <i className="bi bi-info-circle me-1"></i>
-                                    هیچ موردی ثبت نشده است
-                                </div>
-                            ) : (
-                                <div className="list-group list-group-flush">
+                    ) : (
+                        <div className="table-responsive">
+                            <table className="table table-hover table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>داخل/خارج استان</th>
+                                        <th>مرکز</th>
+                                        <th>فعالیت‌ها</th>
+                                        <th>تعداد روز (استاد)</th>
+                                        {item.nazarRaeis !== null && item.nazarRaeis !== undefined && <th>تعداد روز (رئیس)</th>}
+                                        {item.nazarKhadamat !== null && item.nazarKhadamat !== undefined && <th>تعداد روز (خدمات)</th>}
+                                        {item.nazarMoaven !== null && item.nazarMoaven !== undefined && <th>تعداد روز (معاون)</th>}
+                                    </tr>
+                                </thead>
+                                <tbody>
                                     {item.hamjavar1s?.map((detail, index) => {
                                         const markaz = markazList?.find(m => m.id === detail.markazId);
+                                        const faaliatNames = detail.faaliatNames || [];
+
                                         return (
-                                            <div key={detail.id} className="list-group-item">
-                                                <div className="d-flex justify-content-between align-items-start">
-                                                    <span className="badge bg-secondary me-2">{index + 1}</span>
-                                                    <div className="flex-grow-1">
-                                                        <div>
-                                                            <span className="fw-bold">مرکز:</span>
-                                                            <span className="ms-1">{markaz?.naamMarkaz || '-'}</span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="fw-bold">استان:</span>
-                                                            <span className={`badge ${detail.inOstan ? 'bg-success' : 'bg-warning'} ms-1`}>
-                                                                {detail.inOstan ? 'داخل استان' : 'خارج استان'}
-                                                            </span>
-                                                        </div>
-                                                        <div>
-                                                            <span className="fw-bold">فعالیت‌ها:</span>
-                                                            <div className="d-flex flex-wrap gap-1 mt-1">
-                                                                {detail.faaliatNames?.map((name, i) => (
-                                                                    <span key={i} className="badge bg-light text-dark border">
-                                                                        {name}
-                                                                    </span>
-                                                                )) || <span className="text-muted">-</span>}
-                                                            </div>
-                                                        </div>
-                                                        <div className="mt-1">
-                                                            <span className="fw-bold">تعداد روز:</span>
-                                                            <PersianNumber className="ms-1">{detail.tedadRoozElmi || 0}</PersianNumber>
-                                                        </div>
+                                            <tr key={detail.id}>
+                                                <td><PersianNumber>{index + 1}</PersianNumber></td>
+                                                <td>
+                                                    <span className={`badge ${detail.inOstan ? 'bg-success' : 'bg-warning'}`}>
+                                                        {detail.inOstan ? 'داخل استان' : 'خارج استان'}
+                                                    </span>
+                                                </td>
+                                                <td>{markaz?.naamMarkaz || '-'}</td>
+                                                <td>
+                                                    <div className="d-flex flex-wrap gap-1">
+                                                        {faaliatNames.map((name, i) => (
+                                                            <span key={i} className="badge bg-secondary">{name}</span>
+                                                        ))}
+                                                        {faaliatNames.length === 0 && <span className="text-muted">-</span>}
                                                     </div>
-                                                </div>
-                                            </div>
+                                                </td>
+                                                <td><PersianNumber>{detail.tedadRoozElmi || 0}</PersianNumber></td>
+                                                {item.nazarRaeis !== null && item.nazarRaeis !== undefined && (
+                                                    <td><PersianNumber>{detail.tedadRoozRaeis || '-'}</PersianNumber></td>
+                                                )}
+                                                {item.nazarKhadamat !== null && item.nazarKhadamat !== undefined && (
+                                                    <td><PersianNumber>{detail.tedadRoozKhadamat || '-'}</PersianNumber></td>
+                                                )}
+                                                {item.nazarMoaven !== null && item.nazarMoaven !== undefined && (
+                                                    <td><PersianNumber>{detail.tedadRoozMoaven || '-'}</PersianNumber></td>
+                                                )}
+                                            </tr>
                                         );
                                     })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ============================================================
-                    ستون چپ: نظرات مراحل
-                    ============================================================ */}
-                <div className="col-md-4">
-                    <div className="card mb-4">
-                        <div className="card-header bg-secondary text-white">
-                            <h6 className="mb-0">نظرات مراحل</h6>
-                        </div>
-                        <div className="card-body">
-                            {/* نظر رئیس */}
-                            <div className="mb-3">
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <span className="fw-bold">رئیس مرکز</span>
-                                    {getReviewStatus('raeis') && (
-                                        <span className={`badge ${getReviewStatus('raeis').className}`}>
-                                            {getReviewStatus('raeis').label}
-                                        </span>
-                                    )}
-                                </div>
-                                {item.nazarRaeis && (
-                                    <p className="mb-1 text-muted small">{item.nazarRaeis}</p>
-                                )}
-                                {getDaryaftDate('raeis') && (
-                                    <small className="text-muted">
-                                        تاریخ دریافت: {new Date(getDaryaftDate('raeis')).toLocaleDateString('fa-IR')}
-                                    </small>
-                                )}
-                                {item.roleMarkazRaeis && (
-                                    <small className="text-muted d-block">
-                                        نقش/مرکز: {item.roleMarkazRaeis}
-                                    </small>
-                                )}
-                            </div>
-
-                            <hr />
-
-                            {/* نظر خدمات */}
-                            <div className="mb-3">
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <span className="fw-bold">خدمات آموزشی استان</span>
-                                    {getReviewStatus('khadamat') && (
-                                        <span className={`badge ${getReviewStatus('khadamat').className}`}>
-                                            {getReviewStatus('khadamat').label}
-                                        </span>
-                                    )}
-                                </div>
-                                {item.nazarKhadamat && (
-                                    <p className="mb-1 text-muted small">{item.nazarKhadamat}</p>
-                                )}
-                                {getDaryaftDate('khadamat') && (
-                                    <small className="text-muted">
-                                        تاریخ دریافت: {new Date(getDaryaftDate('khadamat')).toLocaleDateString('fa-IR')}
-                                    </small>
-                                )}
-                                {item.roleMarkazKhadamatOstan && (
-                                    <small className="text-muted d-block">
-                                        نقش/مرکز: {item.roleMarkazKhadamatOstan}
-                                    </small>
-                                )}
-                            </div>
-
-                            <hr />
-
-                            {/* نظر معاون */}
-                            <div>
-                                <div className="d-flex justify-content-between align-items-center">
-                                    <span className="fw-bold">معاونت آموزشی استان</span>
-                                    {getReviewStatus('moaven') && (
-                                        <span className={`badge ${getReviewStatus('moaven').className}`}>
-                                            {getReviewStatus('moaven').label}
-                                        </span>
-                                    )}
-                                </div>
-                                {item.nazarMoaven && (
-                                    <p className="mb-1 text-muted small">{item.nazarMoaven}</p>
-                                )}
-                                {getDaryaftDate('moaven') && (
-                                    <small className="text-muted">
-                                        تاریخ دریافت: {new Date(getDaryaftDate('moaven')).toLocaleDateString('fa-IR')}
-                                    </small>
-                                )}
-                                {item.roleMarkazApproved && (
-                                    <small className="text-muted d-block">
-                                        نقش/مرکز: {item.roleMarkazApproved}
-                                    </small>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* مستندات */}
-                    {item.uploadElmi && (
-                        <div className="card">
-                            <div className="card-header bg-light">
-                                <h6 className="mb-0">مستندات پیوست</h6>
-                            </div>
-                            <div className="card-body">
-                                <button
-                                    className="btn btn-sm btn-outline-primary"
-                                    onClick={() => {/* دانلود فایل */ }}
-                                >
-                                    <i className="bi bi-download me-1"></i>
-                                    دانلود فایل
-                                </button>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* ============================================================
+                نظرات مراحل
+                ============================================================ */}
+
+            <div className="row">
+                {/* ============================================================
+                    نظر رئیس مرکز
+                    ============================================================ */}
+                <div className="col-md-4">
+                    <div className="card h-100">
+                        <div className="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                            <h6 className="mb-0">
+                                <i className="bi bi-person-check me-2"></i>
+                                نظر رئیس مرکز
+                            </h6>
+                            {getReviewStatus('raeis') && (
+                                <span className={`badge ${getReviewStatus('raeis').className}`}>
+                                    {getReviewStatus('raeis').label}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-body">
+                            {/* وضعیت */}
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <span className="fw-bold">وضعیت:</span>
+                                {getReviewStatus('raeis') && (
+                                    <span className={`badge ${getReviewStatus('raeis').className}`}>
+                                        {getReviewStatus('raeis').label}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* 🔥 نظر عددی به صورت متن */}
+                            {item.nazarRaeis ? (
+                                <div className="mb-2">
+                                    <span className="fw-bold text-muted">نظر:</span>
+                                    <p className="mb-1 text-muted small bg-light p-2 rounded">
+                                        {item.nazarRaeis === 2 && '✅ تایید'}
+                                        {item.nazarRaeis === 3 && '❌ رد'}
+                                        {item.nazarRaeis === 4 && '✏️ اصلاح'}
+                                        {item.nazarRaeis === 1 && '📝 پیش‌نویس'}
+                                        {item.nazarRaeis === 0 && '⏳ در انتظار'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="mb-2 text-muted small">نظری ثبت نشده است</div>
+                            )}
+
+                            {/* 🔥 توضیحات */}
+                            {item.tozihatRaeis && (
+                                <div className="mb-2">
+                                    <span className="fw-bold text-muted">توضیحات:</span>
+                                    <p className="mb-1 text-muted small bg-light p-2 rounded">
+                                        {item.tozihatRaeis}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* 🔥 فایل */}
+                            {item.uploadRaeis && (
+                                <div className="mt-2">
+                                    <button
+                                        className="btn btn-sm btn-outline-primary"
+                                        onClick={() => downloadFile(item.uploadRaeis, 'مستندات_رئیس')}
+                                    >
+                                        <i className="bi bi-download me-1"></i>
+                                        دانلود مستندات
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* نقش/مرکز */}
+                            {item.roleMarkazRaeis && (
+                                <small className="text-muted d-block mt-2">
+                                    <i className="bi bi-person-badge me-1"></i>
+                                    {item.roleMarkazRaeis}
+                                </small>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ============================================================
+                    نظر خدمات آموزشی استان
+                    ============================================================ */}
+                <div className="col-md-4">
+                    <div className="card h-100">
+                        <div className="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                            <h6 className="mb-0">
+                                <i className="bi bi-building me-2"></i>
+                                نظر خدمات آموزشی استان
+                            </h6>
+                            {getReviewStatus('khadamat') && (
+                                <span className={`badge ${getReviewStatus('khadamat').className}`}>
+                                    {getReviewStatus('khadamat').label}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <span className="fw-bold">وضعیت:</span>
+                                {getReviewStatus('khadamat') && (
+                                    <span className={`badge ${getReviewStatus('khadamat').className}`}>
+                                        {getReviewStatus('khadamat').label}
+                                    </span>
+                                )}
+                            </div>
+
+                            {item.nazarKhadamat ? (
+                                <div className="mb-2">
+                                    <span className="fw-bold text-muted">نظر:</span>
+                                    <p className="mb-1 text-muted small bg-light p-2 rounded">
+                                        {item.nazarKhadamat === 2 && '✅ تایید'}
+                                        {item.nazarKhadamat === 3 && '❌ رد'}
+                                        {item.nazarKhadamat === 4 && '✏️ اصلاح'}
+                                        {item.nazarKhadamat === 1 && '📝 پیش‌نویس'}
+                                        {item.nazarKhadamat === 0 && '⏳ در انتظار'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="mb-2 text-muted small">نظری ثبت نشده است</div>
+                            )}
+
+                            {item.tozihatKhadamat && (
+                                <div className="mb-2">
+                                    <span className="fw-bold text-muted">توضیحات:</span>
+                                    <p className="mb-1 text-muted small bg-light p-2 rounded">
+                                        {item.tozihatKhadamat}
+                                    </p>
+                                </div>
+                            )}
+
+                            {item.uploadKhadamat && (
+                                <div className="mt-2">
+                                    <button
+                                        className="btn btn-sm btn-outline-primary"
+                                        onClick={() => downloadFile(item.uploadKhadamat, 'مستندات_خدمات')}
+                                    >
+                                        <i className="bi bi-download me-1"></i>
+                                        دانلود مستندات
+                                    </button>
+                                </div>
+                            )}
+
+                            {item.roleMarkazKhadamatOstan && (
+                                <small className="text-muted d-block mt-2">
+                                    <i className="bi bi-person-badge me-1"></i>
+                                    {item.roleMarkazKhadamatOstan}
+                                </small>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* ============================================================
+                    نظر معاونت آموزشی استان
+                    ============================================================ */}
+                <div className="col-md-4">
+                    <div className="card h-100">
+                        <div className="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                            <h6 className="mb-0">
+                                <i className="bi bi-person-gear me-2"></i>
+                                نظر معاونت آموزشی استان
+                            </h6>
+                            {getReviewStatus('moaven') && (
+                                <span className={`badge ${getReviewStatus('moaven').className}`}>
+                                    {getReviewStatus('moaven').label}
+                                </span>
+                            )}
+                        </div>
+                        <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                                <span className="fw-bold">وضعیت:</span>
+                                {getReviewStatus('moaven') && (
+                                    <span className={`badge ${getReviewStatus('moaven').className}`}>
+                                        {getReviewStatus('moaven').label}
+                                    </span>
+                                )}
+                            </div>
+
+                            {item.nazarMoaven ? (
+                                <div className="mb-2">
+                                    <span className="fw-bold text-muted">نظر:</span>
+                                    <p className="mb-1 text-muted small bg-light p-2 rounded">
+                                        {item.nazarMoaven === 2 && '✅ تایید'}
+                                        {item.nazarMoaven === 3 && '❌ رد'}
+                                        {item.nazarMoaven === 4 && '✏️ اصلاح'}
+                                        {item.nazarMoaven === 1 && '📝 پیش‌نویس'}
+                                        {item.nazarMoaven === 0 && '⏳ در انتظار'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="mb-2 text-muted small">نظری ثبت نشده است</div>
+                            )}
+
+                            {item.tozihatMoaven && (
+                                <div className="mb-2">
+                                    <span className="fw-bold text-muted">توضیحات:</span>
+                                    <p className="mb-1 text-muted small bg-light p-2 rounded">
+                                        {item.tozihatMoaven}
+                                    </p>
+                                </div>
+                            )}
+
+                            {item.uploadMoaven && (
+                                <div className="mt-2">
+                                    <button
+                                        className="btn btn-sm btn-outline-primary"
+                                        onClick={() => downloadFile(item.uploadMoaven, 'مستندات_معاون')}
+                                    >
+                                        <i className="bi bi-download me-1"></i>
+                                        دانلود مستندات
+                                    </button>
+                                </div>
+                            )}
+
+                            {item.roleMarkazApproved && (
+                                <small className="text-muted d-block mt-2">
+                                    <i className="bi bi-person-badge me-1"></i>
+                                    {item.roleMarkazApproved}
+                                </small>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ============================================================
                 مودال ثبت نظر
                 ============================================================ */}
-            <ReviewModal
-                show={showReviewModal}
-                onClose={() => setShowReviewModal(false)}
-                item={item}
-                onSubmit={handleReview}
-                submitting={submitting}
-                role={getReviewRole()}
-            />
+            {showReviewModal && reviewRole && (
+                <div
+                    className="modal show d-block"
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        zIndex: 1050,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }}
+                    onClick={closeReviewModal}
+                >
+                    <div
+                        className="modal-dialog modal-lg"
+                        style={{
+                            margin: 0,
+                            width: '100%',
+                            maxWidth: '700px',
+                            maxHeight: '90vh',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="modal-content" style={{ maxHeight: '90vh', overflow: 'auto' }}>
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    ثبت نظر - {getRoleName(reviewRole)}
+                                </h5>
+                                <button type="button" className="btn-close" onClick={closeReviewModal}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="alert alert-info">
+                                    <div className="row">
+                                        <div className="col-md-6">
+                                            <strong>استاد:</strong> {item.ostadName}
+                                        </div>
+                                        <div className="col-md-6">
+                                            <strong>ترم:</strong> {item.termCode}
+                                            {item.termCode && ` - ${getTermTitle(item.termCode)}`}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <h6 className="text-primary">تعداد روز پیشنهادی</h6>
+                                <hr />
+
+                                {item.hamjavar1s?.map((detail, index) => {
+                                    const markaz = markazList?.find(m => m.id === detail.markazId);
+                                    const faaliatNames = detail.faaliatNames || [];
+
+                                    return (
+                                        <div key={detail.id} className="mb-3 p-2 border rounded bg-light">
+                                            <div className="row align-items-center">
+                                                <div className="col-md-5">
+                                                    <strong>مرکز:</strong> {markaz?.naamMarkaz || '-'}
+                                                    <br />
+                                                    <small className="text-muted">
+                                                        فعالیت‌ها: {faaliatNames.join('، ') || '-'}
+                                                    </small>
+                                                    <br />
+                                                    <small className="text-muted">
+                                                        تعداد روز علمی: <PersianNumber>{detail.tedadRoozElmi || 0}</PersianNumber>
+                                                    </small>
+                                                </div>
+                                                <div className="col-md-4">
+                                                    <label className="form-label">
+                                                        تعداد روز پیشنهادی
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        className="form-control"
+                                                        value={reviewTedadRooz[index] || ''}
+                                                        onChange={(e) => handleTedadChange(index, e.target.value)}
+                                                        min="0"
+                                                        max="6"
+                                                        placeholder="۰ تا ۶"
+                                                    />
+                                                </div>
+                                                <div className="col-md-3">
+                                                    <small className="text-muted">
+                                                        {reviewTedadRooz[index] !== '' && reviewTedadRooz[index] !== undefined &&
+                                                            `پیشنهادی: ${reviewTedadRooz[index]} روز`
+                                                        }
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                <div className="mb-3">
+                                    <label className="form-label">نظر (عددی)</label>
+                                    <select
+                                        className="form-select"
+                                        value={reviewNazar}
+                                        onChange={(e) => setReviewNazar(e.target.value)}
+                                    >
+                                        <option value="">انتخاب...</option>
+                                        <option value="2">✅ تایید</option>
+                                        <option value="3">❌ رد</option>
+                                        <option value="4">✏️ اصلاح</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={closeReviewModal}
+                                >
+                                    انصراف
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={handleReviewSubmit}
+                                    disabled={submitting}
+                                >
+                                    {submitting ? 'در حال ثبت...' : 'ثبت نظر'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* پس‌زمینه مودال */}
+            {showReviewModal && (
+                <div
+                    className="modal-backdrop show"
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        zIndex: 1040
+                    }}
+                    onClick={closeReviewModal}
+                ></div>
+            )}
 
             <ConfirmModal />
         </div>

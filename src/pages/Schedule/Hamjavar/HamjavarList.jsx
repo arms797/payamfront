@@ -1,5 +1,5 @@
 // src/pages/Schedule/Hamjavar/HamjavarList.jsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useTerm } from '../../../context/TermContext';
@@ -10,31 +10,35 @@ import { PermissionWrapper } from '../../../components/PermissionWrapper';
 import PersianNumber from '../../../components/common/PersianNumber';
 import { useConfirm } from '../../../hooks/useConfirm';
 
-// کامپوننت‌های مودال
-import CreateModal from './modals/CreateModal';
-import DetailModal from './modals/DetailModal';
-import ReviewModal from './modals/ReviewModal';
-import DeleteModal from './modals/DeleteModal';
-import SignSendModal from './modals/SignSendModal';
-
 // توابع کمکی
-import { getStatusBadge, getStatusDisplay } from './HamjavarHelpers';
+import { getStatusBadge } from './HamjavarHelpers';
 
 export default function HamjavarList() {
     const navigate = useNavigate();
     const { user, hasPermission } = useAuth();
     const { termList, currentTermCode } = useTerm();
-    const { markazList } = useMarkaz();
-    const { confirm, ConfirmModal } = useConfirm();
+    const { markazList, loading: markazLoading } = useMarkaz();
+    const { ConfirmModal } = useConfirm();
 
     // ============================================================
     // تشخیص نقش کاربر
     // ============================================================
     const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
-    const isRaeis = useMemo(() => hasPermission('Hamjavar.ReviewRaeis'), [hasPermission]);
-    const isKhadamat = useMemo(() => hasPermission('Hamjavar.ReviewKhadamat'), [hasPermission]);
     const isMoaven = useMemo(() => hasPermission('Hamjavar.ReviewMoaven') || hasPermission('Hamjavar.CreateMoaven'), [hasPermission]);
-    const isAdmin = useMemo(() => user?.currentRoleName === 'ادمین سامانه', [user]);
+
+    // ============================================================
+    // 🔥 دریافت CodeRole کاربر
+    // ============================================================
+    const codeRole = useMemo(() => {
+        try {
+            if (user?.codeRole) return user.codeRole;
+            const activeRole = user?.roles?.find(r => r.id === user?.currentRoleId);
+            return activeRole?.codeRole || 4;
+        } catch (error) {
+            console.error('خطا در دریافت CodeRole:', error);
+            return 4;
+        }
+    }, [user]);
 
     // ============================================================
     // Stateهای اصلی
@@ -54,6 +58,7 @@ export default function HamjavarList() {
     const [filters, setFilters] = useState({
         termCode: currentTermCode || '',
         search: '',
+        ostanId: '',
         markazId: '',
         status: '',
         fromDate: '',
@@ -61,15 +66,136 @@ export default function HamjavarList() {
     });
 
     // ============================================================
-    // Stateهای مودال
+    // 🔥 State برای جستجوی Debounce شده
     // ============================================================
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showDetailModal, setShowDetailModal] = useState(false);
-    const [showReviewModal, setShowReviewModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showSignSendModal, setShowSignSendModal] = useState(false);
-    const [selectedItem, setSelectedItem] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const searchTimerRef = useRef(null);
+
+    // ============================================================
+    // 🔥 Debounce برای جستجو (700ms)
+    // ============================================================
+    useEffect(() => {
+        if (searchTimerRef.current) {
+            clearTimeout(searchTimerRef.current);
+        }
+
+        searchTimerRef.current = setTimeout(() => {
+            setDebouncedSearch(filters.search);
+        }, 700);
+
+        return () => {
+            if (searchTimerRef.current) {
+                clearTimeout(searchTimerRef.current);
+            }
+        };
+    }, [filters.search]);
+
+    // ============================================================
+    // 🔥 وقتی debouncedSearch تغییر کرد، fetch انجام شود
+    // ============================================================
+    useEffect(() => {
+        if (pagination.page === 1) {
+            fetchItems();
+        } else {
+            setPagination(prev => ({ ...prev, page: 1 }));
+        }
+    }, [debouncedSearch, filters.termCode, filters.ostanId, filters.markazId, filters.status]);
+
+    // ============================================================
+    // 🔥 تعیین استان‌های قابل دسترس بر اساس CodeRole
+    // ============================================================
+    const accessibleOstans = useMemo(() => {
+        try {
+            if (!markazList || markazList.length === 0) return [];
+
+            let filteredMarkaz = markazList.filter(m => m.vazeeyat !== false);
+
+            if (codeRole === 1 || codeRole === 2) {
+                // همه استان‌ها
+            } else if (codeRole === 3) {
+                const userOstanCode = user?.markazOstan;
+                if (!userOstanCode) return [];
+                filteredMarkaz = filteredMarkaz.filter(m => m.codeOstan === userOstanCode);
+            } else if (codeRole === 4) {
+                const userOstanCode = user?.markazOstan;
+                if (!userOstanCode) return [];
+                filteredMarkaz = filteredMarkaz.filter(m => m.codeOstan === userOstanCode);
+            }
+
+            const uniqueOstans = filteredMarkaz
+                .filter(m => m.codeOstan)
+                .reduce((acc, curr) => {
+                    if (!acc.find(item => item.codeOstan === curr.codeOstan)) {
+                        acc.push({ codeOstan: curr.codeOstan, naamOstan: curr.naamOstan });
+                    }
+                    return acc;
+                }, []);
+
+            return uniqueOstans;
+        } catch (error) {
+            console.error('خطا در دریافت استان‌های قابل دسترس:', error);
+            return [];
+        }
+    }, [markazList, codeRole, user]);
+
+    // ============================================================
+    // 🔥 لیست مراکز قابل دسترس بر اساس استان انتخاب‌شده و CodeRole
+    // ============================================================
+    const accessibleMarkazs = useMemo(() => {
+        try {
+            if (!markazList || !filters.ostanId) return [];
+
+            let filtered = markazList.filter(m =>
+                m.codeOstan === filters.ostanId &&
+                m.vazeeyat !== false
+            );
+
+            if (codeRole === 4 && user?.markazId) {
+                filtered = filtered.filter(m => m.id === user.markazId);
+            }
+
+            return filtered;
+        } catch (error) {
+            console.error('خطا در دریافت مراکز قابل دسترس:', error);
+            return [];
+        }
+    }, [markazList, filters.ostanId, codeRole, user]);
+
+    // ============================================================
+    // 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
+    // ============================================================
+    const getDisplayName = useCallback((markaz) => {
+        if (!markaz) return '';
+
+        try {
+            if (markaz.level === 2) {
+                return 'سازمان مرکزی';
+            }
+            if (markaz.level === 3) {
+                return `ستاد استان ${markaz.naamOstan || ''}`;
+            }
+            return markaz.naamMarkaz || '';
+        } catch (error) {
+            console.error('خطا در نمایش نام مرکز:', error);
+            return markaz?.naamMarkaz || '';
+        }
+    }, []);
+
+    // ============================================================
+    // 🔥 تنظیم استان پیش‌فرض برای کاربران CodeRole 3 و 4
+    // ============================================================
+    useEffect(() => {
+        try {
+            if (markazList && markazList.length > 0 && (codeRole === 3 || codeRole === 4)) {
+                const userOstanCode = user?.markazOstan;
+                if (userOstanCode && accessibleOstans.some(o => o.codeOstan === userOstanCode)) {
+                    setFilters(prev => ({ ...prev, ostanId: userOstanCode }));
+                }
+            }
+        } catch (error) {
+            console.error('خطا در تنظیم استان پیش‌فرض:', error);
+        }
+    }, [markazList, codeRole, user, accessibleOstans]);
 
     // ============================================================
     // دریافت لیست درخواست‌ها
@@ -81,7 +207,7 @@ export default function HamjavarList() {
                 page: pagination.page,
                 pageSize: pagination.pageSize,
                 termCode: filters.termCode || undefined,
-                search: filters.search || undefined,
+                search: debouncedSearch || undefined,
                 markazId: filters.markazId || undefined,
                 status: filters.status || undefined,
                 fromDate: filters.fromDate || undefined,
@@ -98,15 +224,19 @@ export default function HamjavarList() {
                 }));
             }
         } catch (error) {
+            console.error('خطا در دریافت لیست:', error);
             toast.error('خطا در دریافت لیست درخواست‌ها');
         } finally {
             setLoading(false);
         }
-    }, [pagination.page, pagination.pageSize, filters]);
+    }, [pagination.page, pagination.pageSize, filters, debouncedSearch]);
 
+    // ============================================================
+    // 🔥 وقتی صفحه یا pageSize تغییر کرد، fetch انجام شود
+    // ============================================================
     useEffect(() => {
         fetchItems();
-    }, [fetchItems]);
+    }, [pagination.page, pagination.pageSize]);
 
     // ============================================================
     // تغییر صفحه
@@ -123,305 +253,79 @@ export default function HamjavarList() {
     // ریست فیلترها
     // ============================================================
     const resetFilters = () => {
+        const defaultOstanId = (codeRole === 3 || codeRole === 4) ? (user?.markazOstan || '') : '';
         setFilters({
             termCode: currentTermCode || '',
             search: '',
+            ostanId: defaultOstanId,
             markazId: '',
             status: '',
             fromDate: '',
             toDate: ''
         });
+        setDebouncedSearch('');
         setPagination(prev => ({ ...prev, page: 1 }));
     };
 
     // ============================================================
-    // استخراج مراکز یکتا برای فیلتر
-    // ============================================================
-    const uniqueMarkaz = useMemo(() => {
-        const map = new Map();
-        markazList?.forEach(m => {
-            if (m.id && m.naamMarkaz) {
-                map.set(m.id, m.naamMarkaz);
-            }
-        });
-        return Array.from(map, ([id, name]) => ({ id, name }));
-    }, [markazList]);
-
-    // ============================================================
-    // گزینه‌های وضعیت برای فیلتر
+    // 🔥 گزینه‌های وضعیت برای فیلتر (فقط وضعیت‌های جدید)
     // ============================================================
     const statusOptions = [
         { value: '', label: 'همه' },
         { value: 'PishNevis', label: 'پیش‌نویس' },
-        { value: 'TaeedSabt', label: 'تایید استاد' },
-        { value: 'TaeedRaeis', label: 'تایید رئیس' },
-        { value: 'RadRaeis', label: 'رد رئیس' },
-        { value: 'TaeedKhadamat', label: 'تایید خدمات' },
-        { value: 'RadKhadamat', label: 'رد خدمات' },
-        { value: 'TaeedNahaei', label: 'تایید نهایی' },
-        { value: 'RadNahaei', label: 'رد نهایی' }
+        { value: 'Taeed', label: 'تایید' },
+        { value: 'Rad', label: 'رد ❌' },
+        { value: 'Eslah', label: 'اصلاح ✏️' }
     ];
 
     // ============================================================
-    // باز کردن مودال‌ها
+    // کلیک روی ردیف → هدایت به صفحه جزئیات
     // ============================================================
-    const openCreateModal = () => setShowCreateModal(true);
-    const openDetailModal = (item) => {
-        setSelectedItem(item);
-        setShowDetailModal(true);
-    };
-    const openReviewModal = (item) => {
-        setSelectedItem(item);
-        setShowReviewModal(true);
-    };
-    const openDeleteModal = (item) => {
-        setSelectedItem(item);
-        setShowDeleteModal(true);
-    };
-    const openSignSendModal = (item) => {
-        setSelectedItem(item);
-        setShowSignSendModal(true);
+    const handleRowClick = (itemId) => {
+        navigate(`/dashboard/tadris-hamjavar-detailes/${itemId}`);
     };
 
     // ============================================================
-    // عملیات: حذف
+    // هدایت به صفحه ایجاد درخواست جدید
     // ============================================================
-    const handleDelete = async () => {
-        if (!selectedItem) return;
-        setSubmitting(true);
-
-        try {
-            const response = await api.delete(`/Hamjavar/delete/${selectedItem.id}`);
-            if (response.data?.success) {
-                toast.success('درخواست با موفقیت حذف شد');
-                setShowDeleteModal(false);
-                setSelectedItem(null);
-                fetchItems();
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'خطا در حذف درخواست');
-        } finally {
-            setSubmitting(false);
-        }
+    const goToCreate = () => {
+        navigate('/dashboard/tadris-hamjavar-create');
     };
 
     // ============================================================
-    // عملیات: امضاء و ارسال (تایید نهایی توسط استاد)
+    // تغییر استان → ریست مرکز
     // ============================================================
-    const handleSignSend = async (nazar) => {
-        if (!selectedItem) return;
-        setSubmitting(true);
-
-        try {
-            const response = await api.patch(`/Hamjavar/confirm-submit-by-ostad/${selectedItem.id}`, { nazar });
-            if (response.data?.success) {
-                toast.success('درخواست با موفقیت تایید و ارسال شد');
-                setShowSignSendModal(false);
-                setSelectedItem(null);
-                fetchItems();
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'خطا در تایید درخواست');
-        } finally {
-            setSubmitting(false);
-        }
+    const handleOstanChange = (e) => {
+        const ostanId = e.target.value;
+        setFilters(prev => ({
+            ...prev,
+            ostanId: ostanId,
+            markazId: ''
+        }));
     };
 
-    // ============================================================
-    // عملیات: ثبت نظر (بررسی توسط هر نقش)
-    // ============================================================
-    const handleReview = async (reviewData) => {
-        if (!selectedItem) return;
-        setSubmitting(true);
+    // اگر مراکز در حال بارگذاری هستند
+    if (markazLoading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center py-5">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">در حال بارگذاری مراکز...</span>
+                </div>
+            </div>
+        );
+    }
 
-        try {
-            const endpoint = isRaeis ? '/Hamjavar/review-raeis' :
-                isKhadamat ? '/Hamjavar/review-khadamat' :
-                    '/Hamjavar/review-moaven';
-
-            const response = await api.patch(endpoint, {
-                hamjavarId: selectedItem.id,
-                tedadRoozList: reviewData.tedadRoozList,
-                nazar: reviewData.nazar,
-                upload: reviewData.upload
-            });
-
-            if (response.data?.success) {
-                toast.success('نظر با موفقیت ثبت شد');
-                setShowReviewModal(false);
-                setSelectedItem(null);
-                fetchItems();
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'خطا در ثبت نظر');
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    // ============================================================
-    // رندر دکمه‌های عملیات بر اساس نقش و وضعیت
-    // ============================================================
-    const renderActions = (item) => {
-        const actions = [];
-
-        // ============================================================
-        // استاد
-        // ============================================================
-        if (isOstad) {
-            // اگر درخواست در حالت پیش‌نویس است
-            if (item.akharinTaghaza === 'PishNevis') {
-                actions.push(
-                    <button
-                        key="delete"
-                        className="btn btn-sm btn-danger"
-                        onClick={() => openDeleteModal(item)}
-                        title="حذف"
-                    >
-                        <i className="bi bi-trash"></i>
-                    </button>,
-                    <button
-                        key="edit"
-                        className="btn btn-sm btn-warning"
-                        onClick={() => navigate(`/dashboard/hamjavar/edit/${item.id}`)}
-                        title="ویرایش"
-                    >
-                        <i className="bi bi-pencil"></i>
-                    </button>,
-                    <button
-                        key="sign"
-                        className="btn btn-sm btn-success"
-                        onClick={() => openSignSendModal(item)}
-                        title="امضاء و ارسال"
-                    >
-                        <i className="bi bi-check2-circle"></i>
-                    </button>
-                );
-            } else {
-                // در غیر این صورت فقط پیگیری
-                actions.push(
-                    <button
-                        key="track"
-                        className="btn btn-sm btn-info"
-                        onClick={() => openDetailModal(item)}
-                        title="پیگیری"
-                    >
-                        <i className="bi bi-eye"></i>
-                    </button>
-                );
-            }
-        }
-
-        // ============================================================
-        // رئیس مرکز
-        // ============================================================
-        if (isRaeis) {
-            if (item.akharinTaghaza === 'TaeedSabt' || item.akharinTaghaza === 'DarEntezarRaeis') {
-                actions.push(
-                    <button
-                        key="review"
-                        className="btn btn-sm btn-primary"
-                        onClick={() => openReviewModal(item)}
-                        title="بررسی"
-                    >
-                        <i className="bi bi-pencil-square"></i>
-                    </button>
-                );
-            }
-            actions.push(
-                <button
-                    key="track"
-                    className="btn btn-sm btn-info"
-                    onClick={() => openDetailModal(item)}
-                    title="پیگیری"
-                >
-                    <i className="bi bi-eye"></i>
-                </button>
-            );
-        }
-
-        // ============================================================
-        // خدمات آموزشی استان
-        // ============================================================
-        if (isKhadamat) {
-            if (item.akharinTaghaza === 'TaeedRaeis' || item.akharinTaghaza === 'DarEntezarKhadamat') {
-                actions.push(
-                    <button
-                        key="review"
-                        className="btn btn-sm btn-primary"
-                        onClick={() => openReviewModal(item)}
-                        title="بررسی"
-                    >
-                        <i className="bi bi-pencil-square"></i>
-                    </button>
-                );
-            }
-            actions.push(
-                <button
-                    key="track"
-                    className="btn btn-sm btn-info"
-                    onClick={() => openDetailModal(item)}
-                    title="پیگیری"
-                >
-                    <i className="bi bi-eye"></i>
-                </button>
-            );
-        }
-
-        // ============================================================
-        // معاونت آموزشی استان
-        // ============================================================
-        if (isMoaven) {
-            if (item.akharinTaghaza === 'TaeedKhadamat' || item.akharinTaghaza === 'DarEntezarMoaven') {
-                actions.push(
-                    <button
-                        key="review"
-                        className="btn btn-sm btn-primary"
-                        onClick={() => openReviewModal(item)}
-                        title="بررسی"
-                    >
-                        <i className="bi bi-pencil-square"></i>
-                    </button>
-                );
-            }
-            actions.push(
-                <button
-                    key="track"
-                    className="btn btn-sm btn-info"
-                    onClick={() => openDetailModal(item)}
-                    title="پیگیری"
-                >
-                    <i className="bi bi-eye"></i>
-                </button>
-            );
-        }
-
-        // ============================================================
-        // ادمین سامانه
-        // ============================================================
-        if (isAdmin) {
-            actions.push(
-                <button
-                    key="delete"
-                    className="btn btn-sm btn-danger"
-                    onClick={() => openDeleteModal(item)}
-                    title="حذف"
-                >
-                    <i className="bi bi-trash"></i>
-                </button>,
-                <button
-                    key="track"
-                    className="btn btn-sm btn-info"
-                    onClick={() => openDetailModal(item)}
-                    title="مشاهده"
-                >
-                    <i className="bi bi-eye"></i>
-                </button>
-            );
-        }
-
-        return <div className="d-flex gap-1 flex-wrap">{actions}</div>;
-    };
+    // اگر markazList خالی است یا undefined
+    if (!markazList) {
+        return (
+            <div className="d-flex justify-content-center align-items-center py-5">
+                <div className="alert alert-warning">
+                    <i className="bi bi-exclamation-triangle me-2"></i>
+                    اطلاعات مراکز در دسترس نیست
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container-fluid">
@@ -430,20 +334,16 @@ export default function HamjavarList() {
                 ============================================================ */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h4 className="mb-0">لیست درخواست‌های هم‌جاوری</h4>
+                    <h4 className="mb-0">درخواست‌های تدریس در سایر مراکز</h4>
                     <small className="text-muted">
-                        {isOstad && 'نمایش درخواست‌های شما'}
-                        {isRaeis && 'نمایش درخواست‌های اساتید مرکز شما'}
-                        {isKhadamat && 'نمایش درخواست‌های اساتید استان شما'}
-                        {isMoaven && 'نمایش درخواست‌های اساتید استان شما'}
-                        {isAdmin && 'نمایش همه درخواست‌ها'}
+                        برای مشاهده جزئیات و انجام عملیات، روی هر ردیف کلیک کنید
                     </small>
                 </div>
                 {(isOstad || isMoaven) && (
                     <PermissionWrapper permission={isMoaven ? 'Hamjavar.CreateMoaven' : 'Hamjavar.Create'}>
                         <button
                             className="btn btn-primary"
-                            onClick={openCreateModal}
+                            onClick={goToCreate}
                         >
                             <i className="bi bi-plus-circle me-2"></i>
                             تقاضای جدید
@@ -458,25 +358,10 @@ export default function HamjavarList() {
             <div className="card mb-4">
                 <div className="card-body">
                     <div className="row g-3 align-items-end">
-                        {/* ترم - برای همه */}
-                        <div className="col-md-2">
-                            <label className="form-label">ترم</label>
-                            <select
-                                className="form-select form-select-sm"
-                                value={filters.termCode}
-                                onChange={(e) => setFilters(prev => ({ ...prev, termCode: e.target.value }))}
-                            >
-                                {termList.map(term => (
-                                    <option key={term.codeTerm} value={term.codeTerm}>
-                                        {term.onvanTerm}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
 
                         {/* جستجو - فقط برای غیر استاد */}
                         {!isOstad && (
-                            <div className="col-md-3">
+                            <div className="col-md-2">
                                 <label className="form-label">جستجو</label>
                                 <input
                                     type="text"
@@ -488,6 +373,42 @@ export default function HamjavarList() {
                             </div>
                         )}
 
+                        {/* ترم */}
+                        <div className="col-md-3">
+                            <label className="form-label">ترم</label>
+                            <select
+                                className="form-select form-select-sm"
+                                value={filters.termCode}
+                                onChange={(e) => setFilters(prev => ({ ...prev, termCode: e.target.value }))}
+                            >
+                                {termList.map(term => (
+                                    <option key={term.codeTerm} value={term.codeTerm}>
+                                        <PersianNumber>{term.onvanTerm}</PersianNumber>
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* استان - فقط برای غیر استاد */}
+                        {!isOstad && (
+                            <div className="col-md-2">
+                                <label className="form-label">استان</label>
+                                <select
+                                    className="form-select form-select-sm"
+                                    value={filters.ostanId}
+                                    onChange={handleOstanChange}
+                                    disabled={codeRole === 3 || codeRole === 4}
+                                >
+                                    <option value="">همه استان‌ها</option>
+                                    {accessibleOstans.map(ostan => (
+                                        <option key={ostan.codeOstan} value={ostan.codeOstan}>
+                                            {ostan.naamOstan}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         {/* مرکز - فقط برای غیر استاد */}
                         {!isOstad && (
                             <div className="col-md-2">
@@ -496,11 +417,18 @@ export default function HamjavarList() {
                                     className="form-select form-select-sm"
                                     value={filters.markazId}
                                     onChange={(e) => setFilters(prev => ({ ...prev, markazId: e.target.value }))}
+                                    disabled={!filters.ostanId || accessibleMarkazs.length === 0}
                                 >
                                     <option value="">همه مراکز</option>
-                                    {uniqueMarkaz.map(m => (
-                                        <option key={m.id} value={m.id}>{m.name}</option>
-                                    ))}
+                                    {accessibleMarkazs.map(markaz => {
+                                        const displayName = getDisplayName(markaz);
+                                        const finalName = displayName || markaz.naamMarkaz || `مرکز ${markaz.id}`;
+                                        return (
+                                            <option key={markaz.id} value={markaz.id}>
+                                                {finalName}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                         )}
@@ -520,24 +448,6 @@ export default function HamjavarList() {
                                 </select>
                             </div>
                         )}
-
-                        {/* دکمه جستجو */}
-                        <div className="col-md-2 d-flex gap-2">
-                            <button
-                                className="btn btn-primary btn-sm w-100"
-                                onClick={() => { setPagination(prev => ({ ...prev, page: 1 })); fetchItems(); }}
-                            >
-                                <i className="bi bi-search me-1"></i>
-                                جستجو
-                            </button>
-                            <button
-                                className="btn btn-outline-secondary btn-sm"
-                                onClick={resetFilters}
-                                title="ریست فیلترها"
-                            >
-                                <i className="bi bi-arrow-counterclockwise"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -586,29 +496,32 @@ export default function HamjavarList() {
                                     <th>واحد موظف</th>
                                     <th>آخرین مرحله</th>
                                     <th>وضعیت</th>
-                                    <th>عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.length === 0 ? (
                                     <tr>
-                                        <td colSpan="10" className="text-center text-muted py-4">
+                                        <td colSpan="9" className="text-center text-muted py-4">
                                             هیچ درخواستی یافت نشد
                                         </td>
                                     </tr>
                                 ) : (
                                     items.map((item, index) => (
-                                        <tr key={item.id}>
+                                        <tr
+                                            key={item.id}
+                                            style={{ cursor: 'pointer' }}
+                                            onClick={() => handleRowClick(item.id)}
+                                            className="table-row-clickable"
+                                        >
                                             <td><PersianNumber>{(pagination.page - 1) * pagination.pageSize + index + 1}</PersianNumber></td>
-                                            <td>{item.termCode}</td>
-                                            <td>{item.termName || '-'}</td>
+                                            <td><PersianNumber>{item.termCode}</PersianNumber></td>
+                                            <td><PersianNumber>{item.termName || '-'}</PersianNumber></td>
                                             <td><strong>{item.ostadName}</strong></td>
                                             <td><PersianNumber>{item.ostadCode}</PersianNumber></td>
                                             <td>{item.ostadMarkaz || '-'}</td>
                                             <td><PersianNumber>{item.vahedMovazaf}</PersianNumber></td>
                                             <td>{item.kharinBarrasi || '-'}</td>
                                             <td>{getStatusBadge(item.akharinTaghaza)}</td>
-                                            <td>{renderActions(item)}</td>
                                         </tr>
                                     ))
                                 )}
@@ -650,58 +563,6 @@ export default function HamjavarList() {
                     )}
                 </>
             )}
-
-            {/* ============================================================
-                مودال‌ها
-                ============================================================ */}
-            <CreateModal
-                show={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onSuccess={fetchItems}
-            />
-
-            <DetailModal
-                show={showDetailModal}
-                onClose={() => {
-                    setShowDetailModal(false);
-                    setSelectedItem(null);
-                }}
-                item={selectedItem}
-            />
-
-            <ReviewModal
-                show={showReviewModal}
-                onClose={() => {
-                    setShowReviewModal(false);
-                    setSelectedItem(null);
-                }}
-                item={selectedItem}
-                onSubmit={handleReview}
-                submitting={submitting}
-                role={isRaeis ? 'raeis' : isKhadamat ? 'khadamat' : 'moaven'}
-            />
-
-            <DeleteModal
-                show={showDeleteModal}
-                onClose={() => {
-                    setShowDeleteModal(false);
-                    setSelectedItem(null);
-                }}
-                item={selectedItem}
-                onConfirm={handleDelete}
-                submitting={submitting}
-            />
-
-            <SignSendModal
-                show={showSignSendModal}
-                onClose={() => {
-                    setShowSignSendModal(false);
-                    setSelectedItem(null);
-                }}
-                item={selectedItem}
-                onSubmit={handleSignSend}
-                submitting={submitting}
-            />
 
             <ConfirmModal />
         </div>

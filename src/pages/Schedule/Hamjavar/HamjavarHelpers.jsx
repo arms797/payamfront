@@ -3,20 +3,14 @@ import React from 'react';
 
 /**
  * نمایش وضعیت درخواست با رنگ مناسب
+ * وضعیت‌ها: PishNevis, Taeed, Rad, Eslah
  */
 export const getStatusBadge = (status) => {
     const statusMap = {
         'PishNevis': { label: 'پیش‌نویس', className: 'bg-secondary' },
-        'TaeedSabt': { label: 'تایید استاد', className: 'bg-info' },
-        'DarEntezarRaeis': { label: 'در انتظار رئیس', className: 'bg-warning text-dark' },
-        'TaeedRaeis': { label: 'تایید رئیس', className: 'bg-primary' },
-        'RadRaeis': { label: 'رد رئیس', className: 'bg-danger' },
-        'DarEntezarKhadamat': { label: 'در انتظار خدمات', className: 'bg-warning text-dark' },
-        'TaeedKhadamat': { label: 'تایید خدمات', className: 'bg-success' },
-        'RadKhadamat': { label: 'رد خدمات', className: 'bg-danger' },
-        'DarEntezarMoaven': { label: 'در انتظار معاون', className: 'bg-warning text-dark' },
-        'TaeedNahaei': { label: 'تایید نهایی', className: 'bg-success' },
-        'RadNahaei': { label: 'رد نهایی', className: 'bg-danger' }
+        'Taeed': { label: 'تایید', className: 'bg-success' },
+        'Rad': { label: 'رد ❌', className: 'bg-danger' },
+        'Eslah': { label: 'اصلاح ✏️', className: 'bg-warning text-dark' }
     };
 
     const info = statusMap[status] || { label: status || 'نامشخص', className: 'bg-secondary' };
@@ -29,41 +23,22 @@ export const getStatusBadge = (status) => {
 export const getStatusDisplay = (status) => {
     const map = {
         'PishNevis': 'پیش‌نویس',
-        'TaeedSabt': 'تایید استاد',
-        'DarEntezarRaeis': 'در انتظار بررسی رئیس مرکز',
-        'TaeedRaeis': 'تایید رئیس مرکز',
-        'RadRaeis': 'رد رئیس مرکز',
-        'DarEntezarKhadamat': 'در انتظار بررسی خدمات آموزشی استان',
-        'TaeedKhadamat': 'تایید خدمات آموزشی استان',
-        'RadKhadamat': 'رد خدمات آموزشی استان',
-        'DarEntezarMoaven': 'در انتظار بررسی معاونت آموزشی استان',
-        'TaeedNahaei': 'تایید نهایی',
-        'RadNahaei': 'رد نهایی'
+        'Taeed': 'تایید',
+        'Rad': 'رد',
+        'Eslah': 'اصلاح'
     };
     return map[status] || status;
 };
 
 /**
- * دریافت مرحله بعدی برای هر نقش
+ * دریافت کلاس رنگ برای وضعیت
  */
-export const getNextStep = (currentStatus, role) => {
-    const steps = {
-        ostad: {
-            'PishNevis': 'ارسال به رئیس مرکز',
-            'TaeedSabt': 'در انتظار بررسی رئیس مرکز'
-        },
-        raeis: {
-            'TaeedSabt': 'بررسی توسط رئیس مرکز',
-            'TaeedRaeis': 'ارسال به خدمات آموزشی استان'
-        },
-        khadamat: {
-            'TaeedRaeis': 'بررسی توسط خدمات آموزشی استان',
-            'TaeedKhadamat': 'ارسال به معاونت آموزشی استان'
-        },
-        moaven: {
-            'TaeedKhadamat': 'بررسی نهایی توسط معاونت آموزشی استان',
-            'TaeedNahaei': 'تایید نهایی'
-        }
+export const getStatusColor = (status) => {
+    const colorMap = {
+        'PishNevis': 'secondary',
+        'Taeed': 'success',
+        'Rad': 'danger',
+        'Eslah': 'warning'
     };
-    return steps[role]?.[currentStatus] || currentStatus;
+    return colorMap[status] || 'secondary';
 };

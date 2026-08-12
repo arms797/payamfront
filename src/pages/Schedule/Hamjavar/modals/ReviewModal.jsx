@@ -1,5 +1,5 @@
 // src/pages/Schedule/Hamjavar/modals/ReviewModal.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PersianNumber from '../../../../components/common/PersianNumber';
 
 export default function ReviewModal({
@@ -42,7 +42,7 @@ export default function ReviewModal({
     };
 
     // مقداردهی اولیه
-    React.useEffect(() => {
+    useEffect(() => {
         if (show && item?.hamjavar1s) {
             const initialList = item.hamjavar1s.map(detail => ({
                 id: detail.id,
@@ -65,12 +65,17 @@ export default function ReviewModal({
     // ثبت نظر
     const handleSubmit = (e) => {
         e.preventDefault();
-        const tedadRoozList = formData.tedadRoozList.map(item =>
-            item.value ? parseInt(item.value) : null
-        );
+
+        // ساخت لیست تعداد روز با شناسه
+        const tedadRoozList = formData.tedadRoozList.map(item => ({
+            id: item.id,
+            tedadRooz: item.value ? parseInt(item.value) : null
+        }));
+
+        // ارسال نظر عددی
         onSubmit({
-            tedadRoozList,
-            nazar: formData.nazar,
+            tedadRoozList: tedadRoozList,
+            nazar: parseInt(formData.nazar),  // ← عددی
             upload: formData.upload
         });
     };
@@ -147,15 +152,37 @@ export default function ReviewModal({
                                 );
                             })}
 
-                            {/* نظر */}
+                            {/* ============================================================
+                                🔥 انتخاب نظر (عددی)
+                                ============================================================ */}
                             <div className="mb-3">
-                                <label className="form-label">نظر</label>
+                                <label className="form-label">نظر <span className="text-danger">*</span></label>
+                                <select
+                                    className="form-select"
+                                    value={formData.nazar}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, nazar: e.target.value }))}
+                                    required
+                                >
+                                    <option value="">انتخاب نظر...</option>
+                                    <option value="2">✅ تایید</option>
+                                    <option value="3">❌ رد</option>
+                                    <option value="4">✏️ اصلاح</option>
+                                </select>
+                                <small className="text-muted d-block mt-1">
+                                    <i className="bi bi-info-circle me-1"></i>
+                                    انتخاب "اصلاح" یعنی تعداد روزها نیاز به بررسی مجدد دارد
+                                </small>
+                            </div>
+
+                            {/* توضیحات تکمیلی */}
+                            <div className="mb-3">
+                                <label className="form-label">توضیحات تکمیلی (اختیاری)</label>
                                 <textarea
                                     className="form-control"
                                     rows="3"
-                                    value={formData.nazar}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, nazar: e.target.value }))}
-                                    placeholder="نظر خود را وارد کنید..."
+                                    value={formData.tozihat || ''}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, tozihat: e.target.value }))}
+                                    placeholder="توضیحات خود را وارد کنید..."
                                 />
                             </div>
 

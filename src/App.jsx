@@ -224,7 +224,7 @@ function App() {
               <Route
                 path="tadris-hamjavar-list"
                 element={
-                  <ProtectedRouteWithPermission requiredPermission="	Hamjavar.View">
+                  <ProtectedRouteWithPermission requiredPermission="Hamjavar.View">
                     <HamjavarList />
                   </ProtectedRouteWithPermission>
                 }
@@ -232,15 +232,23 @@ function App() {
               <Route
                 path="tadris-hamjavar-create"
                 element={
-                  <ProtectedRouteWithPermission requiredPermission="	Hamjavar.Create">
+                  <ProtectedRouteWithPermission requiredPermission="Hamjavar.Create">
                     <HamjavarCreate />
                   </ProtectedRouteWithPermission>
                 }
               />
               <Route
-                path="tadris-hamjavar-detailes"
+                path="tadris-hamjavar-detailes/:id"
                 element={
-                  <ProtectedRouteWithPermission requiredPermission="	Hamjavar.View">
+                  <ProtectedRouteWithPermission requiredPermission="Hamjavar.View">
+                    <HamjavarDetail />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="tadris-hamjavar-edit/:id"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Hamjavar.Update">
                     <HamjavarCreate />
                   </ProtectedRouteWithPermission>
                 }
