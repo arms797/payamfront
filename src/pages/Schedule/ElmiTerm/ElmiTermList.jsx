@@ -8,6 +8,7 @@ import { PermissionWrapper } from '../../../components/PermissionWrapper';
 import { useMarkaz } from '../../../context/MarkazContext';
 import PersianNumber from '../../../components/common/PersianNumber'
 import { useConfirm } from '../../../hooks/useConfirm';
+import DownloadButton from '../../../components/common/DownloadButton';
 
 // import کامپوننت‌های مودال
 import CreateModal from './modals/CreateModal';
@@ -18,7 +19,6 @@ import DetailModal from './modals/DetailModal';
 import {
     approveStatusOptions,
     getStatusBadge,
-    downloadFile
 } from './ElmiTermHelpers';
 
 export default function ElmiTermList() {
@@ -455,39 +455,6 @@ export default function ElmiTermList() {
         }
     };
 
-    const downloadFile = async (id, fileName) => {
-        if (!id) {
-            toast.error('شناسه فایل وجود ندارد');
-            return;
-        }
-
-        try {
-            const response = await api.get(`/ElmiTerm/download/${id}`, {
-                responseType: 'blob'
-            });
-
-            const contentType = response.headers['content-type'];
-            if (contentType && contentType.includes('application/json')) {
-                const text = await response.data.text();
-                const errorData = JSON.parse(text);
-                throw new Error(errorData.message || 'خطا در دانلود فایل');
-            }
-
-            const url = window.URL.createObjectURL(response.data);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = fileName || 'فایل';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-
-            toast.success('دانلود فایل با موفقیت انجام شد');
-        } catch (error) {
-            console.error('❌ خطا در دانلود فایل:', error);
-            toast.error(error.message || 'خطا در دانلود فایل');
-        }
-    };
 
     // ============================================================
     // ریست فیلترها
@@ -895,16 +862,16 @@ export default function ElmiTermList() {
                                                 <td>{getStatusBadge(item.approveStatus)}</td>
                                                 <td>
                                                     {item.hasFile ? (
-                                                        <button
-                                                            className="btn btn-sm btn-outline-primary"
-                                                            onClick={() => downloadFile(item.id, item.fileName)}
-                                                            title="دانلود فایل"
-                                                        >
-                                                            <i className="bi bi-download"></i>
-                                                        </button>
+
+                                                        <DownloadButton
+                                                            filePath={item.filePath}
+                                                            fileName="فایل"
+                                                        />
+
                                                     ) : (
                                                         <span className="text-muted">-</span>
                                                     )}
+
                                                 </td>
                                                 <td>
                                                     <div className="btn-group btn-group-sm">

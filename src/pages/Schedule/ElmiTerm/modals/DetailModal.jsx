@@ -3,6 +3,7 @@ import React from 'react';
 import { getStatusBadge, downloadFile, formatDate, getTermTitle } from '../ElmiTermHelpers';
 import api from '../../../../api/axiosConfig';
 import PersianNumber from '../../../../components/common/PersianNumber';
+import DownloadButton from '../../../../components/common/DownloadButton';
 
 export default function DetailModal({
     show,
@@ -11,10 +12,6 @@ export default function DetailModal({
     termList
 }) {
     if (!show || !selectedItem) return null;
-
-    const handleDownload = () => {
-        downloadFile(selectedItem.id, selectedItem.file, api);
-    };
 
     return (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
@@ -149,13 +146,11 @@ export default function DetailModal({
                                             <div className="row mt-2">
                                                 <div className="col-3 fw-bold">فایل مستندات:</div>
                                                 <div className="col-9">
-                                                    <button
-                                                        className="btn btn-sm btn-outline-primary"
-                                                        onClick={handleDownload}
-                                                    >
-                                                        <i className="bi bi-download me-1"></i>
-                                                        دانلود فایل
-                                                    </button>
+                                                    <DownloadButton
+                                                        filePath={selectedItem.filePath}
+                                                        fileName='فایل-مستندات'
+                                                    />
+
                                                 </div>
                                             </div>
                                         )}

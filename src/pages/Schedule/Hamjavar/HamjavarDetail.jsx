@@ -13,6 +13,7 @@ import { useConfirm } from '../../../hooks/useConfirm';
 import { getStatusBadge } from './HamjavarHelpers';
 import ReviewModal from './modals/ReviewModal';
 import SignatureDisplay from '../../../components/common/SignatureDisplay';
+import DownloadButton from '../../../components/common/DownloadButton';
 
 export default function HamjavarDetail() {
     const navigate = useNavigate();
@@ -228,19 +229,6 @@ export default function HamjavarDetail() {
         return map[role] || role;
     };
 
-    const downloadFile = async (filePath, fileName) => {
-        if (!filePath) {
-            toast.warning('فایلی برای دانلود وجود ندارد');
-            return;
-        }
-        try {
-            const url = filePath.startsWith('/uploads/') ? filePath : `/uploads/hamjavar/${filePath}`;
-            window.open(url, '_blank');
-        } catch (error) {
-            console.error('خطا در دانلود فایل:', error);
-            toast.error('خطا در دانلود فایل');
-        }
-    };
 
     // ============================================================
     // توابع کمکی برای تاریخ و نقش
@@ -255,6 +243,40 @@ export default function HamjavarDetail() {
         if (roleMarkaz.includes('رییس')) return 'رئیس استان';
         if (roleMarkaz.includes('معاون')) return 'معاون آموزشی استان';
         return 'معاونت آموزشی استان';
+    };
+
+    // ============================================================
+    // 🔥 تابع اصلاح نقش و مرکز برای نمایش بهتر
+    // ============================================================
+    const formatRoleMarkaz = (raw) => {
+        //console.log('item is :',item)
+        if (!raw) return '';
+        if (!raw.includes(' - ')) return raw;
+
+        const parts = raw.split(' - ');
+        if (parts.length !== 2) return raw;
+
+        const [rolePart, markazPart] = parts;
+        if (rolePart === markazPart) return rolePart;
+
+        const roleWords = rolePart.split(' ');
+        const markazWords = markazPart.split(' ');
+        const lastRoleWord = roleWords[roleWords.length - 1];
+        const firstMarkazWord = markazWords[0];
+
+        // کلمات کلیدی مکان (می‌توانید بیشتر اضافه کنید)
+        const placeKeywords = ['مرکز', 'واحد', 'دانشکده', 'مجتمع', 'پردیس', 'استان'];
+
+        // اگر هر دو کلمه در مجموعه باشند (مترادف یا یکسان)
+        if (placeKeywords.includes(lastRoleWord) && placeKeywords.includes(firstMarkazWord)) {
+            // نقش بدون آخرین کلمه + کلمه‌ی اول مرکز + بقیه‌ی کلمات مرکز
+            const roleWithoutLast = roleWords.slice(0, -1).join(' ');
+            const restOfMarkaz = markazWords.slice(1).join(' ');
+            return `${roleWithoutLast} ${firstMarkazWord} ${restOfMarkaz}`.trim();
+        }
+
+        // در غیر این صورت، با ویرگول جدا کن
+        return `${rolePart} ${markazPart}`;
     };
 
     // ============================================================
@@ -337,7 +359,7 @@ export default function HamjavarDetail() {
                             alignItems: 'center'
                         }}>
                             <span className="text-start" style={{ visibility: 'hidden' }}>‌</span>
-                            <span className="text-center fw-bolder">
+                            <span className="text-center fw-bolder fs-5">
                                 دانشگاه پیام نور استان فارس
                             </span>
                             <span className="text-start">
@@ -361,7 +383,7 @@ export default function HamjavarDetail() {
                             <div className='col-md-4'>
                                 <p className="text-center text-muted mb-0">
                                     ایجاد کننده: {item.ostadName} {item.ostadLastName}
-                                    {item.roleMarkazSabtKonandeh && ` (${item.roleMarkazSabtKonandeh})`}
+                                    {item.roleMarkazSabtKonandeh && ` (${formatRoleMarkaz(item.roleMarkazSabtKonandeh)})`}
                                 </p>
                             </div>
                             <div className='col-md-3'>
@@ -418,7 +440,32 @@ export default function HamjavarDetail() {
                             <div className="col-12"><span className="fw-bold text-muted">دلایل تقاضا:</span> {item.dalil || '-'}</div>
                         </div>
                         <div className="row">
-                            <div className="col-12"><span className="fw-bold text-muted">شهر محل سکونت:</span> {item.shahrZendegi || '-'}</div>
+                            <div className="col-12 d-flex align-items-center flex-wrap gap-5">
+                                <div>
+                                    <span className="fw-bold text-muted">شهر محل سکونت : </span>
+                                    <span>{item.shahrZendegi || '-'}</span>
+                                </div>
+
+
+                                {/* ============================================================
+                                    🔥 فایل مستندات استاد (فقط در صورت وجود)
+                                    ============================================================ */}
+                                {item.uploadElmi && (
+                                    <>
+                                        <div>
+                                            <span className="text-muted small d-print-none"> دانلود مستندات استاد </span>
+                                            <DownloadButton
+                                                filePath={item.uploadElmi}
+                                                fileName="مستندات-استاد"
+                                            />
+                                        </div>
+
+                                        <span className="badge bg-info d-print-inline d-none">
+                                            <i className="bi bi-paperclip me-1"></i> مستندات دارد
+                                        </span>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -515,13 +562,31 @@ export default function HamjavarDetail() {
                                 ) : (
                                     <div className="mb-2"><span className="fw-bold text-muted">توضیحات:</span> <div className="mb-1 text-muted small bg-light p-2 rounded" style={{ minHeight: '60px', maxHeight: '100px', overflowY: 'auto' }}><span className="text-muted"></span></div></div>
                                 )}
-                                {item.uploadRaeis && <button className="btn btn-sm btn-outline-primary" onClick={() => downloadFile(item.uploadRaeis, 'مستندات_رئیس')}><i className="bi bi-download me-1"></i> دانلود مستندات</button>}
+                                {/* ============================================================
+                                    🔥 فایل مستندات (رئیس/خدمات/معاون)
+                                    ============================================================ */}
+                                {item.uploadRaeis && (
+                                    <>
+                                        <div className="d-print-none mt-2">
+                                            <span className="text-muted small d-print-none"> دانلود مستندات رییس مرکز </span>
+                                            <DownloadButton
+                                                filePath={item.uploadRaeis}
+                                                fileName="مستندات-رئیس"
+                                            />
+                                        </div>
+                                        <div className="d-none d-print-block">
+                                            <span className="badge bg-info">
+                                                <i className="bi bi-paperclip me-1"></i> مستندات دارد
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
                                 {item.signatureRaeis && (
                                     <div className="text-center mt-2">
                                         <SignatureDisplay
                                             signatureData={item.signatureRaeis.data}
                                             textTop={item.raeisFullName || ''}
-                                            textBottom={item.roleMarkazRaeis || ''}
+                                            textBottom={formatRoleMarkaz(item.roleMarkazRaeis)}
                                             position={item.signatureRaeis.position || 'BC'}
                                             width={250} height={180} textFontSize={14} textOpacity={0.9}
                                         />
@@ -561,13 +626,31 @@ export default function HamjavarDetail() {
                                 ) : (
                                     <div className="mb-2"><span className="fw-bold text-muted">توضیحات:</span> <div className="mb-1 text-muted small bg-light p-2 rounded" style={{ minHeight: '60px', maxHeight: '100px', overflowY: 'auto' }}><span className="text-muted"></span></div></div>
                                 )}
-                                {item.uploadKhadamat && <button className="btn btn-sm btn-outline-primary" onClick={() => downloadFile(item.uploadKhadamat, 'مستندات_خدمات')}><i className="bi bi-download me-1"></i> دانلود مستندات</button>}
+                                {/* ============================================================
+                                    🔥 فایل مستندات خدمات
+                                    ============================================================ */}
+                                {item.uploadKhadamat && (
+                                    <>
+                                        <div className="d-print-none mt-2">
+                                            <span className="text-muted small d-print-none"> دانلود مستندات خدمات آموزشی استان </span>
+                                            <DownloadButton
+                                                filePath={item.uploadKhadamat}
+                                                fileName="مستندات-خدمات-آموزشی"
+                                            />
+                                        </div>
+                                        <div className="d-none d-print-block">
+                                            <span className="badge bg-info">
+                                                <i className="bi bi-paperclip me-1"></i> مستندات دارد
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
                                 {item.signatureKhadamat && (
                                     <div className="text-center mt-2">
                                         <SignatureDisplay
                                             signatureData={item.signatureKhadamat.data}
                                             textTop={item.khadamatFullName || ''}
-                                            textBottom={item.roleMarkazKhadamatOstan || ''}
+                                            textBottom={formatRoleMarkaz(item.roleMarkazKhadamatOstan)}
                                             position={item.signatureKhadamat.position || 'BC'}
                                             width={250} height={180} textFontSize={14} textOpacity={0.9}
                                         />
@@ -607,13 +690,31 @@ export default function HamjavarDetail() {
                                 ) : (
                                     <div className="mb-2"><span className="fw-bold text-muted">توضیحات:</span> <div className="mb-1 text-muted small bg-light p-2 rounded" style={{ minHeight: '60px', maxHeight: '100px', overflowY: 'auto' }}><span className="text-muted"></span></div></div>
                                 )}
-                                {item.uploadMoaven && <button className="btn btn-sm btn-outline-primary" onClick={() => downloadFile(item.uploadMoaven, 'مستندات_معاون')}><i className="bi bi-download me-1"></i> دانلود مستندات</button>}
+                                {/* ============================================================
+                                    🔥 فایل مستندات معاون
+                                    ============================================================ */}
+                                {item.uploadMoaven && (
+                                    <>
+                                        <div className="d-print-none mt-2">
+                                            <span className="text-muted small d-print-none"> دانلود مستندات رییس/معاون استان </span>
+                                            <DownloadButton
+                                                filePath={item.uploadMoaven}
+                                                fileName="مستندات-معاون-آموزشی"
+                                            />
+                                        </div>
+                                        <div className="d-none d-print-block">
+                                            <span className="badge bg-info">
+                                                <i className="bi bi-paperclip me-1"></i> مستندات دارد
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
                                 {item.signatureMoaven && (
                                     <div className="text-center mt-2">
                                         <SignatureDisplay
                                             signatureData={item.signatureMoaven.data}
                                             textTop={item.moavenFullName || ''}
-                                            textBottom={item.roleMarkazApproved || ''}
+                                            textBottom={formatRoleMarkaz(item.roleMarkazApproved)}
                                             position={item.signatureMoaven.position || 'BC'}
                                             width={250} height={180} textFontSize={14} textOpacity={0.9}
                                         />
