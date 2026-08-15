@@ -1,3 +1,4 @@
+// src/pages/Ostad/OstadList.jsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -29,16 +30,14 @@ export default function OstadList() {
     // Stateهای فیلتر
     // ============================================================
     const [search, setSearch] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
     const [selectedNoeHamkari, setSelectedNoeHamkari] = useState('');
     const [vazeeat, setVazeeat] = useState(1);
     const [reshteh, setReshteh] = useState('');
-    const [debouncedReshteh, setDebouncedReshteh] = useState('');
 
     // ============================================================
-    // 🔥 Refs برای ذخیره آخرین مقادیر
+    // Refها برای ذخیره آخرین مقادیر
     // ============================================================
     const pageRef = useRef(1);
     const pageSizeRef = useRef(50);
@@ -50,84 +49,18 @@ export default function OstadList() {
     const reshtehRef = useRef('');
 
     // ============================================================
-    // 🔥 همگام‌سازی Refs با Stateها
+    // Ref برای debounce
     // ============================================================
-    useEffect(() => {
-        pageRef.current = pagination.page;
-    }, [pagination.page]);
-
-    useEffect(() => {
-        pageSizeRef.current = pagination.pageSize;
-    }, [pagination.pageSize]);
-
-    useEffect(() => {
-        searchRef.current = search;
-    }, [search]);
-
-    useEffect(() => {
-        ostanIdRef.current = selectedOstanId;
-    }, [selectedOstanId]);
-
-    useEffect(() => {
-        markazIdRef.current = selectedMarkazId;
-    }, [selectedMarkazId]);
-
-    useEffect(() => {
-        noeHamkariRef.current = selectedNoeHamkari;
-    }, [selectedNoeHamkari]);
-
-    useEffect(() => {
-        vazeeatRef.current = vazeeat;
-    }, [vazeeat]);
-
-    useEffect(() => {
-        reshtehRef.current = reshteh;
-    }, [reshteh]);
+    const searchTimerRef = useRef(null);
+    const reshtehTimerRef = useRef(null);
 
     // ============================================================
-    // 🔥 بازیابی موقعیت هنگام بازگشت از جزئیات
+    // Flag برای جلوگیری از fetch هنگام بازیابی موقعیت
     // ============================================================
-    useEffect(() => {
-        if (location.state?.fromDetail) {
-            const savedPage = location.state.page || 1;
-            const savedPageSize = location.state.pageSize || 50;
-            const savedSearch = location.state.search || '';
-            const savedOstanId = location.state.ostanId || '';
-            const savedMarkazId = location.state.markazId || '';
-            const savedNoeHamkari = location.state.noeHamkari || '';
-            const savedVazeeat = location.state.vazeeat || 1;
-            const savedReshteh = location.state.reshteh || '';
-
-            // تنظیم Stateها
-            setPagination(prev => ({
-                ...prev,
-                page: savedPage,
-                pageSize: savedPageSize
-            }));
-            setSearch(savedSearch);
-            setSelectedOstanId(savedOstanId);
-            setSelectedMarkazId(savedMarkazId);
-            setSelectedNoeHamkari(savedNoeHamkari);
-            setVazeeat(savedVazeeat);
-            setReshteh(savedReshteh);
-
-            // 🔥 مستقیماً Refها را هم تنظیم کن تا fetch درست کار کند
-            pageRef.current = savedPage;
-            pageSizeRef.current = savedPageSize;
-            searchRef.current = savedSearch;
-            ostanIdRef.current = savedOstanId;
-            markazIdRef.current = savedMarkazId;
-            noeHamkariRef.current = savedNoeHamkari;
-            vazeeatRef.current = savedVazeeat;
-            reshtehRef.current = savedReshteh;
-
-            // پاک کردن state
-            window.history.replaceState({}, document.title);
-        }
-    }, [location.state]);
+    const [isRestoring, setIsRestoring] = useState(false);
 
     // ============================================================
-    // تابع کمکی
+    // تابع کمکی برای نمایش نام مرکز
     // ============================================================
     const getDisplayName = useCallback((markaz) => {
         if (!markaz) return '';
@@ -135,19 +68,6 @@ export default function OstadList() {
         if (markaz.level === 3) return `ستاد استان ${markaz.naamOstan || ''}`;
         return markaz.naamMarkaz || '';
     }, []);
-
-    // ============================================================
-    // Debounce
-    // ============================================================
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedSearch(search), 700);
-        return () => clearTimeout(timer);
-    }, [search]);
-
-    useEffect(() => {
-        const timer = setTimeout(() => setDebouncedReshteh(reshteh), 700);
-        return () => clearTimeout(timer);
-    }, [reshteh]);
 
     // ============================================================
     // استخراج استان‌ها
@@ -192,6 +112,156 @@ export default function OstadList() {
     }
 
     // ============================================================
+    // 🔥 همگام‌سازی Refs با Stateها
+    // ============================================================
+    useEffect(() => {
+        pageRef.current = pagination.page;
+    }, [pagination.page]);
+
+    useEffect(() => {
+        pageSizeRef.current = pagination.pageSize;
+    }, [pagination.pageSize]);
+
+    useEffect(() => {
+        searchRef.current = search;
+    }, [search]);
+
+    useEffect(() => {
+        ostanIdRef.current = selectedOstanId;
+    }, [selectedOstanId]);
+
+    useEffect(() => {
+        markazIdRef.current = selectedMarkazId;
+    }, [selectedMarkazId]);
+
+    useEffect(() => {
+        noeHamkariRef.current = selectedNoeHamkari;
+    }, [selectedNoeHamkari]);
+
+    useEffect(() => {
+        vazeeatRef.current = vazeeat;
+    }, [vazeeat]);
+
+    useEffect(() => {
+        reshtehRef.current = reshteh;
+    }, [reshteh]);
+
+    // ============================================================
+    // 🔥 بازیابی موقعیت هنگام بازگشت از جزئیات
+    // ============================================================
+    useEffect(() => {
+        if (location.state?.fromDetail) {
+            setIsRestoring(true);
+
+            const savedPage = location.state.page || 1;
+            const savedPageSize = location.state.pageSize || 50;
+            const savedSearch = location.state.search || '';
+            const savedOstanId = location.state.ostanId || '';
+            const savedMarkazId = location.state.markazId || '';
+            const savedNoeHamkari = location.state.noeHamkari || '';
+            const savedVazeeat = location.state.vazeeat || 1;
+            const savedReshteh = location.state.reshteh || '';
+
+            setPagination(prev => ({
+                ...prev,
+                page: savedPage,
+                pageSize: savedPageSize
+            }));
+            setSearch(savedSearch);
+            setSelectedOstanId(savedOstanId);
+            setSelectedMarkazId(savedMarkazId);
+            setSelectedNoeHamkari(savedNoeHamkari);
+            setVazeeat(savedVazeeat);
+            setReshteh(savedReshteh);
+
+            // 🔥 Refها را هم به‌روز کن
+            pageRef.current = savedPage;
+            pageSizeRef.current = savedPageSize;
+            searchRef.current = savedSearch;
+            ostanIdRef.current = savedOstanId;
+            markazIdRef.current = savedMarkazId;
+            noeHamkariRef.current = savedNoeHamkari;
+            vazeeatRef.current = savedVazeeat;
+            reshtehRef.current = savedReshteh;
+
+            window.history.replaceState({}, document.title);
+
+            // بعد از یک تاخیر کوتاه، flag را غیرفعال کن
+            setTimeout(() => {
+                setIsRestoring(false);
+            }, 150);
+        }
+    }, [location.state]);
+
+    // ============================================================
+    // 🔥 Debounce برای search و reshteh
+    // ============================================================
+    useEffect(() => {
+        if (searchTimerRef.current) {
+            clearTimeout(searchTimerRef.current);
+        }
+
+        searchTimerRef.current = setTimeout(() => {
+            searchRef.current = search;
+            // اگر در حالت بازیابی نیستیم، fetch را اجرا کن
+            if (!isRestoring) {
+                if (pagination.page !== 1) {
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                } else {
+                    fetchOstads();
+                }
+            }
+        }, 700);
+
+        return () => {
+            if (searchTimerRef.current) {
+                clearTimeout(searchTimerRef.current);
+            }
+        };
+    }, [search]);
+
+    useEffect(() => {
+        if (reshtehTimerRef.current) {
+            clearTimeout(reshtehTimerRef.current);
+        }
+
+        reshtehTimerRef.current = setTimeout(() => {
+            reshtehRef.current = reshteh;
+            if (!isRestoring) {
+                if (pagination.page !== 1) {
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                } else {
+                    fetchOstads();
+                }
+            }
+        }, 700);
+
+        return () => {
+            if (reshtehTimerRef.current) {
+                clearTimeout(reshtehTimerRef.current);
+            }
+        };
+    }, [reshteh]);
+
+    // ============================================================
+    // 🔥 سایر فیلترها (بدون debounce)
+    // ============================================================
+    useEffect(() => {
+        if (isRestoring) return;
+        if (pagination.page !== 1) {
+            setPagination(prev => ({ ...prev, page: 1 }));
+        } else {
+            fetchOstads();
+        }
+    }, [
+        selectedOstanId,
+        selectedMarkazId,
+        selectedNoeHamkari,
+        vazeeat,
+        pagination.pageSize,
+    ]);
+
+    // ============================================================
     // 🔥 دریافت لیست اساتید (با استفاده از Refs)
     // ============================================================
     const fetchOstads = useCallback(async () => {
@@ -202,7 +272,7 @@ export default function OstadList() {
                 pageSize: pageSizeRef.current,
                 search: searchRef.current || undefined,
                 vazeeat: vazeeatRef.current,
-                reshteh: debouncedReshteh || undefined,
+                reshteh: reshtehRef.current || undefined,
                 noeHamkari: noeHamkariRef.current || undefined
             };
 
@@ -228,14 +298,15 @@ export default function OstadList() {
         } finally {
             setLoading(false);
         }
-    }, [debouncedReshteh]);
+    }, []);
 
     // ============================================================
-    // 🔥 اجرای fetch
+    // 🔥 وقتی صفحه تغییر می‌کند، fetch را اجرا کن
     // ============================================================
     useEffect(() => {
+        if (isRestoring) return;
         fetchOstads();
-    }, [fetchOstads]);
+    }, [pagination.page]);
 
     // ============================================================
     // تغییر صفحه
@@ -243,7 +314,6 @@ export default function OstadList() {
     const handlePageChange = (newPage) => {
         setPagination(prev => ({ ...prev, page: newPage }));
         pageRef.current = newPage;
-        fetchOstads();
     };
 
     const handlePageSizeChange = (e) => {
@@ -251,7 +321,6 @@ export default function OstadList() {
         setPagination(prev => ({ ...prev, pageSize: newSize, page: 1 }));
         pageSizeRef.current = newSize;
         pageRef.current = 1;
-        fetchOstads();
     };
 
     // ============================================================
@@ -543,7 +612,7 @@ export default function OstadList() {
                                                     <span className="badge bg-warning text-dark">موقتا غیرفعال</span>
                                                 )}
                                                 {!ostad.vazeeat && ostad.vazeeatMovaghat && (
-                                                    <span className="badge bg-info"> غیرفعال</span>
+                                                    <span className="badge bg-info">غیرفعال</span>
                                                 )}
                                             </td>
                                             <td onClick={(e) => e.stopPropagation()}>

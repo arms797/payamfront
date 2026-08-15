@@ -1,3 +1,4 @@
+// src/pages/Karmand/KarmandList.jsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -29,13 +30,12 @@ export default function KarmandList() {
     // Stateهای فیلتر
     // ============================================================
     const [search, setSearch] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
     const [vazeeat, setVazeeat] = useState(1);
 
     // ============================================================
-    // 🔥 Refs برای ذخیره آخرین مقادیر
+    // Refها برای ذخیره آخرین مقادیر
     // ============================================================
     const pageRef = useRef(1);
     const pageSizeRef = useRef(50);
@@ -43,6 +43,63 @@ export default function KarmandList() {
     const ostanIdRef = useRef('');
     const markazIdRef = useRef('');
     const vazeeatRef = useRef(1);
+
+    // ============================================================
+    // Ref برای debounce
+    // ============================================================
+    const searchTimerRef = useRef(null);
+
+    // ============================================================
+    // Flag برای جلوگیری از fetch هنگام بازیابی موقعیت
+    // ============================================================
+    const [isRestoring, setIsRestoring] = useState(false);
+
+    // ============================================================
+    // Stateهای مودال حذف
+    // ============================================================
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedKarmand, setSelectedKarmand] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // ============================================================
+    // 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
+    // ============================================================
+    const getDisplayName = useCallback((markaz) => {
+        if (!markaz) return '';
+        if (markaz.level === 2) return 'سازمان مرکزی';
+        if (markaz.level === 3) return `ستاد استان ${markaz.naamOstan || ''}`;
+        return markaz.naamMarkaz || '';
+    }, []);
+
+    // ============================================================
+    // استخراج استان‌های یکتا
+    // ============================================================
+    const uniqueOstans = useMemo(() => {
+        return markazList
+            ?.filter(m => m.codeOstan)
+            .reduce((acc, curr) => {
+                if (!acc.find(item => item.codeOstan === curr.codeOstan)) {
+                    acc.push({ codeOstan: curr.codeOstan, naamOstan: curr.naamOstan });
+                }
+                return acc;
+            }, []) || [];
+    }, [markazList]);
+
+    const filteredMarkaz = useMemo(() => {
+        return markazList?.filter(m => m.codeOstan === selectedOstanId) || [];
+    }, [markazList, selectedOstanId]);
+
+    // ============================================================
+    // بررسی مجوز مشاهده
+    // ============================================================
+    if (!hasPermission('Karmand.View')) {
+        return (
+            <div className="alert alert-warning text-center mt-5">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                شما مجوز مشاهده این بخش را ندارید
+            </div>
+        );
+    }
 
     // ============================================================
     // 🔥 همگام‌سازی Refs با Stateها
@@ -72,17 +129,12 @@ export default function KarmandList() {
     }, [vazeeat]);
 
     // ============================================================
-    // Stateهای مودال حذف
-    // ============================================================
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [selectedKarmand, setSelectedKarmand] = useState(null);
-    const [deleteLoading, setDeleteLoading] = useState(false);
-
-    // ============================================================
     // 🔥 بازیابی موقعیت هنگام بازگشت از جزئیات
     // ============================================================
     useEffect(() => {
         if (location.state?.fromDetail) {
+            setIsRestoring(true);
+
             const savedPage = location.state.page || 1;
             const savedPageSize = location.state.pageSize || 50;
             const savedSearch = location.state.search || '';
@@ -90,7 +142,6 @@ export default function KarmandList() {
             const savedMarkazId = location.state.markazId || '';
             const savedVazeeat = location.state.vazeeat || 1;
 
-            // تنظیم Stateها
             setPagination(prev => ({
                 ...prev,
                 page: savedPage,
@@ -101,7 +152,7 @@ export default function KarmandList() {
             setSelectedMarkazId(savedMarkazId);
             setVazeeat(savedVazeeat);
 
-            // 🔥 مستقیماً Refها را هم تنظیم کن
+            // 🔥 Refها را هم به‌روز کن
             pageRef.current = savedPage;
             pageSizeRef.current = savedPageSize;
             searchRef.current = savedSearch;
@@ -110,40 +161,55 @@ export default function KarmandList() {
             vazeeatRef.current = savedVazeeat;
 
             window.history.replaceState({}, document.title);
+
+            setTimeout(() => {
+                setIsRestoring(false);
+            }, 150);
         }
     }, [location.state]);
 
     // ============================================================
-    // 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
-    // ============================================================
-    const getDisplayName = useCallback((markaz) => {
-        if (!markaz) return '';
-        if (markaz.level === 2) return 'سازمان مرکزی';
-        if (markaz.level === 3) return `ستاد استان ${markaz.naamOstan || ''}`;
-        return markaz.naamMarkaz || '';
-    }, []);
-
-    // ============================================================
-    // 🔥 Debounce برای جستجو
+    // 🔥 Debounce برای search
     // ============================================================
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setDebouncedSearch(search);
+        if (searchTimerRef.current) {
+            clearTimeout(searchTimerRef.current);
+        }
+
+        searchTimerRef.current = setTimeout(() => {
+            searchRef.current = search;
+            if (!isRestoring) {
+                if (pagination.page !== 1) {
+                    setPagination(prev => ({ ...prev, page: 1 }));
+                } else {
+                    fetchKarmands();
+                }
+            }
         }, 700);
-        return () => clearTimeout(timer);
+
+        return () => {
+            if (searchTimerRef.current) {
+                clearTimeout(searchTimerRef.current);
+            }
+        };
     }, [search]);
 
     // ============================================================
-    // بررسی مجوز مشاهده
+    // 🔥 سایر فیلترها (بدون debounce)
     // ============================================================
-    if (!hasPermission('Karmand.View')) {
-        return (
-            <div className="alert alert-warning text-center mt-5">
-                <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                شما مجوز مشاهده این بخش را ندارید
-            </div>
-        );
-    }
+    useEffect(() => {
+        if (isRestoring) return;
+        if (pagination.page !== 1) {
+            setPagination(prev => ({ ...prev, page: 1 }));
+        } else {
+            fetchKarmands();
+        }
+    }, [
+        selectedOstanId,
+        selectedMarkazId,
+        vazeeat,
+        pagination.pageSize,
+    ]);
 
     // ============================================================
     // 🔥 دریافت لیست کارمندان (با استفاده از Refs)
@@ -183,11 +249,12 @@ export default function KarmandList() {
     }, []);
 
     // ============================================================
-    // 🔥 اجرای fetch
+    // 🔥 وقتی صفحه تغییر می‌کند، fetch را اجرا کن
     // ============================================================
     useEffect(() => {
+        if (isRestoring) return;
         fetchKarmands();
-    }, [fetchKarmands]);
+    }, [pagination.page]);
 
     // ============================================================
     // تغییر صفحه
@@ -195,7 +262,6 @@ export default function KarmandList() {
     const handlePageChange = (newPage) => {
         setPagination(prev => ({ ...prev, page: newPage }));
         pageRef.current = newPage;
-        fetchKarmands();
     };
 
     const handlePageSizeChange = (e) => {
@@ -203,7 +269,6 @@ export default function KarmandList() {
         setPagination(prev => ({ ...prev, pageSize: newSize, page: 1 }));
         pageSizeRef.current = newSize;
         pageRef.current = 1;
-        fetchKarmands();
     };
 
     // ============================================================
@@ -261,25 +326,7 @@ export default function KarmandList() {
     };
 
     // ============================================================
-    // استخراج استان‌های یکتا
-    // ============================================================
-    const uniqueOstans = useMemo(() => {
-        return markazList
-            ?.filter(m => m.codeOstan)
-            .reduce((acc, curr) => {
-                if (!acc.find(item => item.codeOstan === curr.codeOstan)) {
-                    acc.push({ codeOstan: curr.codeOstan, naamOstan: curr.naamOstan });
-                }
-                return acc;
-            }, []) || [];
-    }, [markazList]);
-
-    const filteredMarkaz = useMemo(() => {
-        return markazList?.filter(m => m.codeOstan === selectedOstanId) || [];
-    }, [markazList, selectedOstanId]);
-
-    // ============================================================
-    // 🔥 صفحه‌بندی با نمایش تعداد کل صفحات
+    // صفحه‌بندی
     // ============================================================
     const renderPagination = () => {
         const { page, totalPages } = pagination;

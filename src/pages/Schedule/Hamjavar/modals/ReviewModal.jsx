@@ -1,6 +1,7 @@
 // src/pages/Schedule/Hamjavar/modals/ReviewModal.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import PersianNumber from '../../../../components/common/PersianNumber';
+import { useMarkaz } from '../../../../context/MarkazContext';
 
 export default function ReviewModal({
     show,
@@ -10,22 +11,71 @@ export default function ReviewModal({
     submitting,
     role // 'raeis' | 'khadamat' | 'moaven'
 }) {
+    const { markazList } = useMarkaz();
+
+    // ============================================================
+    // همه Stateها و Hooks باید در ابتدا تعریف شوند
+    // ============================================================
     const [formData, setFormData] = useState({
         tedadRoozList: [],
-        nazar: '',
+        tozihat: '',
         upload: null
     });
 
-    if (!show || !item) return null;
+    // ============================================================
+    // محاسبه خودکار نظر بر اساس مقادیر ورودی
+    // ============================================================
+    const autoNazar = useMemo(() => {
+        if (!formData.tedadRoozList || formData.tedadRoozList.length === 0) {
+            return null;
+        }
 
+        const allEqual = formData.tedadRoozList.every(
+            (item) => parseInt(item.value) === parseInt(item.defaultValue)
+        );
+
+        const allZero = formData.tedadRoozList.every(
+            (item) => parseInt(item.value) === 0
+        );
+
+        if (allEqual) return 2; // تایید ✅
+        if (allZero) return 3;  // رد ❌
+        return 4;               // اصلاح ✏️
+    }, [formData.tedadRoozList]);
+
+    // ============================================================
     // دریافت عنوان نقش
+    // ============================================================
     const roleTitle = {
         raeis: 'رئیس مرکز',
         khadamat: 'خدمات آموزشی استان',
         moaven: 'معاونت آموزشی استان'
     }[role] || '';
 
+    // ============================================================
+    // دریافت متن نظر
+    // ============================================================
+    const getNazarText = (nazar) => {
+        const map = {
+            2: '✅ تایید',
+            3: '❌ رد',
+            4: '✏️ اصلاح'
+        };
+        return map[nazar] || 'نامشخص';
+    };
+
+    const getNazarClass = (nazar) => {
+        const map = {
+            2: 'text-success',
+            3: 'text-danger',
+            4: 'text-warning'
+        };
+        return map[nazar] || '';
+    };
+
+    // ============================================================
     // دریافت فیلد مربوط به هر نقش
+    // ============================================================
     const getTedadField = (role) => {
         const map = {
             raeis: 'tedadRoozRaeis',
@@ -35,55 +85,114 @@ export default function ReviewModal({
         return map[role] || '';
     };
 
+    // ============================================================
     // دریافت مقدار پیش‌فرض برای هر Hamjavar1
+    // ============================================================
     const getDefaultValue = (detail) => {
         const field = getTedadField(role);
-        return detail[field] || '';
+        return detail[field] !== null && detail[field] !== undefined
+            ? detail[field]
+            : detail.tedadRoozElmi || 0;
     };
 
+    // ============================================================
+    // دریافت نام مرکز از markazList
+    // ============================================================
+    const getMarkazName = (markazId) => {
+        if (!markazId) return '-';
+        const markaz = markazList?.find(m => m.id === markazId);
+        if (!markaz) return '-';
+
+        // بر اساس Level نام مناسب را نمایش بده
+        if (markaz.level === 2) {
+            return 'سازمان مرکزی';
+        } else if (markaz.level === 3) {
+            return `ستاد استان ${markaz.naamOstan || ''}`;
+        }
+        return markaz.naamMarkaz || '-';
+    };
+
+    // ============================================================
     // مقداردهی اولیه
+    // ============================================================
     useEffect(() => {
         if (show && item?.hamjavar1s) {
             const initialList = item.hamjavar1s.map(detail => ({
                 id: detail.id,
-                value: getDefaultValue(detail) || ''
+                value: getDefaultValue(detail),
+                defaultValue: detail.tedadRoozElmi || 0
             }));
             setFormData(prev => ({
                 ...prev,
-                tedadRoozList: initialList
+                tedadRoozList: initialList,
+                tozihat: '',
+                upload: null
             }));
         }
-    }, [show, item]);
+    }, [show, item, role]);
 
+    // ============================================================
     // تغییر مقدار
+    // ============================================================
     const handleTedadChange = (index, value) => {
         const newList = [...formData.tedadRoozList];
-        newList[index] = { ...newList[index], value };
+        newList[index] = { ...newList[index], value: value === '' ? '' : parseInt(value) };
         setFormData(prev => ({ ...prev, tedadRoozList: newList }));
     };
 
+    // ============================================================
     // ثبت نظر
+    // ============================================================
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // ساخت لیست تعداد روز با شناسه
         const tedadRoozList = formData.tedadRoozList.map(item => ({
             id: item.id,
-            tedadRooz: item.value ? parseInt(item.value) : null
+            tedadRooz: item.value !== '' && item.value !== null && item.value !== undefined
+                ? parseInt(item.value)
+                : null
         }));
 
-        // ارسال نظر عددی
         onSubmit({
             tedadRoozList: tedadRoozList,
-            nazar: parseInt(formData.nazar),  // ← عددی
+            nazar: autoNazar,
+            tozihat: formData.tozihat,
             upload: formData.upload
         });
     };
 
+    // ============================================================
+    // شرط نمایش در انتهای کامپوننت (بعد از همه Hooks)
+    // ============================================================
+    if (!show || !item) return null;
+
     return (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-            <div className="modal-dialog modal-lg">
-                <div className="modal-content">
+        <div
+            className="modal show d-block"
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                zIndex: 1050
+            }}
+            onClick={onClose}
+        >
+            <div
+                className="modal-dialog modal-dialog-centered modal-lg"
+                style={{
+                    margin: '0 auto',
+                    width: '100%',
+                    maxWidth: '800px',
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="modal-content" style={{ maxHeight: '90vh', overflow: 'auto' }}>
                     <form onSubmit={handleSubmit}>
                         <div className="modal-header">
                             <h5 className="modal-title">
@@ -100,7 +209,7 @@ export default function ReviewModal({
                                         <strong>استاد:</strong> {item.ostadName}
                                     </div>
                                     <div className="col-md-6">
-                                        <strong>ترم:</strong> {item.termCode}
+                                        <strong>ترم:</strong> <PersianNumber>{item.termCode}</PersianNumber>
                                     </div>
                                 </div>
                             </div>
@@ -110,77 +219,101 @@ export default function ReviewModal({
                             <hr />
 
                             {item.hamjavar1s?.map((detail, index) => {
-                                const markazName = detail.markazName || '-';
+                                const markazName = getMarkazName(detail.markazId);
                                 const faaliatNames = detail.faaliatNames?.join('، ') || '-';
+                                const currentValue = formData.tedadRoozList[index]?.value ?? '';
+                                const defaultValue = formData.tedadRoozList[index]?.defaultValue ?? 0;
+
                                 return (
                                     <div key={detail.id} className="mb-3 p-2 border rounded bg-light">
                                         <div className="row align-items-center">
-                                            <div className="col-md-5">
+                                            <div className="col-md-8">
                                                 <strong>مرکز:</strong> {markazName}
                                                 <br />
                                                 <small className="text-muted">
-                                                    فعالیت‌ها: {faaliatNames}
+                                                    فعالیت‌های علمی: {faaliatNames}
                                                 </small>
                                                 <br />
                                                 <small className="text-muted">
-                                                    تعداد روز علمی: <PersianNumber>{detail.tedadRoozElmi || 0}</PersianNumber>
+                                                    تعداد روز درخواستی استاد: <PersianNumber className="fw-bold">{defaultValue}</PersianNumber>
                                                 </small>
+
+                                                {/* ============================================================
+                                                    نمایش نظرات قبلی به صورت یک خط
+                                                    ============================================================ */}
+                                                <div className="mt-1 d-flex flex-wrap gap-2">
+                                                    <small className="text-muted">
+                                                        <span className="fw-bold">نظر مسئولین</span>
+                                                    </small>
+                                                    <small className="text-muted">
+                                                        <span className="fw-bold">رئیس: </span>
+                                                        <PersianNumber className="fw-bold text-secondary">
+                                                            {detail.tedadRoozRaeis !== null && detail.tedadRoozRaeis !== undefined
+                                                                ? detail.tedadRoozRaeis
+                                                                : '-'}
+                                                        </PersianNumber>
+                                                    </small>
+                                                    <small className="text-muted">
+                                                        <span className="fw-bold">خدمات آموزشی استان: </span>
+                                                        <PersianNumber className="fw-bold text-secondary">
+                                                            {detail.tedadRoozKhadamat !== null && detail.tedadRoozKhadamat !== undefined
+                                                                ? detail.tedadRoozKhadamat
+                                                                : '-'}
+                                                        </PersianNumber>
+                                                    </small>
+                                                    <small className="text-muted">
+                                                        <span className="fw-bold">معاونت آموزشی استان: </span>
+                                                        <PersianNumber className="fw-bold text-secondary">
+                                                            {detail.tedadRoozMoaven !== null && detail.tedadRoozMoaven !== undefined
+                                                                ? detail.tedadRoozMoaven
+                                                                : '-'}
+                                                        </PersianNumber>
+                                                    </small>
+                                                </div>
                                             </div>
+
                                             <div className="col-md-4">
-                                                <label className="form-label">
-                                                    تعداد روز پیشنهادی
-                                                </label>
+                                                <small className="form-label">
+                                                    تعداد روز مد نظر {roleTitle}
+                                                </small>
                                                 <input
                                                     type="number"
                                                     className="form-control"
-                                                    value={formData.tedadRoozList[index]?.value || ''}
+                                                    value={currentValue}
                                                     onChange={(e) => handleTedadChange(index, e.target.value)}
                                                     min="0"
                                                     max="6"
                                                     placeholder="۰ تا ۶"
                                                 />
                                             </div>
-                                            <div className="col-md-3">
-                                                <small className="text-muted">
-                                                    {formData.tedadRoozList[index]?.value !== '' &&
-                                                        `پیشنهادی: ${formData.tedadRoozList[index]?.value} روز`
-                                                    }
-                                                </small>
-                                            </div>
                                         </div>
                                     </div>
                                 );
                             })}
 
-                            {/* ============================================================
-                                🔥 انتخاب نظر (عددی)
-                                ============================================================ */}
-                            <div className="mb-3">
-                                <label className="form-label">نظر <span className="text-danger">*</span></label>
-                                <select
-                                    className="form-select"
-                                    value={formData.nazar}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, nazar: e.target.value }))}
-                                    required
-                                >
-                                    <option value="">انتخاب نظر...</option>
-                                    <option value="2">✅ تایید</option>
-                                    <option value="3">❌ رد</option>
-                                    <option value="4">✏️ اصلاح</option>
-                                </select>
-                                <small className="text-muted d-block mt-1">
+                            {/* نمایش نظر خودکار */}
+                            <div className="mb-3 p-2 border rounded bg-light d-flex align-items-center gap-3 flex-wrap">
+                                {autoNazar ? (
+                                    <span className={`fw-bold fs-6 ${getNazarClass(autoNazar)}`}>
+                                        {getNazarText(autoNazar)}
+                                    </span>
+                                ) : (
+                                    <span className="text-muted">در حال محاسبه...</span>
+                                )}
+                                <small className="text-muted">
                                     <i className="bi bi-info-circle me-1"></i>
-                                    انتخاب "اصلاح" یعنی تعداد روزها نیاز به بررسی مجدد دارد
+                                    {autoNazar === 2 && 'تمامی روزهای پیشنهادی با روزهای علمی برابر است → تایید'}
+                                    {autoNazar === 3 && 'تمامی روزهای پیشنهادی صفر است → رد'}
+                                    {autoNazar === 4 && 'برخی روزهای پیشنهادی با روزهای علمی برابر نیست و همه صفر نیستند → اصلاح'}
                                 </small>
                             </div>
-
                             {/* توضیحات تکمیلی */}
                             <div className="mb-3">
                                 <label className="form-label">توضیحات تکمیلی (اختیاری)</label>
                                 <textarea
                                     className="form-control"
                                     rows="3"
-                                    value={formData.tozihat || ''}
+                                    value={formData.tozihat}
                                     onChange={(e) => setFormData(prev => ({ ...prev, tozihat: e.target.value }))}
                                     placeholder="توضیحات خود را وارد کنید..."
                                 />
@@ -212,7 +345,7 @@ export default function ReviewModal({
                             <button
                                 type="submit"
                                 className="btn btn-primary"
-                                disabled={submitting}
+                                disabled={submitting || !autoNazar}
                             >
                                 {submitting ? (
                                     <>
@@ -220,7 +353,7 @@ export default function ReviewModal({
                                         در حال ثبت...
                                     </>
                                 ) : (
-                                    'ثبت نظر'
+                                    `ثبت نظر (${autoNazar ? getNazarText(autoNazar) : 'نامشخص'})`
                                 )}
                             </button>
                         </div>

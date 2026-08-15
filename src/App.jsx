@@ -30,6 +30,9 @@ import HamjavarList from './pages/Schedule/Hamjavar/HamjavarList';
 import HamjavarDetail from './pages/Schedule/Hamjavar/HamjavarDetail';
 import HamjavarCreate from './pages/Schedule/Hamjavar/HamjavarCreate';
 
+import SignatureManager from './pages/Profile/SignatureManager';
+import SignatureManagement from './pages/Signature/SignatureManagement';
+
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -250,6 +253,23 @@ function App() {
                 element={
                   <ProtectedRouteWithPermission requiredPermission="Hamjavar.Update">
                     <HamjavarCreate />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="profile/signature"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Signature.View">
+                    <SignatureManager />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="signatures/manage"
+                element={
+                  <ProtectedRouteWithPermission
+                    requiredPermission="Signature.ManageSignatureForReset">
+                    <SignatureManagement />
                   </ProtectedRouteWithPermission>
                 }
               />

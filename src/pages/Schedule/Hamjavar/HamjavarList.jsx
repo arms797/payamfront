@@ -434,7 +434,7 @@ export default function HamjavarList() {
                         )}
 
                         {/* وضعیت - فقط برای غیر استاد */}
-                        {!isOstad && (
+                        {/*!isOstad && (
                             <div className="col-md-2">
                                 <label className="form-label">وضعیت</label>
                                 <select
@@ -447,7 +447,7 @@ export default function HamjavarList() {
                                     ))}
                                 </select>
                             </div>
-                        )}
+                        )*/}
                     </div>
                 </div>
             </div>
@@ -488,13 +488,12 @@ export default function HamjavarList() {
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>ترم</th>
-                                    <th>سال تحصیلی</th>
+                                    <th>ترم</th>                                    
                                     <th>نام استاد</th>
                                     <th>کد استادی</th>
                                     <th>مرکز فعلی</th>
-                                    <th>واحد موظف</th>
-                                    <th>آخرین مرحله</th>
+                                    <th><small>تعداد واحد موظف</small></th>
+                                    <th><small> آخرین مرحله بررسی</small></th>
                                     <th>وضعیت</th>
                                 </tr>
                             </thead>
@@ -515,12 +514,12 @@ export default function HamjavarList() {
                                         >
                                             <td><PersianNumber>{(pagination.page - 1) * pagination.pageSize + index + 1}</PersianNumber></td>
                                             <td><PersianNumber>{item.termCode}</PersianNumber></td>
-                                            <td><PersianNumber>{item.termName || '-'}</PersianNumber></td>
+                                            
                                             <td><strong>{item.ostadName}</strong></td>
                                             <td><PersianNumber>{item.ostadCode}</PersianNumber></td>
                                             <td>{item.ostadMarkaz || '-'}</td>
                                             <td><PersianNumber>{item.vahedMovazaf}</PersianNumber></td>
-                                            <td>{item.kharinBarrasi || '-'}</td>
+                                            <td>{item.akharinBarrasi || '-'}</td>
                                             <td>{getStatusBadge(item.akharinTaghaza)}</td>
                                         </tr>
                                     ))
