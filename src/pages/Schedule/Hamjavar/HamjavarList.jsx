@@ -248,25 +248,6 @@ export default function HamjavarList() {
     const handlePageSizeChange = (e) => {
         setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
     };
-
-    // ============================================================
-    // ریست فیلترها
-    // ============================================================
-    const resetFilters = () => {
-        const defaultOstanId = (codeRole === 3 || codeRole === 4) ? (user?.markazOstan || '') : '';
-        setFilters({
-            termCode: currentTermCode || '',
-            search: '',
-            ostanId: defaultOstanId,
-            markazId: '',
-            status: '',
-            fromDate: '',
-            toDate: ''
-        });
-        setDebouncedSearch('');
-        setPagination(prev => ({ ...prev, page: 1 }));
-    };
-
     // ============================================================
     // 🔥 گزینه‌های وضعیت برای فیلتر (فقط وضعیت‌های جدید)
     // ============================================================

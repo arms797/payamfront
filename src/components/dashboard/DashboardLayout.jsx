@@ -14,7 +14,8 @@ function DashboardContent() {
         updateUser,
         roles,
         currentRoleId,
-        changeRole
+        currentMarkazId,
+        //changeRole
     } = useAuth();
 
     const { markazList, loading: markazLoading } = useMarkaz();
@@ -38,13 +39,17 @@ function DashboardContent() {
     // ============================================================
     useEffect(() => {
         if (roles && roles.length > 0 && currentRoleId) {
-            const activeRole = roles.find(r => r.id === currentRoleId);
-            if (activeRole) {
-                setSelectedRole(activeRole);
-                setDisplayRole(activeRole);
+            const activeRole = roles.find(r => r.id === currentRoleId && r.markazId === currentMarkazId);
+            // اگر پیدا نشد، فقط بر اساس roleId پیدا کن (fallback)
+            const fallbackRole = roles.find(r => r.id === currentRoleId);
+            const roleToSet = activeRole || fallbackRole;
+
+            if (roleToSet) {
+                setSelectedRole(roleToSet);
+                setDisplayRole(roleToSet);
             }
         }
-    }, [roles, currentRoleId]);
+    }, [roles, currentRoleId, currentMarkazId]);
 
     // ============================================================
     // 🔥 پیدا کردن نام مرکز (با پشتیبانی از Level)
@@ -96,6 +101,7 @@ function DashboardContent() {
                 // 🔥 بروزرسانی اطلاعات کاربر در AuthContext
                 // ============================================================
                 updateUser(newUserData);
+                //changeRole(roleId, markazId);
 
                 // ساخت نمایش نهایی
                 const finalDisplayRole = {
@@ -104,15 +110,17 @@ function DashboardContent() {
                     name: newUserData.currentRoleName || baseRole.name
                 };
 
+                // Stateهای محلی رو به‌روز کن
                 setSelectedRole(finalDisplayRole);
                 setDisplayRole(finalDisplayRole);
+                //setSelectedRole(finalDisplayRole);
+                //setDisplayRole(finalDisplayRole);
                 setDropdownOpen(false);
                 toast.success('نقش با موفقیت تغییر کرد');
 
                 // ============================================================
                 // 🔥 رفرش صفحه برای به‌روزرسانی منوها و مجوزها
-                // ============================================================
-                // به جای navigate، از reload استفاده کن تا همه چیز از نو بارگذاری شود
+                // ============================================================                
                 window.location.href = '/dashboard';
             }
         } catch (error) {

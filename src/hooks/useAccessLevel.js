@@ -61,6 +61,6 @@ export const useAccessLevel = () => {
         canView,
         hasPermission,
         codeRole,
-        userMarkazId
+        userMarkazId 
     };
 };

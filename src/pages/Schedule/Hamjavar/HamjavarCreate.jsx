@@ -594,18 +594,18 @@ export default function HamjavarCreate() {
                 tedadRoozKhadamat: null,
                 tedadRoozMoaven: null
             }));
-
+            //console.log('formData: ', formData)
             formDataToSend.append('hamjavar1sJson', JSON.stringify(hamjavar1sData));
 
             // ============================================================
             // 3️⃣ ارسال درخواست
             // ============================================================
             const endpoint = isEditMode ? `/Hamjavar/update/${id}` : '/Hamjavar/create';
+            const method = isEditMode ? 'put' : 'post';
 
-            const response = await api.put(endpoint, formDataToSend, {
+            const response = await api[method](endpoint, formDataToSend, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-
             if (response.data?.success) {
                 toast.success(isEditMode ? 'درخواست با موفقیت ویرایش شد' : 'درخواست با موفقیت ثبت شد');
                 navigate('/dashboard/tadris-hamjavar-list');

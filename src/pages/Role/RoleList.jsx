@@ -16,7 +16,9 @@ export default function RoleList() {
         name: '',
         codeRole: '',
         vazeeyat: true,
-        emza: false
+        emza: false,
+        isAdmin: false,          // ← اضافه شد
+        isUniquePerMarkaz: false // ← اضافه شد
     });
 
     // ============================================================
@@ -123,7 +125,9 @@ export default function RoleList() {
             name: role.name || '',
             codeRole: role.codeRole || '',
             vazeeyat: role.vazeeyat ?? true,
-            emza: role.emza ?? false
+            emza: role.emza ?? false,
+            isAdmin: role.isAdmin ?? false,          // ← اضافه شد
+            isUniquePerMarkaz: role.isUniquePerMarkaz ?? false // ← اضافه شد
         });
         setShowEditModal(true);
     };
@@ -135,7 +139,14 @@ export default function RoleList() {
         setShowCreateModal(false);
         setShowEditModal(false);
         setSelectedRole(null);
-        setFormData({ name: '', codeRole: '', vazeeyat: true, emza: false });
+        setFormData({
+            name: '',
+            codeRole: '',
+            vazeeyat: true,
+            emza: false,
+            isAdmin: false,          // ← اضافه شد
+            isUniquePerMarkaz: false // ← اضافه شد
+        });
     };
 
     return (
@@ -192,6 +203,8 @@ export default function RoleList() {
                                 <th>کد نقش</th>
                                 <th>وضعیت</th>
                                 <th>نیاز به امضا</th>
+                                <th>مدیریتی</th>
+                                <th>یکتا در مرکز</th>
                                 <th>عملیات</th>
                             </tr>
                         </thead>
@@ -216,6 +229,16 @@ export default function RoleList() {
                                         <td>
                                             <span className={`badge ${role.emza ? 'bg-info' : 'bg-secondary'}`}>
                                                 {role.emza ? 'نیاز دارد' : 'نیاز ندارد'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${role.isAdmin ? 'bg-success' : 'bg-secondary'}`}>
+                                                {role.isAdmin ? 'بله' : 'خیر'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={`badge ${role.isUniquePerMarkaz ? 'bg-primary' : 'bg-secondary'}`}>
+                                                {role.isUniquePerMarkaz ? 'بله' : 'خیر'}
                                             </span>
                                         </td>
                                         <td>
@@ -305,6 +328,29 @@ export default function RoleList() {
                                             <label className="form-check-label">نیاز به امضا</label>
                                         </div>
                                     </div>
+                                    <div className="mb-3">
+                                        <div className="form-check">
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={formData.isAdmin}
+                                                onChange={(e) => setFormData({ ...formData, isAdmin: e.target.checked })}
+                                            />
+                                            <label className="form-check-label">نقش مدیریتی</label>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <div className="form-check">
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={formData.isUniquePerMarkaz}
+                                                onChange={(e) => setFormData({ ...formData, isUniquePerMarkaz: e.target.checked })}
+                                            />
+                                            <label className="form-check-label">یکتا در هر مرکز</label>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="modal-footer">
                                     <button type="button" className="btn btn-secondary" onClick={closeModals}>
@@ -373,6 +419,29 @@ export default function RoleList() {
                                                 onChange={(e) => setFormData({ ...formData, emza: e.target.checked })}
                                             />
                                             <label className="form-check-label">نیاز به امضا</label>
+                                        </div>
+                                    </div>
+                                    <div className="mb-3">
+                                        <div className="form-check">
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={formData.isAdmin}
+                                                onChange={(e) => setFormData({ ...formData, isAdmin: e.target.checked })}
+                                            />
+                                            <label className="form-check-label">نقش مدیریتی</label>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-3">
+                                        <div className="form-check">
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={formData.isUniquePerMarkaz}
+                                                onChange={(e) => setFormData({ ...formData, isUniquePerMarkaz: e.target.checked })}
+                                            />
+                                            <label className="form-check-label">یکتا در هر مرکز</label>
                                         </div>
                                     </div>
                                 </div>

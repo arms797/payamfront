@@ -206,7 +206,7 @@ export default function ReviewModal({
                             <div className="alert alert-info">
                                 <div className="row">
                                     <div className="col-md-6">
-                                        <strong>استاد:</strong> {item.ostadName}
+                                        <strong>استاد:</strong> {item.ostadName} {item.ostadLastName}
                                     </div>
                                     <div className="col-md-6">
                                         <strong>ترم:</strong> <PersianNumber>{item.termCode}</PersianNumber>

@@ -21,6 +21,8 @@ export const AuthProvider = ({ children }) => {
     const [menus, setMenus] = useState([]);
     const [permissions, setPermissions] = useState([]);
     const [currentRoleId, setCurrentRoleId] = useState(null);
+    const [currentMarkazId, setCurrentMarkazId] = useState(null); // ← اضافه شد
+
     const navigate = useNavigate();
 
     // ============================================================
@@ -89,6 +91,8 @@ export const AuthProvider = ({ children }) => {
                     setMenus(userData.menus || []);
                     setPermissions(userData.permissions || []);
                     setCurrentRoleId(userData.currentRoleId || null);
+                    setCurrentMarkazId(userData.markazId || null);
+
                     setIsAuthenticated(true);
                     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                 } else {
@@ -118,6 +122,7 @@ export const AuthProvider = ({ children }) => {
         setMenus(data.menus || []);
         setPermissions(data.permissions || []);
         setCurrentRoleId(data.currentRoleId || null);
+        setCurrentMarkazId(data.markazId || null);
         setIsAuthenticated(true);
 
         // ============================================================
@@ -143,6 +148,7 @@ export const AuthProvider = ({ children }) => {
             setMenus([]);
             setPermissions([]);
             setCurrentRoleId(null);
+            setCurrentMarkazId(null);
             setIsAuthenticated(false);
 
             // ============================================================
@@ -170,6 +176,7 @@ export const AuthProvider = ({ children }) => {
         setMenus(newData.menus || []);
         setPermissions(newData.permissions || []);
         setCurrentRoleId(newData.currentRoleId || null);
+        setCurrentMarkazId(newData.markazId || null); // ← به‌روزرسانی
         setIsAuthenticated(true);
 
         // 🔥 آپدیت هدر Axios (خیلی مهم)
@@ -181,14 +188,15 @@ export const AuthProvider = ({ children }) => {
     // ============================================================
     // تابع تغییر نقش فعال
     // ============================================================
-    const changeRole = (roleId) => {
+    /*const changeRole = (roleId, markazId) => {
         setCurrentRoleId(roleId);
+        setCurrentMarkazId(markazId);
         if (user) {
-            const updatedUser = { ...user, currentRoleId: roleId };
+            const updatedUser = { ...user, currentRoleId: roleId, markazId: markazId };
             setUser(updatedUser);
             setUserData(updatedUser);
         }
-    };
+    };*/
 
     // ============================================================
     // توابع بررسی مجوز
@@ -221,10 +229,11 @@ export const AuthProvider = ({ children }) => {
         menus,
         permissions,
         currentRoleId,
+        currentMarkazId, // ← اضافه شد
         login,
         logout,
         updateUser,
-        changeRole,
+        //changeRole,
         hasPermission,
         hasAnyPermission,
         hasAllPermissions

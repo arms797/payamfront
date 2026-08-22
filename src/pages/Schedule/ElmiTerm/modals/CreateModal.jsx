@@ -58,7 +58,7 @@ export default function CreateModal({
                                         <option value="">انتخاب ترم...</option>
                                         {termList.map(term => (
                                             <option key={term.codeTerm} value={term.codeTerm}>
-                                                {term.onvanTerm} ({term.codeTerm})
+                                                {term.onvanTerm})
                                                 {term.vazeeyat && ' ✅ (جاری)'}
                                             </option>
                                         ))}
@@ -158,7 +158,7 @@ export default function CreateModal({
                                     <input
                                         type="text"
                                         className="form-control"
-                                        placeholder="مثال: 12"
+                                        placeholder="مثال: 40"
                                         value={formData.tedadSaatMovazafi}
                                         onChange={(e) => setFormData({ ...formData, tedadSaatMovazafi: e.target.value })}
                                     />

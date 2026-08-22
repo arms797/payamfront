@@ -37,6 +37,8 @@ export default function HamjavarDetail() {
     const [showReviewModal, setShowReviewModal] = useState(false);
     const [reviewRole, setReviewRole] = useState(null);
 
+    const { getTermTitle } = useTerm();
+
     // ============================================================
     // دریافت جزئیات درخواست
     // ============================================================
@@ -69,7 +71,7 @@ export default function HamjavarDetail() {
     // ============================================================
     const handlePrint = useReactToPrint({
         contentRef: printRef,
-        documentTitle: `درخواست هم‌جاوری ${item?.termCode || ''}`,
+        documentTitle: `درخواست فعالیت  ${item?.termCode || ''}`,
         onAfterPrint: () => {
             console.log('چاپ انجام شد');
         },
@@ -239,10 +241,10 @@ export default function HamjavarDetail() {
     };
 
     const getMoavenTitle = (roleMarkaz) => {
-        if (!roleMarkaz) return 'معاونت آموزشی استان';
+        if (!roleMarkaz) return 'معاون آموزشی استان';
         if (roleMarkaz.includes('رییس')) return 'رئیس استان';
         if (roleMarkaz.includes('معاون')) return 'معاون آموزشی استان';
-        return 'معاونت آموزشی استان';
+        return 'معاون آموزشی استان';
     };
 
     // ============================================================
@@ -278,7 +280,15 @@ export default function HamjavarDetail() {
         // در غیر این صورت، با ویرگول جدا کن
         return `${rolePart} ${markazPart}`;
     };
-
+    // ============================================================
+    // 🔥 تابع نمایش عنوان مرکز
+    // ============================================================
+    const getMarkazDisplayName = (markaz) => {
+        if (!markaz) return '-';
+        if (markaz.level === 2) return 'سازمان مرکزی دانشگاه پیام نور';
+        if (markaz.level === 3) return `ستاد استان ${markaz.naamOstan || ''}`.trim() || 'ستاد استان';
+        return markaz.naamMarkaz || '-';
+    };
     // ============================================================
     // نمایش لودینگ و خطا
     // ============================================================
@@ -372,8 +382,9 @@ export default function HamjavarDetail() {
                 </div>
                 <div className="mb-4">
                     <h3 className="text-center mb-2">
-                        درخواست تدریس در سایر مراکز - نیمسال <PersianNumber>{item.termCode}</PersianNumber>
+                        درخواست فعالیت در خارج از مرکز فعلی -  <PersianNumber>{getTermTitle(item.termCode)}</PersianNumber>
                     </h3>
+
                 </div>
 
                 {/* وضعیت و ایجاد کننده */}
@@ -428,16 +439,24 @@ export default function HamjavarDetail() {
                         </div>
                         <hr />
                         <div className="row mb-2">
-                            <div className="col-md-6"><span className="fw-bold text-muted">واحد موظف: <PersianNumber>{item.vahedMovazaf || 0}</PersianNumber></span></div>
-                            <div className="col-md-6"><span className="fw-bold text-muted">تعداد واحد قابل تکمیل در مرکز محل خدمت: <PersianNumber>{item.tedadVahedMahalKhedmat || 0}</PersianNumber></span></div>
+                            <div className="col-md-6"><span className="fw-bold text-muted">
+                                واحد موظف: <PersianNumber>{item.vahedMovazaf || 0}</PersianNumber> واحد معادل</span></div>
+                            <div className="col-md-6"><span className="fw-bold text-muted">
+                                تعداد واحد قابل تکمیل در مرکز محل خدمت: <PersianNumber>{item.tedadVahedMahalKhedmat || 0}</PersianNumber> واحد معادل</span></div>
                         </div>
                         <div className="row mb-2">
-                            <div className="col-md-6"><span className="fw-bold text-muted">پیش بینی حضوری در مراکز دیگر: <PersianNumber>{item.tedadVahedHamjavar || 0}</PersianNumber></span></div>
-                            <div className="col-md-6"><span className="fw-bold text-muted">پیش بینی مجازی در مراکز دیگر: <PersianNumber>{item.tedadVahedMajazi || 0}</PersianNumber></span></div>
+                            <div className="col-md-6"><span className="fw-bold text-muted">
+                                پیش بینی فعالیت حضوری در مراکز دیگر: <PersianNumber>{item.tedadVahedHamjavar || 0}</PersianNumber> واحد معادل</span></div>
+                            <div className="col-md-6"><span className="fw-bold text-muted">
+                                پیش بینی مجازی در مراکز دیگر: <PersianNumber>{item.tedadVahedMajazi || 0}</PersianNumber> واحد معادل</span></div>
                         </div>
                         <hr />
                         <div className="row mb-2">
-                            <div className="col-12"><span className="fw-bold text-muted">دلایل تقاضا:</span> {item.dalil || '-'}</div>
+                            <div className="col-12"><span className="fw-bold text-muted" >
+                                دلایل تقاضا:</span><div className="mb-1 text-muted small bg-light p-2 rounded"
+                                    style={{ minHeight: '60px', maxHeight: '100px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                                    {item.dalil || '-'}</div>
+                            </div>
                         </div>
                         <div className="row">
                             <div className="col-12 d-flex align-items-center flex-wrap gap-5">
@@ -482,14 +501,14 @@ export default function HamjavarDetail() {
                             <div className="table-responsive">
                                 <table className="table table-hover table-striped mb-0">
                                     <colgroup>
-                                        <col style={{ width: '5%' }} />
-                                        <col style={{ width: '12%' }} />
-                                        <col style={{ width: '20%' }} />
+                                        <col style={{ width: '4%' }} />
+                                        <col style={{ width: '10%' }} />
+                                        <col style={{ width: '18%' }} />
                                         <col style={{ width: '27%' }} />
                                         <col style={{ width: '9%' }} />
-                                        <col style={{ width: '9%' }} />
-                                        <col style={{ width: '9%' }} />
-                                        <col style={{ width: '9%' }} />
+                                        <col style={{ width: '10%' }} />
+                                        <col style={{ width: '11%' }} />
+                                        <col style={{ width: '11%' }} />
                                     </colgroup>
                                     <thead>
                                         <tr>
@@ -501,9 +520,9 @@ export default function HamjavarDetail() {
                                             <th colSpan={3} className="text-center">تعداد روز مد نظر مسئولین</th>
                                         </tr>
                                         <tr>
-                                            <th className="text-center">رئیس</th>
-                                            <th className="text-center">خدمات</th>
-                                            <th className="text-center">معاون</th>
+                                            <th className="text-center">رئیس مرکز</th>
+                                            <th className="text-center">مدیر خدمات آموزشی استان</th>
+                                            <th className="text-center">{getMoavenTitle(item.roleMarkazApproved)}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -514,7 +533,7 @@ export default function HamjavarDetail() {
                                                 <tr key={detail.id}>
                                                     <td><PersianNumber>{index + 1}</PersianNumber></td>
                                                     <td><span>{detail.inOstan ? 'داخل استان' : 'خارج استان'}</span></td>
-                                                    <td>{markaz?.naamMarkaz || '-'}</td>
+                                                    <td>{getMarkazDisplayName(markaz)}</td>
                                                     <td>{faaliatNames.length > 0 ? faaliatNames.map((n, i) => <span key={i} className="badge bg-secondary me-1">{n}</span>) : <span className="text-muted">-</span>}</td>
                                                     <td className="text-center"><PersianNumber>{detail.tedadRoozElmi || 0}</PersianNumber></td>
                                                     <td className="text-center"><PersianNumber>{detail.tedadRoozRaeis ?? '-'}</PersianNumber></td>

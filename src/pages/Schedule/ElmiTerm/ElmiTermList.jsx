@@ -70,7 +70,7 @@ export default function ElmiTermList() {
         akharinVazeeat: '',
         isEjeari: false,
         onvanEjraei: '',
-        fullTime: false,
+        fullTime: true,
         tedadSaatMovazafi: '',
         file: null,
         copyFromId: ''
@@ -267,7 +267,7 @@ export default function ElmiTermList() {
             akharinVazeeat: '',
             isEjeari: false,
             onvanEjraei: '',
-            fullTime: false,
+            fullTime: true,
             tedadSaatMovazafi: '',
             file: null,
             copyFromId: ''
@@ -491,6 +491,12 @@ export default function ElmiTermList() {
                 setSubmitting(false);
                 return;
             }
+            // بررسی اینکه فقط در ترم جاری امکان ثبت درخواست هست
+            if (formData.termCode !== currentTermCode) {
+                toast.warning('ثبت درخواست جدید فقط برای ترم جاری امکان‌پذیر است');
+                setSubmitting(false);
+                return;
+            }
 
             // بررسی تکراری نبودن
             const existing = items.find(item =>
@@ -686,7 +692,7 @@ export default function ElmiTermList() {
                             >
                                 {termList.map(term => (
                                     <option key={term.codeTerm} value={term.codeTerm}>
-                                        <PersianNumber>{term.onvanTerm} {term.codeTerm}</PersianNumber>
+                                        <PersianNumber>{term.onvanTerm}</PersianNumber>
                                         {term.vazeeyat && ' ✅'}
                                     </option>
                                 ))}

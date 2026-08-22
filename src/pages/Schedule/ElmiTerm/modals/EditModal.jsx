@@ -9,7 +9,7 @@ export default function EditModal({
     formData,
     setFormData,
     selectedItem,
-    needsWarning,
+    //needsWarning,
     submitting
 }) {
     if (!show) return null;
@@ -23,12 +23,12 @@ export default function EditModal({
                             <h5 className="modal-title">
                                 ویرایش درخواست - {selectedItem?.ostadName}
                             </h5>
-                            {needsWarning(selectedItem) && (
+                            {/*needsWarning(selectedItem) && (
                                 <span className="badge bg-warning text-dark">
                                     <i className="bi bi-exclamation-triangle me-1"></i>
                                     این رکورد قبلاً بررسی شده است
                                 </span>
-                            )}
+                            )*/}
                             <button type="button" className="btn-close" onClick={onClose}></button>
                         </div>
 
