@@ -33,6 +33,9 @@ import HamjavarCreate from './pages/Schedule/Hamjavar/HamjavarCreate';
 import SignatureManager from './pages/Profile/SignatureManager';
 import SignatureManagement from './pages/Signature/SignatureManagement';
 
+import BarnamehHaftegiList from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiList';
+import BarnamehHaftegiDetail from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiDetail'
+
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -270,6 +273,24 @@ function App() {
                   <ProtectedRouteWithPermission
                     requiredPermission="Signature.ManageSignatureForReset">
                     <SignatureManagement />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path='barnameh-haftegi-list'
+                element={
+                  <ProtectedRouteWithPermission
+                    requiredPermission='BarnamehHaftegi.View'>
+                    <BarnamehHaftegiList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path='barnameh-haftegi/:id'
+                element={
+                  <ProtectedRouteWithPermission
+                    requiredPermission='BarnamehHaftegi.View'>
+                    <BarnamehHaftegiDetail />
                   </ProtectedRouteWithPermission>
                 }
               />

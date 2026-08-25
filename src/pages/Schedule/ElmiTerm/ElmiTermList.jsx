@@ -1,7 +1,6 @@
 // src/pages/Schedule/ElmiTerm/ElmiTermList.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { useTerm } from '../../../context/TermContext';
 import { toast } from 'react-toastify';
 import api from '../../../api/axiosConfig';
 import { PermissionWrapper } from '../../../components/PermissionWrapper';
@@ -25,13 +24,7 @@ export default function ElmiTermList() {
     // کانتکست ها
     const { hasPermission, user } = useAuth();
     const { markazList } = useMarkaz();
-    const {
-        termList,
-        currentTerm,
-        currentTermCode,
-        pastTerms,
-        loading: termLoading
-    } = useTerm();
+
     // ============================================================
     // Stateهای اصلی
     // ============================================================
@@ -43,15 +36,16 @@ export default function ElmiTermList() {
         totalCount: 0,
         totalPages: 0
     });
+
     // ============================================================
     // Stateهای فیلتر
     // ============================================================
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
-    const [termCode, setTermCode] = useState('');
     const [approveStatus, setApproveStatus] = useState('');
     const [selectedOstanId, setSelectedOstanId] = useState('');
     const [selectedMarkazId, setSelectedMarkazId] = useState('');
+
     // ============================================================
     // Stateهای مودال
     // ============================================================
@@ -60,21 +54,22 @@ export default function ElmiTermList() {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+
     // ============================================================
     // Stateهای فرم
     // ============================================================
     const [formData, setFormData] = useState({
         id: '',
         userId: '',
-        termCode: '',
         akharinVazeeat: '',
         isEjeari: false,
         onvanEjraei: '',
         fullTime: true,
         tedadSaatMovazafi: '',
+        tedadVahedMovazafi: '',
         file: null,
-        copyFromId: ''
     });
+
     // ============================================================
     // هوک مودال تایید
     // ============================================================
@@ -84,9 +79,7 @@ export default function ElmiTermList() {
     // بررسی آیا کاربر استاد است
     // ============================================================
     const isOstad = useMemo(() => {
-        const result = user?.currentRoleName === 'استاد';
-        //console.log('🔍 isOstad:', result, 'currentRoleName:', user?.currentRoleName);
-        return result;
+        return user?.currentRoleName === 'استاد';
     }, [user]);
 
     // ============================================================
@@ -97,29 +90,11 @@ export default function ElmiTermList() {
     }, [isOstad]);
 
     // ============================================================
-    // بررسی آیا تاریخ فعلی در محدوده ترم جاری است
-    // ============================================================
-    const isWithinCurrentTerm = useMemo(() => {
-        if (!currentTerm) return false;
-
-        const today = new Date();
-        const startDate = currentTerm.tarikheShorooMojavezMarakez ? new Date(currentTerm.tarikheShorooMojavezMarakez) : null;
-        const endDate = currentTerm.tarikhePayanMojavezMarakez ? new Date(currentTerm.tarikhePayanMojavezMarakez) : null;
-
-        if (!startDate || !endDate) return false;
-
-        return today >= startDate && today <= endDate;
-    }, [currentTerm]);
-
-    // ============================================================
     // بررسی مجوز برای ایجاد
     // ============================================================
     const canCreate = useMemo(() => {
-        if (isOstad) {
-            return isWithinCurrentTerm && hasPermission('ElmiTerm.Create');
-        }
-        return currentTermCode !== null && hasPermission('ElmiTerm.Create');
-    }, [isOstad, isWithinCurrentTerm, currentTermCode, hasPermission]);
+        return hasPermission('ElmiTerm.Create');
+    }, [hasPermission]);
 
     // ============================================================
     // بررسی مجوز برای ویرایش
@@ -128,12 +103,10 @@ export default function ElmiTermList() {
         if (!hasPermission('ElmiTerm.Update')) return false;
 
         if (isOstad) {
-            return item.userId === user?.id &&
-                isWithinCurrentTerm &&
-                item.approveStatus === 0;
+            return item.userId === user?.id && item.approveStatus === 0;
         }
 
-        return currentTermCode !== null;
+        return true; // مدیران می‌توانند هر درخواستی را ویرایش کنند (البته بک‌اند محدودیت‌های خودش را دارد)
     };
 
     // ============================================================
@@ -143,12 +116,10 @@ export default function ElmiTermList() {
         if (!hasPermission('ElmiTerm.Delete')) return false;
 
         if (isOstad) {
-            return item.userId === user?.id &&
-                isWithinCurrentTerm &&
-                item.approveStatus === 0;
+            return item.userId === user?.id && item.approveStatus === 0;
         }
 
-        return currentTermCode !== null;
+        return true;
     };
 
     // ============================================================
@@ -157,7 +128,7 @@ export default function ElmiTermList() {
     const canApprove = (item) => {
         if (!hasPermission('ElmiTerm.Approve')) return false;
         if (!isManager) return false;
-        return currentTermCode !== null;
+        return true;
     };
 
     // ============================================================
@@ -199,7 +170,6 @@ export default function ElmiTermList() {
             const params = {
                 page: pagination.page,
                 pageSize: pagination.pageSize,
-                termCode: termCode || undefined,
                 search: debouncedSearch || undefined,
                 approveStatus: approveStatus || undefined,
                 ostanId: selectedOstanId || undefined,
@@ -220,7 +190,7 @@ export default function ElmiTermList() {
         } finally {
             setLoading(false);
         }
-    }, [pagination.page, pagination.pageSize, termCode, debouncedSearch, approveStatus, selectedOstanId, selectedMarkazId]);
+    }, [pagination.page, pagination.pageSize, debouncedSearch, approveStatus, selectedOstanId, selectedMarkazId]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -229,20 +199,9 @@ export default function ElmiTermList() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    // ============================================================
-    // تنظیم ترم پیش‌فرض به ترم جاری
-    // ============================================================
     useEffect(() => {
-        if (currentTermCode && !termCode) {
-            setTermCode(currentTermCode);
-        }
-    }, [currentTermCode]);
-
-    useEffect(() => {
-        if (termCode) {
-            fetchItems();
-        }
-    }, [fetchItems, termCode]);
+        fetchItems();
+    }, [fetchItems]);
 
     // ============================================================
     // تغییر صفحه
@@ -263,14 +222,13 @@ export default function ElmiTermList() {
         setFormData({
             id: '',
             userId: defaultUserId || '',
-            termCode: currentTermCode || '',
             akharinVazeeat: '',
             isEjeari: false,
             onvanEjraei: '',
             fullTime: true,
             tedadSaatMovazafi: '',
+            tedadVahedMovazafi: '',
             file: null,
-            copyFromId: ''
         });
         setShowCreateModal(true);
     };
@@ -284,18 +242,15 @@ export default function ElmiTermList() {
             return;
         }
 
-        // ✅ اگر قبلاً بررسی شده و مدیر است، هشدار بده
         if (item.approveStatus !== 0 && isManager) {
+            const statusText = item.approveStatus === 1 ? 'تایید' : 'رد';
             const confirmed = await confirm({
                 title: "هشدار",
                 message: `این درخواست قبلاً ${statusText} شده است. آیا از ویرایش آن مطمئن هستید؟`,
                 confirmText: 'بله',
                 confirmVariant: 'warning'
             });
-            //const statusText = item.approveStatus === 1 ? 'تایید' : 'رد';
-            if (!confirmed) {
-                return;
-            }
+            if (!confirmed) return;
         }
 
         openEditModalDirect(item);
@@ -309,14 +264,13 @@ export default function ElmiTermList() {
         setFormData({
             id: item.id,
             userId: item.userId || '',
-            termCode: item.termCode || '',
             akharinVazeeat: item.akharinVazeeat || '',
             isEjeari: item.isEjeari || false,
             onvanEjraei: item.onvanEjraei || '',
             fullTime: item.fullTime || false,
             tedadSaatMovazafi: item.tedadSaatMovazafi || '',
+            tedadVahedMovazafi: item.tedadVahedMovazafi || '',
             file: null,
-            copyFromId: ''
         });
         setShowEditModal(true);
     };
@@ -345,7 +299,6 @@ export default function ElmiTermList() {
             return;
         }
 
-        // ✅ اگر قبلاً بررسی شده، هشدار بده
         if (item.approveStatus !== 0) {
             const currentStatus = item.approveStatus === 1 ? 'تایید' : 'رد';
             const newStatus = status === 1 ? 'تایید' : 'رد';
@@ -355,10 +308,7 @@ export default function ElmiTermList() {
                 confirmText: 'بله',
                 confirmVariant: 'warning'
             });
-
-            if (!confirmed) {
-                return;
-            }
+            if (!confirmed) return;
         }
 
         const actionText = status === 1 ? 'تایید' : 'رد';
@@ -400,7 +350,6 @@ export default function ElmiTermList() {
             return;
         }
 
-        // ✅ اگر قبلاً بررسی شده و مدیر است، هشدار بده
         if (item.approveStatus !== 0 && isManager) {
             const statusText = item.approveStatus === 1 ? 'تایید' : 'رد';
             const confirmed = await confirm({
@@ -409,9 +358,7 @@ export default function ElmiTermList() {
                 confirmText: 'بله',
                 confirmVariant: 'warning'
             });
-            if (!confirmed) {
-                return;
-            }
+            if (!confirmed) return;
         }
         const confirmed = await confirm({
             title: "هشدار",
@@ -455,13 +402,11 @@ export default function ElmiTermList() {
         }
     };
 
-
     // ============================================================
     // ریست فیلترها
     // ============================================================
     const resetFilters = () => {
         setSearch('');
-        setTermCode(currentTermCode || '');
         setApproveStatus('');
         setSelectedOstanId('');
         setSelectedMarkazId('');
@@ -476,35 +421,10 @@ export default function ElmiTermList() {
         setSubmitting(true);
 
         try {
-            // 🔥 تعیین userId نهایی
-            const targetUserId = isOstad ? (user?.id || user?.username) : formData.userId;
+            const targetUserId = isOstad ? user?.id : formData.userId;
 
-            // 🔥 فقط یک بار چک کن
             if (!targetUserId) {
                 toast.warning('انتخاب استاد الزامی است');
-                setSubmitting(false);
-                return;
-            }
-
-            if (!formData.termCode.trim()) {
-                toast.warning('کد ترم الزامی است');
-                setSubmitting(false);
-                return;
-            }
-            // بررسی اینکه فقط در ترم جاری امکان ثبت درخواست هست
-            if (formData.termCode !== currentTermCode) {
-                toast.warning('ثبت درخواست جدید فقط برای ترم جاری امکان‌پذیر است');
-                setSubmitting(false);
-                return;
-            }
-
-            // بررسی تکراری نبودن
-            const existing = items.find(item =>
-                item.userId === parseInt(targetUserId) &&  // ← از targetUserId استفاده کن
-                item.termCode === formData.termCode
-            );
-            if (existing) {
-                toast.warning('این استاد قبلاً برای این ترم درخواست ثبت کرده است');
                 setSubmitting(false);
                 return;
             }
@@ -516,20 +436,16 @@ export default function ElmiTermList() {
             }
 
             const formDataToSend = new FormData();
-            formDataToSend.append('userId', targetUserId);  // ← از targetUserId استفاده کن
-            formDataToSend.append('termCode', formData.termCode);
+            formDataToSend.append('userId', targetUserId);
             formDataToSend.append('akharinVazeeat', formData.akharinVazeeat || '');
             formDataToSend.append('isEjeari', formData.isEjeari);
             formDataToSend.append('onvanEjraei', formData.onvanEjraei || '');
             formDataToSend.append('fullTime', formData.fullTime);
             formDataToSend.append('tedadSaatMovazafi', formData.tedadSaatMovazafi || '');
+            formDataToSend.append('tedadVahedMovazafi', formData.tedadVahedMovazafi || '');
 
             if (formData.file) {
                 formDataToSend.append('file', formData.file);
-            }
-
-            if (formData.copyFromId) {
-                formDataToSend.append('copyFromId', formData.copyFromId);
             }
 
             const response = await api.post('/ElmiTerm/create', formDataToSend, {
@@ -542,14 +458,13 @@ export default function ElmiTermList() {
                 setFormData({
                     id: '',
                     userId: '',
-                    termCode: currentTermCode || '',
                     akharinVazeeat: '',
                     isEjeari: false,
                     onvanEjraei: '',
                     fullTime: false,
                     tedadSaatMovazafi: '',
+                    tedadVahedMovazafi: '',
                     file: null,
-                    copyFromId: ''
                 });
                 fetchItems();
             }
@@ -559,6 +474,7 @@ export default function ElmiTermList() {
             setSubmitting(false);
         }
     };
+
     // ============================================================
     // ویرایش درخواست
     // ============================================================
@@ -567,20 +483,14 @@ export default function ElmiTermList() {
         setSubmitting(true);
 
         try {
-            if (!formData.termCode.trim()) {
-                toast.warning('کد ترم الزامی است');
-                setSubmitting(false);
-                return;
-            }
-
             const formDataToSend = new FormData();
             formDataToSend.append('id', formData.id);
-            formDataToSend.append('termCode', formData.termCode);
             formDataToSend.append('akharinVazeeat', formData.akharinVazeeat || '');
             formDataToSend.append('isEjeari', formData.isEjeari);
             formDataToSend.append('onvanEjraei', formData.onvanEjraei || '');
             formDataToSend.append('fullTime', formData.fullTime);
             formDataToSend.append('tedadSaatMovazafi', formData.tedadSaatMovazafi || '');
+            formDataToSend.append('tedadVahedMovazafi', formData.tedadVahedMovazafi || '');
 
             if (formData.file) {
                 formDataToSend.append('file', formData.file);
@@ -604,7 +514,6 @@ export default function ElmiTermList() {
     };
 
     const handleResetPending = async (id) => {
-        console.log('test 1')
         const confirmed = await confirm({
             title: "هشدار",
             message: 'آیا از بازگشت این درخواست به حالت "در انتظار بررسی" مطمئن هستید؟',
@@ -632,23 +541,6 @@ export default function ElmiTermList() {
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <h4>مدیریت درخواست‌های وضعیت ترمی اساتید</h4>
-                    {currentTerm && (
-                        <span className="badge bg-primary mt-1">
-                            ترم جاری: <PersianNumber>{currentTerm.onvanTerm} {currentTerm.codeTerm}</PersianNumber>
-                        </span>
-                    )}
-                    {isOstad && !isWithinCurrentTerm && (
-                        <span className="badge bg-danger mt-1 ms-2">
-                            <i className="bi bi-exclamation-circle me-1"></i>
-                            خارج از محدوده ثبت درخواست
-                        </span>
-                    )}
-                    {/*isManager && (
-                        <span className="badge bg-info mt-1 ms-2">
-                            <i className="bi bi-shield-check me-1"></i>
-                            حالت مدیریتی
-                        </span>
-                    )*/}
                 </div>
                 <PermissionWrapper permission="ElmiTerm.Create">
                     <button
@@ -670,7 +562,7 @@ export default function ElmiTermList() {
                     <div className="row g-3 align-items-end">
                         {/* فیلتر جستجو - فقط برای مدیران */}
                         {!isOstad && (
-                            <div className="col-md-2">
+                            <div className="col-md-3">
                                 <label className="form-label">جستجو</label>
                                 <input
                                     type="text"
@@ -682,25 +574,8 @@ export default function ElmiTermList() {
                             </div>
                         )}
 
-                        {/* کد ترم */}
-                        <div className={`${isOstad ? 'col-md-3' : 'col-md-2'}`}>
-                            <label className="form-label">کد ترم *</label>
-                            <select
-                                className="form-select form-select-sm"
-                                value={termCode}
-                                onChange={(e) => setTermCode(e.target.value)}
-                            >
-                                {termList.map(term => (
-                                    <option key={term.codeTerm} value={term.codeTerm}>
-                                        <PersianNumber>{term.onvanTerm}</PersianNumber>
-                                        {term.vazeeyat && ' ✅'}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
                         {/* وضعیت تایید */}
-                        <div className={`${isOstad ? 'col-md-3' : 'col-md-2'}`}>
+                        <div className={`${isOstad ? 'col-md-4' : 'col-md-2'}`}>
                             <label className="form-label">وضعیت تایید</label>
                             <select
                                 className="form-select form-select-sm"
@@ -767,7 +642,7 @@ export default function ElmiTermList() {
 
                         {/* برای استاد: پیام راهنما */}
                         {isOstad && (
-                            <div className="col-md-3">
+                            <div className="col-md-4">
                                 <div className="alert alert-info mb-0 py-1 px-2 small">
                                     <i className="bi bi-info-circle me-1"></i>
                                     شما فقط درخواست‌های خود را مشاهده می‌کنید
@@ -775,20 +650,13 @@ export default function ElmiTermList() {
                             </div>
                         )}
                     </div>
-
-                    {!termCode && (
-                        <div className="mt-2 text-warning small">
-                            <i className="bi bi-info-circle me-1"></i>
-                            برای مشاهده لیست، کد ترم را وارد کنید
-                        </div>
-                    )}
                 </div>
             </div>
 
             {/* ============================================================
                 جدول لیست
                 ============================================================ */}
-            {loading || termLoading ? (
+            {loading ? (
                 <div className="text-center py-5">
                     <div className="spinner-border text-primary" role="status">
                         <span className="visually-hidden">در حال بارگذاری...</span>
@@ -824,19 +692,21 @@ export default function ElmiTermList() {
                                     <th>استاد</th>
                                     <th>کد استادی</th>
                                     <th>مرکز</th>
-                                    <th>وضعیت</th>
+                                    <th>آخرین وضعیت استاد</th>
                                     <th>سمت اجرایی</th>
-                                    <th>ساعت موظف هفتگی</th>
-                                    <th>تایید</th>
-                                    <th>فایل</th>
+                                    <th>تعداد ساعت موظف هفتگی</th>
+                                    <th>تعداد واحد موظف</th>
+                                    <th>تاثیر در محاسبات</th>
+                                    <th>تایید مدیرت استان</th>
+                                    <th>پیوست</th>
                                     <th>عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.length === 0 ? (
                                     <tr>
-                                        <td colSpan="10" className="text-center text-muted py-4">
-                                            {termCode ? 'هیچ درخواستی یافت نشد' : 'لطفاً کد ترم را وارد کنید'}
+                                        <td colSpan="12" className="text-center text-muted py-4">
+                                            هیچ درخواستی یافت نشد
                                         </td>
                                     </tr>
                                 ) : (
@@ -844,7 +714,6 @@ export default function ElmiTermList() {
                                         const isEditable = canEdit(item);
                                         const isDeletable = canDelete(item);
                                         const isApprovable = canApprove(item);
-                                        const showWarning = item.approveStatus !== 0 && isManager;
 
                                         return (
                                             <tr key={item.id}>
@@ -865,19 +734,24 @@ export default function ElmiTermList() {
                                                     )}
                                                 </td>
                                                 <td><PersianNumber>{item.tedadSaatMovazafi || '-'}</PersianNumber></td>
+                                                <td><PersianNumber>{item.tedadVahedMovazafi || '-'}</PersianNumber></td>
+                                                <td>
+                                                    {item.vazeeat ? (
+                                                        <span className="badge bg-success">فعال</span>
+                                                    ) : (
+                                                        <span className="badge bg-danger">غیرفعال</span>
+                                                    )}
+                                                </td>
                                                 <td>{getStatusBadge(item.approveStatus)}</td>
                                                 <td>
                                                     {item.hasFile ? (
-
                                                         <DownloadButton
                                                             filePath={item.filePath}
                                                             fileName="فایل"
                                                         />
-
                                                     ) : (
                                                         <span className="text-muted">-</span>
                                                     )}
-
                                                 </td>
                                                 <td>
                                                     <div className="btn-group btn-group-sm">
@@ -891,83 +765,67 @@ export default function ElmiTermList() {
                                                         </button>
 
                                                         {/* ============================================================
-                                                            دکمه‌های عملیات - فقط برای ترم جاری
+                                                            دکمه‌های عملیات
                                                             ============================================================ */}
-                                                        {item.termCode === currentTermCode && (
-                                                            <div className="d-flex flex-wrap gap-1 align-items-center">
-
-                                                                {/* حالت 1: در انتظار بررسی (0) */}
-                                                                {item.approveStatus === 0 ? (
-                                                                    <>
-                                                                        {/* دکمه‌های تایید و رد */}
-                                                                        {isApprovable && (
-                                                                            <PermissionWrapper permission="ElmiTerm.Approve">
-                                                                                <div className="d-flex gap-1">
-                                                                                    <button
-                                                                                        className="btn btn-success"
-                                                                                        onClick={() => handleApprove(item, 1)}
-                                                                                        title="تایید"
-                                                                                    >
-                                                                                        <i className="bi bi-check-lg"></i>
-                                                                                    </button>
-                                                                                    <button
-                                                                                        className="btn btn-danger"
-                                                                                        onClick={() => handleApprove(item, 2)}
-                                                                                        title="رد"
-                                                                                    >
-                                                                                        <i className="bi bi-x-lg"></i>
-                                                                                    </button>
-                                                                                </div>
-                                                                            </PermissionWrapper>
-                                                                        )}
-
-                                                                        {/* دکمه ویرایش */}
-                                                                        {isEditable && (
-                                                                            <PermissionWrapper permission="ElmiTerm.Update">
+                                                        <div className="d-flex flex-wrap gap-1 align-items-center">
+                                                            {item.approveStatus === 0 ? (
+                                                                <>
+                                                                    {isApprovable && (
+                                                                        <PermissionWrapper permission="ElmiTerm.Approve">
+                                                                            <div className="d-flex gap-1">
                                                                                 <button
-                                                                                    className="btn btn-warning"
-                                                                                    onClick={() => openEditModal(item)}
-                                                                                    title="ویرایش"
+                                                                                    className="btn btn-success"
+                                                                                    onClick={() => handleApprove(item, 1)}
+                                                                                    title="تایید"
                                                                                 >
-                                                                                    <i className="bi bi-pencil"></i>
+                                                                                    <i className="bi bi-check-lg"></i>
                                                                                 </button>
-                                                                            </PermissionWrapper>
-                                                                        )}
-
-                                                                        {/* دکمه حذف */}
-                                                                        {isDeletable && (
-                                                                            <PermissionWrapper permission="ElmiTerm.Delete">
                                                                                 <button
                                                                                     className="btn btn-danger"
-                                                                                    onClick={() => handleDelete(item)}
-                                                                                    title="حذف"
+                                                                                    onClick={() => handleApprove(item, 2)}
+                                                                                    title="رد"
                                                                                 >
-                                                                                    <i className="bi bi-trash"></i>
+                                                                                    <i className="bi bi-x-lg"></i>
                                                                                 </button>
-                                                                            </PermissionWrapper>
-                                                                        )}
-                                                                    </>
-                                                                ) : (
-                                                                    /* حالت 2: تایید/رد شده (1 یا 2) - دکمه ریست */
-                                                                    <button
-                                                                        className="btn btn-warning"
-                                                                        onClick={() => handleResetPending(item.id)}
-                                                                        title="بازگشت به حالت در انتظار بررسی"
-                                                                    >
-                                                                        <i className="bi bi-arrow-counterclockwise"></i>
-                                                                        <span className="ms-1" style={{ fontSize: '10px' }}>ریست تایید</span>
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                            </div>
+                                                                        </PermissionWrapper>
+                                                                    )}
 
-                                                        {/* اگر ترم جاری نیست */}
-                                                        {item.termCode !== currentTermCode && (
-                                                            <span className="text-muted small ms-2">
-                                                                <i className="bi bi-clock-history me-1"></i>
-                                                                ترم گذشته
-                                                            </span>
-                                                        )}
+                                                                    {isEditable && (
+                                                                        <PermissionWrapper permission="ElmiTerm.Update">
+                                                                            <button
+                                                                                className="btn btn-warning"
+                                                                                onClick={() => openEditModal(item)}
+                                                                                title="ویرایش"
+                                                                            >
+                                                                                <i className="bi bi-pencil"></i>
+                                                                            </button>
+                                                                        </PermissionWrapper>
+                                                                    )}
+
+                                                                    {isDeletable && (
+                                                                        <PermissionWrapper permission="ElmiTerm.Delete">
+                                                                            <button
+                                                                                className="btn btn-danger"
+                                                                                onClick={() => handleDelete(item)}
+                                                                                title="حذف"
+                                                                            >
+                                                                                <i className="bi bi-trash"></i>
+                                                                            </button>
+                                                                        </PermissionWrapper>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <button
+                                                                    className="btn btn-warning"
+                                                                    onClick={() => handleResetPending(item.id)}
+                                                                    title="بازگشت به حالت در انتظار بررسی"
+                                                                >
+                                                                    <i className="bi bi-arrow-counterclockwise"></i>
+                                                                    <span className="ms-1" style={{ fontSize: '10px' }}>ریست تایید</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1022,8 +880,6 @@ export default function ElmiTermList() {
                 onSubmit={handleCreateSubmit}
                 formData={formData}
                 setFormData={setFormData}
-                termList={termList}
-                pastTerms={pastTerms}
                 isOstad={isOstad}
                 canCreate={canCreate}
                 submitting={submitting}
@@ -1044,7 +900,6 @@ export default function ElmiTermList() {
                 show={showDetailModal}
                 onClose={() => setShowDetailModal(false)}
                 selectedItem={selectedItem}
-                termList={termList}
             />
 
             {/* ============================================================

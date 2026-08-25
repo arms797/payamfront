@@ -1,7 +1,6 @@
 // src/pages/Schedule/ElmiTerm/modals/DetailModal.jsx
 import React from 'react';
-import { getStatusBadge, downloadFile, formatDate, getTermTitle } from '../ElmiTermHelpers';
-import api from '../../../../api/axiosConfig';
+import { getStatusBadge, formatDate } from '../ElmiTermHelpers';
 import PersianNumber from '../../../../components/common/PersianNumber';
 import DownloadButton from '../../../../components/common/DownloadButton';
 
@@ -9,7 +8,6 @@ export default function DetailModal({
     show,
     onClose,
     selectedItem,
-    termList
 }) {
     if (!show || !selectedItem) return null;
 
@@ -42,19 +40,8 @@ export default function DetailModal({
                                             <div className="col-7"><PersianNumber>{selectedItem.ostadCode}</PersianNumber></div>
                                         </div>
                                         <div className="row mb-2">
-                                            <div className="col-5 fw-bold">مرکز خدمت:</div>
+                                            <div className="col-5 fw-bold">مرکز خدمتی:</div>
                                             <div className="col-7">{selectedItem.ostadMarkaz || '-'}</div>
-                                        </div>
-                                        <div className="row mb-2">
-                                            <div className="col-5 fw-bold">کد ترم:</div>
-                                            <div className="col-7"><PersianNumber>{selectedItem.termCode}</PersianNumber></div>
-                                        </div>
-                                        <div className="row mb-2">
-                                            <div className="col-5 fw-bold">عنوان ترم:</div>
-                                            <div className="col-7"><PersianNumber>
-                                                {getTermTitle(selectedItem.termCode, termList)}
-                                            </PersianNumber>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -94,9 +81,23 @@ export default function DetailModal({
                                         <div className="row mb-2">
                                             <div className="col-5 fw-bold">ساعت موظف هفتگی:</div>
                                             <div className="col-7">
-                                                <PersianNumber>
-                                                    {selectedItem.tedadSaatMovazafi || '-'}
-                                                </PersianNumber>
+                                                <PersianNumber>{selectedItem.tedadSaatMovazafi || '-'}</PersianNumber>
+                                            </div>
+                                        </div>
+                                        <div className="row mb-2">
+                                            <div className="col-5 fw-bold">واحد موظفی:</div>
+                                            <div className="col-7">
+                                                <PersianNumber>{selectedItem.tedadVahedMovazafi || '-'}</PersianNumber>
+                                            </div>
+                                        </div>
+                                        <div className="row mb-2">
+                                            <div className="col-5 fw-bold">وضعیت فعال:</div>
+                                            <div className="col-7">
+                                                {selectedItem.vazeeat ? (
+                                                    <span className="badge bg-success">فعال</span>
+                                                ) : (
+                                                    <span className="badge bg-danger">غیرفعال</span>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -129,9 +130,7 @@ export default function DetailModal({
                                                 <div className="row mb-2">
                                                     <div className="col-3 fw-bold">تاریخ تایید:</div>
                                                     <div className="col-9">
-                                                        <PersianNumber>
-                                                            {formatDate(selectedItem.approvedAt)}
-                                                        </PersianNumber>
+                                                        <PersianNumber>{formatDate(selectedItem.approvedAt)}</PersianNumber>
                                                     </div>
                                                 </div>
                                                 {selectedItem.approveTozihat && (
@@ -150,7 +149,6 @@ export default function DetailModal({
                                                         filePath={selectedItem.filePath}
                                                         fileName='فایل-مستندات'
                                                     />
-
                                                 </div>
                                             </div>
                                         )}

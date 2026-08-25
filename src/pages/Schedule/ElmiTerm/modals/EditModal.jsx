@@ -9,7 +9,6 @@ export default function EditModal({
     formData,
     setFormData,
     selectedItem,
-    //needsWarning,
     submitting
 }) {
     if (!show) return null;
@@ -23,31 +22,10 @@ export default function EditModal({
                             <h5 className="modal-title">
                                 ویرایش درخواست - {selectedItem?.ostadName}
                             </h5>
-                            {/*needsWarning(selectedItem) && (
-                                <span className="badge bg-warning text-dark">
-                                    <i className="bi bi-exclamation-triangle me-1"></i>
-                                    این رکورد قبلاً بررسی شده است
-                                </span>
-                            )*/}
                             <button type="button" className="btn-close" onClick={onClose}></button>
                         </div>
 
                         <div className="modal-body">
-                            <div className="row">
-                                <div className="col-md-12 mb-3">
-                                    <label className="form-label">کد ترم</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        value={formData.termCode}
-                                        disabled
-                                        style={{ backgroundColor: '#e9ecef' }}
-                                    />
-                                </div>
-                            </div>
-
-                            <hr />
-
                             <div className="row">
                                 <div className="col-md-6 mb-3">
                                     <label className="form-label">وضعیت</label>
@@ -107,17 +85,33 @@ export default function EditModal({
                             </div>
 
                             <div className="row">
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label">تعداد ساعت معادل موظف</label>
+                                <div className="col-md-4 mb-3">
+                                    <label className="form-label">تعداد ساعت موظف هفتگی</label>
                                     <input
-                                        type="text"
+                                        type="number"
+                                        step="1"
+                                        min={0}
+                                        max={60}
                                         className="form-control"
-                                        placeholder="مثال: 12"
+                                        placeholder="مثال: 40"
                                         value={formData.tedadSaatMovazafi}
                                         onChange={(e) => setFormData({ ...formData, tedadSaatMovazafi: e.target.value })}
                                     />
                                 </div>
-                                <div className="col-md-6 mb-3">
+                                <div className="col-md-4 mb-3">
+                                    <label className="form-label">تعداد واحد موظفی</label>
+                                    <input
+                                        type="number"
+                                        step="0.5"
+                                        min={0}
+                                        max={24}
+                                        className="form-control"
+                                        placeholder="مثال: 12"
+                                        value={formData.tedadVahedMovazafi}
+                                        onChange={(e) => setFormData({ ...formData, tedadVahedMovazafi: e.target.value })}
+                                    />
+                                </div>
+                                <div className="col-md-4 mb-3">
                                     <label className="form-label">فایل مستندات (اختیاری)</label>
                                     <input
                                         type="file"

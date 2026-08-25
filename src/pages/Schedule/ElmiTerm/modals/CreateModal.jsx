@@ -9,8 +9,6 @@ export default function CreateModal({
     onSubmit,
     formData,
     setFormData,
-    termList,
-    pastTerms,
     isOstad,
     canCreate,
     submitting
@@ -46,46 +44,6 @@ export default function CreateModal({
                                             شما فقط می‌توانید درخواست خود را ثبت کنید
                                         </small>
                                     )}
-                                </div>
-                                <div className="col-md-6 mb-3">
-                                    <label className="form-label">کد ترم <span className="text-danger">*</span></label>
-                                    <select
-                                        className="form-select"
-                                        value={formData.termCode}
-                                        onChange={(e) => setFormData({ ...formData, termCode: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">انتخاب ترم...</option>
-                                        {termList.map(term => (
-                                            <option key={term.codeTerm} value={term.codeTerm}>
-                                                {term.onvanTerm})
-                                                {term.vazeeyat && ' ✅ (جاری)'}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* کپی از ترم قبل */}
-                            <div className="row">
-                                <div className="col-md-12 mb-3">
-                                    <label className="form-label">کپی از ترم قبل (اختیاری)</label>
-                                    <select
-                                        className="form-select"
-                                        value={formData.copyFromId}
-                                        onChange={(e) => setFormData({ ...formData, copyFromId: e.target.value })}
-                                    >
-                                        <option value="">بدون کپی</option>
-                                        {pastTerms.map(term => (
-                                            <option key={term.codeTerm} value={term.codeTerm}>
-                                                {term.onvanTerm} ({term.codeTerm})
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <small className="text-muted">
-                                        <i className="bi bi-info-circle me-1"></i>
-                                        با انتخاب یک ترم، تمام اطلاعات از آن ترم کپی می‌شود
-                                    </small>
                                 </div>
                             </div>
 
@@ -151,19 +109,35 @@ export default function CreateModal({
                                 </div>
                             </div>
 
-                            {/* ساعت موظف + فایل */}
+                            {/* ساعت موظف + واحد موظف + فایل */}
                             <div className="row">
-                                <div className="col-md-6 mb-3">
+                                <div className="col-md-4 mb-3">
                                     <label className="form-label">تعداد ساعت موظف هفتگی</label>
                                     <input
-                                        type="text"
+                                        type="number"
+                                        step="1"
+                                        min={0}
+                                        max={60}
                                         className="form-control"
                                         placeholder="مثال: 40"
                                         value={formData.tedadSaatMovazafi}
                                         onChange={(e) => setFormData({ ...formData, tedadSaatMovazafi: e.target.value })}
                                     />
                                 </div>
-                                <div className="col-md-6 mb-3">
+                                <div className="col-md-4 mb-3">
+                                    <label className="form-label">تعداد واحد موظفی</label>
+                                    <input
+                                        type="number"
+                                        step="0.5"
+                                        min={0}
+                                        max={24}
+                                        className="form-control"
+                                        placeholder="مثال: 12"
+                                        value={formData.tedadVahedMovazafi}
+                                        onChange={(e) => setFormData({ ...formData, tedadVahedMovazafi: e.target.value })}
+                                    />
+                                </div>
+                                <div className="col-md-4 mb-3">
                                     <label className="form-label">فایل مستندات</label>
                                     <input
                                         type="file"
