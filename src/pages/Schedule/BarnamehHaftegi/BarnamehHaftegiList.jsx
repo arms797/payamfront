@@ -1,4 +1,5 @@
 // src/pages/Schedule/BarnamehHaftegi/BarnamehHaftegiList.jsx
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -17,15 +18,15 @@ export default function BarnamehHaftegiList() {
     const location = useLocation();
     const { user, hasPermission } = useAuth();
     const { markazList } = useMarkaz();
-    const { termList, currentTermCode } = useTerm();
+    const { termList, currentTerm } = useTerm();  // ← currentTerm اضافه شد
     const { grooheList } = useGrooheAmoozeshi();
     const { reshtehList } = useReshteh();
     const { confirm, ConfirmModal } = useConfirm();
-    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [ostadId, setOstadId] = useState(null);
 
-    // ============================================================
-    // Stateهای اصلی
-    // ============================================================
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [isRestoring, setIsRestoring] = useState(false);
+
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState({
@@ -35,11 +36,8 @@ export default function BarnamehHaftegiList() {
         totalPages: 0
     });
 
-    // ============================================================
-    // Stateهای فیلتر
-    // ============================================================
     const [filters, setFilters] = useState({
-        termCode: currentTermCode || '',
+        termCode: currentTerm?.codeTerm || '',
         search: '',
         ostanId: '',
         markazId: '',
@@ -60,8 +58,144 @@ export default function BarnamehHaftegiList() {
     const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
     const codeRole = useMemo(() => user?.codeRole || 4, [user]);
 
+
     // ============================================================
-    // تنظیم استان پیش‌فرض برای مدیران (CodeRole 3 و 4)
+    // دریافت ostadId از user.id
+    // ============================================================
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const fetchUserInfo = async () => {
+            try {
+                const response = await api.get(`/User/${user.id}`);
+                if (response.data?.success) {
+                    const data = response.data.data;
+                    if (data?.ostadId) {
+                        setOstadId(data.ostadId);
+                    }
+                }
+            } catch (error) {
+                console.error('خطا در دریافت اطلاعات کاربر:', error);
+            }
+        };
+
+        fetchUserInfo();
+    }, [user?.id]);
+    // ============================================================
+    // 🔥 بررسی دسترسی استاد برای ایجاد برنامه
+    // ============================================================
+    const canCreateProgram = useMemo(() => {
+        if (!isOstad) return false;
+        if (!filters.termCode) return false;
+
+        const selectedTerm = termList.find(t => t.codeTerm === filters.termCode);
+        if (!selectedTerm) return false;
+
+        const now = new Date();
+
+        // 1️⃣ بررسی مجوز ترم (تاریخ مجوز هم‌جاوری)
+        if (!selectedTerm.tarikheShorooMojavezMarakez || !selectedTerm.tarikhePayanMojavezMarakez) return false;
+        const start = new Date(selectedTerm.tarikheShorooMojavezMarakez);
+        const end = new Date(selectedTerm.tarikhePayanMojavezMarakez);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        if (now < start || now > end) return false;
+
+        // 2️⃣ بررسی اینکه ترم تمام نشده باشد
+        const endDate = selectedTerm.termJariPayan || selectedTerm.tarikhePayanClass;
+        if (endDate) {
+            const termEnd = new Date(endDate);
+            termEnd.setHours(23, 59, 59, 999);
+            if (now > termEnd) return false;
+        }
+
+        return true;
+    }, [isOstad, filters.termCode, termList]);
+
+    // ============================================================
+    // 🔥 بررسی اینکه آیا استاد قبلاً برنامه ثبت کرده است
+    // ============================================================
+    const hasProgram = useMemo(() => {
+        if (!isOstad || !items.length) return false;
+        return items.some(item => item.ostadId === ostadId && item.hasProgram);
+    }, [items, isOstad, ostadId]);
+
+    // ============================================================
+    // Refها برای ذخیره‌ی مقادیر
+    // ============================================================
+    const pageRef = useRef(1);
+    const pageSizeRef = useRef(20);
+    const searchRef = useRef('');
+    const reshtehRef = useRef('');
+    const ostanIdRef = useRef('');
+    const markazIdRef = useRef('');
+    const noeHamkariRef = useRef('');
+    const approveStatusRef = useRef('');
+    const grooheAmoozeshiIdRef = useRef('');
+    const termCodeRef = useRef(filters.termCode);
+
+    // ============================================================
+    // همگام‌سازی Stateها با Refها
+    // ============================================================
+    useEffect(() => { pageRef.current = pagination.page; }, [pagination.page]);
+    useEffect(() => { pageSizeRef.current = pagination.pageSize; }, [pagination.pageSize]);
+    useEffect(() => { searchRef.current = debouncedSearch; }, [debouncedSearch]);
+    useEffect(() => { reshtehRef.current = debouncedReshteh; }, [debouncedReshteh]);
+    useEffect(() => { ostanIdRef.current = filters.ostanId; }, [filters.ostanId]);
+    useEffect(() => { markazIdRef.current = filters.markazId; }, [filters.markazId]);
+    useEffect(() => { noeHamkariRef.current = filters.noeHamkari; }, [filters.noeHamkari]);
+    useEffect(() => { approveStatusRef.current = filters.approveStatus; }, [filters.approveStatus]);
+    useEffect(() => { grooheAmoozeshiIdRef.current = filters.grooheAmoozeshiId; }, [filters.grooheAmoozeshiId]);
+    useEffect(() => { termCodeRef.current = filters.termCode; }, [filters.termCode]);
+
+    // ============================================================
+    // 🔥 بازیابی موقعیت هنگام بازگشت از جزئیات
+    // ============================================================
+    useEffect(() => {
+        if (location.state?.fromDetail) {
+            setIsRestoring(true);
+
+            const savedPage = location.state.page || 1;
+            const savedPageSize = location.state.pageSize || 20;
+            const savedFilters = location.state.filters || {};
+            const savedTermCode = location.state.termCode || '';
+
+            setPagination(prev => ({
+                ...prev,
+                page: savedPage,
+                pageSize: savedPageSize
+            }));
+
+            setFilters(prev => ({
+                ...prev,
+                ...savedFilters,
+                termCode: savedTermCode || prev.termCode
+            }));
+
+            pageRef.current = savedPage;
+            pageSizeRef.current = savedPageSize;
+            termCodeRef.current = savedTermCode || termCodeRef.current;
+            if (savedFilters.search !== undefined) searchRef.current = savedFilters.search;
+            if (savedFilters.ostanId !== undefined) ostanIdRef.current = savedFilters.ostanId;
+            if (savedFilters.markazId !== undefined) markazIdRef.current = savedFilters.markazId;
+            if (savedFilters.reshteh !== undefined) reshtehRef.current = savedFilters.reshteh;
+            if (savedFilters.approveStatus !== undefined) approveStatusRef.current = savedFilters.approveStatus;
+            if (savedFilters.grooheAmoozeshiId !== undefined) grooheAmoozeshiIdRef.current = savedFilters.grooheAmoozeshiId;
+            if (savedFilters.noeHamkari !== undefined) noeHamkariRef.current = savedFilters.noeHamkari;
+
+            if (savedFilters.search !== undefined) setDebouncedSearch(savedFilters.search);
+            if (savedFilters.reshteh !== undefined) setDebouncedReshteh(savedFilters.reshteh);
+
+            window.history.replaceState({}, document.title);
+
+            setTimeout(() => {
+                setIsRestoring(false);
+            }, 150);
+        }
+    }, [location.state]);
+
+    // ============================================================
+    // تنظیم استان پیش‌فرض برای مدیران
     // ============================================================
     useEffect(() => {
         if (!isOstad && (codeRole === 3 || codeRole === 4) && user?.markazOstan && !filters.ostanId) {
@@ -105,23 +239,22 @@ export default function BarnamehHaftegiList() {
     // دریافت لیست
     // ============================================================
     const fetchItems = useCallback(async () => {
+        if (isRestoring) return;
+
         setLoading(true);
         try {
             const params = {
-                termCode: filters.termCode,
-                search: debouncedSearch || undefined,
-                ostanId: filters.ostanId || undefined,
-                markazId: filters.markazId || undefined,
-                reshteh: debouncedReshteh || undefined,
-                //approveStatus: filters.approveStatus || undefined,
-                grooheAmoozeshiId: filters.grooheAmoozeshiId || undefined,
-                noeHamkari: filters.noeHamkari || undefined,
-                page: pagination.page,
-                pageSize: pagination.pageSize
+                termCode: termCodeRef.current,
+                search: searchRef.current || undefined,
+                ostanId: ostanIdRef.current || undefined,
+                markazId: markazIdRef.current || undefined,
+                reshteh: reshtehRef.current || undefined,
+                grooheAmoozeshiId: grooheAmoozeshiIdRef.current || undefined,
+                noeHamkari: noeHamkariRef.current || undefined,
+                approveStatus: approveStatusRef.current || undefined,
+                page: pageRef.current,
+                pageSize: pageSizeRef.current
             };
-            if (filters.approveStatus) {
-                params.approveStatus = filters.approveStatus;
-            }
 
             const response = await api.get('/BarnamehHaftegi/list', { params });
             if (response.data?.success) {
@@ -137,7 +270,16 @@ export default function BarnamehHaftegiList() {
         } finally {
             setLoading(false);
         }
-    }, [filters, debouncedSearch, debouncedReshteh, pagination.page, pagination.pageSize]);
+    }, [isRestoring]);
+
+    // ============================================================
+    // وقتی isRestoring false شد و ترم وجود دارد، fetch کن
+    // ============================================================
+    useEffect(() => {
+        if (!isRestoring && termCodeRef.current) {
+            fetchItems();
+        }
+    }, [isRestoring, fetchItems]);
 
     // ============================================================
     // Debounce جستجو (700ms)
@@ -150,9 +292,6 @@ export default function BarnamehHaftegiList() {
         return () => clearTimeout(searchTimerRef.current);
     }, [filters.search]);
 
-    // ============================================================
-    // 🔥 دیبونس برای رشته تحصیلی (700ms)
-    // ============================================================
     useEffect(() => {
         if (reshtehTimerRef.current) clearTimeout(reshtehTimerRef.current);
         reshtehTimerRef.current = setTimeout(() => {
@@ -162,9 +301,10 @@ export default function BarnamehHaftegiList() {
     }, [filters.reshteh]);
 
     // ============================================================
-    // بارگذاری اولیه و تغییر فیلترها
+    // وقتی فیلترها تغییر می‌کنند
     // ============================================================
     useEffect(() => {
+        if (isRestoring) return;
         if (filters.termCode) {
             if (pagination.page !== 1) {
                 setPagination(prev => ({ ...prev, page: 1 }));
@@ -172,16 +312,19 @@ export default function BarnamehHaftegiList() {
                 fetchItems();
             }
         }
-    }, [filters.termCode,
-    filters.ostanId,
-    filters.markazId,
-    filters.approveStatus,
-    filters.grooheAmoozeshiId,
-    filters.noeHamkari,
+    }, [
+        filters.termCode,
+        filters.ostanId,
+        filters.markazId,
+        filters.approveStatus,
+        filters.grooheAmoozeshiId,
+        filters.noeHamkari,
         debouncedSearch,
-        debouncedReshteh]);
+        debouncedReshteh
+    ]);
 
     useEffect(() => {
+        if (isRestoring) return;
         if (filters.termCode) fetchItems();
     }, [pagination.page, pagination.pageSize]);
 
@@ -195,8 +338,12 @@ export default function BarnamehHaftegiList() {
     // ============================================================
     // کلیک روی ردیف
     // ============================================================
-    const handleRowClick = (ostadId) => {
-        navigate(`/dashboard/barnameh-haftegi/${ostadId}`, {
+    const handleRowClick = (item) => {
+        if (!item.hasProgram || !item.programId) {
+            toast.info('برای این استاد در این ترم برنامه‌ای ثبت نشده است');
+            return;
+        }
+        navigate(`/dashboard/barnameh-haftegi/${item.programId}`, {
             state: {
                 fromList: true,
                 page: pagination.page,
@@ -211,6 +358,7 @@ export default function BarnamehHaftegiList() {
     // تغییر صفحه
     // ============================================================
     const handlePageChange = (newPage) => {
+        if (newPage < 1 || newPage > pagination.totalPages) return;
         setPagination(prev => ({ ...prev, page: newPage }));
     };
 
@@ -219,7 +367,83 @@ export default function BarnamehHaftegiList() {
     };
 
     // ============================================================
-    // دریافت وضعیت نمایشی
+    // صفحه‌بندی هوشمند
+    // ============================================================
+    const renderPagination = () => {
+        const { page, totalPages } = pagination;
+        if (totalPages <= 1) return null;
+
+        const pages = [];
+        pages.push(1);
+
+        let start = Math.max(2, page - 2);
+        let end = Math.min(totalPages - 1, page + 2);
+
+        if (start > 2) {
+            pages.push('...');
+        }
+
+        for (let i = start; i <= end; i++) {
+            if (i === 1 || i === totalPages) continue;
+            pages.push(i);
+        }
+
+        if (end < totalPages - 1) {
+            pages.push('...');
+        }
+
+        if (totalPages > 1) {
+            pages.push(totalPages);
+        }
+
+        return (
+            <nav className="mt-3">
+                <ul className="pagination justify-content-center">
+                    <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                        <button className="page-link" onClick={() => handlePageChange(1)}>
+                            <i className="bi bi-chevron-double-right"></i>
+                        </button>
+                    </li>
+                    <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
+                        <button className="page-link" onClick={() => handlePageChange(page - 1)}>
+                            <i className="bi bi-chevron-right"></i>
+                        </button>
+                    </li>
+
+                    {pages.map((num, index) => {
+                        if (num === '...') {
+                            return (
+                                <li key={`ellipsis-${index}`} className="page-item disabled">
+                                    <span className="page-link">…</span>
+                                </li>
+                            );
+                        }
+                        return (
+                            <li key={num} className={`page-item ${page === num ? 'active' : ''}`}>
+                                <button className="page-link" onClick={() => handlePageChange(num)}>
+                                    <PersianNumber>{num}</PersianNumber>
+                                </button>
+                            </li>
+                        );
+                    })}
+
+                    <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+                        <button className="page-link" onClick={() => handlePageChange(page + 1)}>
+                            <i className="bi bi-chevron-left"></i>
+                        </button>
+                    </li>
+                    <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
+                        <button className="page-link" onClick={() => handlePageChange(totalPages)}>
+                            <i className="bi bi-chevron-double-left"></i>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+        );
+    };
+
+    // ============================================================
+    // وضعیت نمایشی
     // ============================================================
     const getStatusBadge = (status) => {
         const map = {
@@ -227,15 +451,12 @@ export default function BarnamehHaftegiList() {
             'tayeed_ostad': { label: 'تایید استاد', className: 'bg-info text-white' },
             'tayeed_modir': { label: 'تایید مدیر گروه', className: 'bg-primary text-white' },
             'tayeed_moaven': { label: 'تایید معاون', className: 'bg-success text-white' },
-            'no_program': { label: 'فاقد برنامه', className: 'bg-dark text-white' }
+            'no_program': { label: 'فاقد برنامه', className: 'bg-warning text-dark' }
         };
         const info = map[status] || map['no_program'];
         return <span className={`badge ${info.className}`}>{info.label}</span>;
     };
 
-    // ============================================================
-    // دریافت متن نوع همکاری
-    // ============================================================
     const getNoeHamkariText = (noe) => {
         const map = {
             1: 'هیات علمی پیام نور',
@@ -246,19 +467,13 @@ export default function BarnamehHaftegiList() {
         return map[noe] || '-';
     };
 
-    // ============================================================
-    // 🔥 دریافت کلاس رنگ برای نوع همکاری
-    // ============================================================
     const getNoeHamkariClass = (noe) => {
-        if (noe === 1) return 'bg-success';  // هیات علمی پیام نور → سبز
-        if (noe === 4) return 'bg-info';     // هیات علمی پیام نور (سایر استان‌ها) → آبی
-        if (noe === 2) return 'bg-warning text-dark'; // هیات علمی غیر پیام نور → زرد
-        return 'bg-secondary';               // مدرس مدعو → خاکستری
+        if (noe === 1) return 'bg-success';
+        if (noe === 4) return 'bg-info';
+        if (noe === 2) return 'bg-primary';
+        return 'bg-secondary';
     };
 
-    // ============================================================
-    // دریافت مقطع تحصیلی
-    // ============================================================
     const getMaghtaText = (maghta) => {
         const map = {
             5: 'کارشناسی',
@@ -327,27 +542,42 @@ export default function BarnamehHaftegiList() {
                         با کلیک روی هر ردیف، جزئیات برنامه را مشاهده کنید
                     </small>
                 </div>
-                <PermissionWrapper permission="BarnamehHaftegi.BulkLock">
-                    <button
-                        className="btn btn-warning"
-                        onClick={() => setShowBulkLockModal(true)}
-                    >
-                        <i className="bi bi-lock-fill me-2"></i>
-                        قفل گروهی
-                    </button>
-                </PermissionWrapper>
+                <div className="d-flex gap-2">
+                    {/* ============================================================
+                        🔥 دکمه ایجاد برنامه هفتگی (فقط برای استاد)
+                        ============================================================ */}
+                    {isOstad && canCreateProgram && !hasProgram && (
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => {
+                                navigate('/dashboard/barnameh-haftegi-create', {
+                                    state: { termCode: filters.termCode }
+                                });
+                            }}
+                        >
+                            <i className="bi bi-plus-circle me-2"></i>
+                            ایجاد برنامه هفتگی
+                        </button>
+                    )}
+
+                    <PermissionWrapper permission="BarnamehHaftegi.BulkLock">
+                        <button
+                            className="btn btn-warning"
+                            onClick={() => setShowBulkLockModal(true)}
+                        >
+                            <i className="bi bi-lock-fill me-2"></i>
+                            قفل گروهی
+                        </button>
+                    </PermissionWrapper>
+                </div>
             </div>
 
             {/* ============================================================
-                فیلترها (بدون دکمه ریست)
+                فیلترها
                 ============================================================ */}
             <div className="card mb-4">
                 <div className="card-body">
-                    {/* ============================================================
-                        ردیف اول: فیلترهای ضروری + دکمه بیشتر
-                        ============================================================ */}
                     <div className="row g-3 align-items-end">
-                        {/* جستجو */}
                         {!isOstad && (
                             <div className="col-md-3">
                                 <label className="form-label">جستجو</label>
@@ -361,7 +591,6 @@ export default function BarnamehHaftegiList() {
                             </div>
                         )}
 
-                        {/* ترم */}
                         <div className="col-md-3">
                             <label className="form-label">ترم <span className="text-danger">*</span></label>
                             <select
@@ -377,7 +606,6 @@ export default function BarnamehHaftegiList() {
                             </select>
                         </div>
 
-                        {/* وضعیت برنامه */}
                         {!isOstad && (
                             <div className="col-md-3">
                                 <label className="form-label">وضعیت برنامه</label>
@@ -396,7 +624,6 @@ export default function BarnamehHaftegiList() {
                             </div>
                         )}
 
-                        {/* دکمه بیشتر */}
                         {!isOstad && (
                             <div className="col-md-3">
                                 <button
@@ -411,12 +638,8 @@ export default function BarnamehHaftegiList() {
                         )}
                     </div>
 
-                    {/* ============================================================
-                        ردیف دوم: فیلترهای پیشرفته
-                        ============================================================ */}
                     {showAdvancedFilters && (
                         <div className="row g-3 align-items-end mt-3">
-                            {/* استان - فقط برای مدیران */}
                             {!isOstad && (
                                 <div className="col-md-2">
                                     <label className="form-label">استان</label>
@@ -438,7 +661,6 @@ export default function BarnamehHaftegiList() {
                                 </div>
                             )}
 
-                            {/* مرکز - فقط برای مدیران */}
                             {!isOstad && (
                                 <div className="col-md-2">
                                     <label className="form-label">مرکز</label>
@@ -455,8 +677,8 @@ export default function BarnamehHaftegiList() {
                                     </select>
                                 </div>
                             )}
-                            {/* 🔥 نوع همکاری */}
-                            <div className={`${!isOstad ? 'col-md-2' : 'col-md-2'}`}>
+
+                            <div className="col-md-2">
                                 <label className="form-label">نوع همکاری</label>
                                 <select
                                     className="form-select form-select-sm"
@@ -471,8 +693,7 @@ export default function BarnamehHaftegiList() {
                                 </select>
                             </div>
 
-                            {/* گروه آموزشی */}
-                            <div className={`${!isOstad ? 'col-md-3' : 'col-md-4'}`}>
+                            <div className="col-md-3">
                                 <label className="form-label">گروه آموزشی</label>
                                 <select
                                     className="form-select form-select-sm"
@@ -488,8 +709,7 @@ export default function BarnamehHaftegiList() {
                                 </select>
                             </div>
 
-                            {/* رشته تحصیلی */}
-                            <div className={`${!isOstad ? 'col-md-3' : 'col-md-4'}`}>
+                            <div className="col-md-3">
                                 <label className="form-label">رشته تحصیلی</label>
                                 <input
                                     type="text"
@@ -499,13 +719,6 @@ export default function BarnamehHaftegiList() {
                                     onChange={(e) => handleFilterChange('reshteh', e.target.value)}
                                 />
                             </div>
-
-                            {/* اگر کاربر استاد است، فیلدهای خالی برای هم‌ترازی */}
-                            {isOstad && (
-                                <>
-                                    <div className="col-md-4"></div>
-                                </>
-                            )}
                         </div>
                     )}
 
@@ -579,8 +792,8 @@ export default function BarnamehHaftegiList() {
                                         return (
                                             <tr
                                                 key={item.ostadId}
-                                                style={{ cursor: 'pointer' }}
-                                                onClick={() => handleRowClick(item.ostadId)}
+                                                style={{ cursor: item.hasProgram ? 'pointer' : 'default' }}
+                                                onClick={() => handleRowClick(item)}
                                             >
                                                 <td>
                                                     <PersianNumber>
@@ -610,38 +823,7 @@ export default function BarnamehHaftegiList() {
                         </table>
                     </div>
 
-                    {/* صفحه‌بندی */}
-                    {pagination.totalPages > 1 && (
-                        <nav>
-                            <ul className="pagination justify-content-center">
-                                <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-                                    <button className="page-link" onClick={() => handlePageChange(pagination.page - 1)}>
-                                        قبلی
-                                    </button>
-                                </li>
-                                {[...Array(Math.min(pagination.totalPages, 10)).keys()].map(num => {
-                                    const pageNum = num + 1;
-                                    return (
-                                        <li key={pageNum} className={`page-item ${pagination.page === pageNum ? 'active' : ''}`}>
-                                            <button className="page-link" onClick={() => handlePageChange(pageNum)}>
-                                                {pageNum}
-                                            </button>
-                                        </li>
-                                    );
-                                })}
-                                {pagination.totalPages > 10 && (
-                                    <li className="page-item disabled">
-                                        <span className="page-link">...</span>
-                                    </li>
-                                )}
-                                <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
-                                    <button className="page-link" onClick={() => handlePageChange(pagination.page + 1)}>
-                                        بعدی
-                                    </button>
-                                </li>
-                            </ul>
-                        </nav>
-                    )}
+                    {renderPagination()}
                 </>
             )}
 

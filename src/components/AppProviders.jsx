@@ -6,7 +6,8 @@ import { MarkazProvider } from '../context/MarkazContext';
 import { TermProvider } from '../context/TermContext';
 import { GrooheAmoozeshiProvider } from '../context/GrooheAmoozeshiContext';
 import { ReshtehProvider } from '../context/ReshtehContext';
-import { FaaliatProvider } from '../context/FaaliatContext';
+//import { FaaliatProvider } from '../context/FaaliatContext';
+import { LookupProvider } from '../context/LookupContext';
 
 const AppProviders = ({ children }) => {
     return (
@@ -15,11 +16,11 @@ const AppProviders = ({ children }) => {
                 <TermProvider>
                     <GrooheAmoozeshiProvider>
                         <ReshtehProvider>
-                            <FaaliatProvider>
+                            <LookupProvider>
                                 <MenuProvider>
                                     {children}
                                 </MenuProvider>
-                            </FaaliatProvider>
+                            </LookupProvider>
                         </ReshtehProvider>
                     </GrooheAmoozeshiProvider>
                 </TermProvider>

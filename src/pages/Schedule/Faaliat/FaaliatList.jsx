@@ -1,5 +1,7 @@
+// src/pages/Schedule/Faaliat/FaaliatList.jsx
+
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../context/AuthContext'
+import { useAuth } from '../../../context/AuthContext';
 import { toast } from 'react-toastify';
 import api from '../../../api/axiosConfig';
 import { PermissionWrapper } from '../../../components/PermissionWrapper';
@@ -42,15 +44,6 @@ export default function FaaliatList() {
         { value: 1, label: 'حضوری' },
         { value: 2, label: 'مجازی' },
         { value: 3, label: 'ترکیبی' }
-    ];
-
-    // ============================================================
-    // رنگ‌های پیشنهادی
-    // ============================================================
-    const colorOptions = [
-        '#546ff6', '#3dcd0c', '#e4f66e', '#e77c7c',
-        '#e95cf6', '#ec4899', '#06b6d4', '#f97316',
-        '#6366f1', '#159889', '#c86799', '#497804'
     ];
 
     // ============================================================
@@ -131,7 +124,7 @@ export default function FaaliatList() {
     };
 
     // ============================================================
-    // 🔥 باز کردن مودال جزئیات
+    // باز کردن مودال جزئیات
     // ============================================================
     const openDetailModal = (item) => {
         setModalMode('detail');
@@ -156,13 +149,6 @@ export default function FaaliatList() {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
-    };
-
-    // ============================================================
-    // انتخاب رنگ
-    // ============================================================
-    const handleColorSelect = (color) => {
-        setFormData(prev => ({ ...prev, color }));
     };
 
     // ============================================================
@@ -232,21 +218,6 @@ export default function FaaliatList() {
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف فعالیت');
-        }
-    };
-
-    // ============================================================
-    // تغییر وضعیت (فعال/غیرفعال)
-    // ============================================================
-    const handleToggleStatus = async (id) => {
-        try {
-            const response = await api.patch(`/Faaliat/toggle-status/${id}`);
-            if (response.data?.success) {
-                toast.success(response.data.message);
-                fetchFaaliat();
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'خطا در تغییر وضعیت');
         }
     };
 
@@ -412,9 +383,7 @@ export default function FaaliatList() {
 
     return (
         <div className="container-fluid">
-            {/* ============================================================
-                هدر
-                ============================================================ */}
+            {/* هدر */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4>مدیریت فعالیت‌ها</h4>
                 <PermissionWrapper permission="Faaliat.*">
@@ -428,9 +397,7 @@ export default function FaaliatList() {
                 </PermissionWrapper>
             </div>
 
-            {/* ============================================================
-                جدول لیست فعالیت‌ها
-                ============================================================ */}
+            {/* جدول لیست فعالیت‌ها */}
             {loading ? (
                 <div className="text-center py-5">
                     <div className="spinner-border text-primary" role="status">
@@ -533,9 +500,7 @@ export default function FaaliatList() {
                 </div>
             )}
 
-            {/* ============================================================
-                مودال ایجاد/ویرایش
-                ============================================================ */}
+            {/* مودال ایجاد/ویرایش */}
             {showModal && modalMode !== 'detail' && (
                 <>
                     <div
@@ -672,7 +637,7 @@ export default function FaaliatList() {
                                             </div>
                                         </div>
 
-                                        {/* ردیف 5: مدعو + رنگ + وضعیت */}
+                                        {/* ردیف 5: مدعو + انتخاب رنگ + وضعیت */}
                                         <div className="row">
                                             <div className="col-md-4 mb-3">
                                                 <div className="form-check mt-4">
@@ -691,28 +656,19 @@ export default function FaaliatList() {
                                             </div>
 
                                             <div className="col-md-4 mb-3">
-                                                <label className="form-label">رنگ فعالیت</label>
-                                                <div className="d-flex flex-wrap gap-2">
-                                                    {colorOptions.map(color => (
-                                                        <button
-                                                            key={color}
-                                                            type="button"
-                                                            className={`btn p-0 rounded-circle border ${formData.color === color ? 'border-dark border-2' : 'border-light'}`}
-                                                            style={{
-                                                                width: '30px',
-                                                                height: '30px',
-                                                                backgroundColor: color
-                                                            }}
-                                                            onClick={() => handleColorSelect(color)}
-                                                        ></button>
-                                                    ))}
+                                                <label className="form-label">انتخاب رنگ</label>
+                                                <div className="d-flex align-items-center gap-2">
                                                     <input
                                                         type="color"
-                                                        className="form-control form-control-color w-25"
+                                                        className="form-control form-control-color"
                                                         name="color"
                                                         value={formData.color}
                                                         onChange={handleChange}
+                                                        style={{ width: '60px', height: '40px', padding: '4px' }}
                                                     />
+                                                    <span className="text-muted small">
+                                                        <PersianNumber>{formData.color}</PersianNumber>
+                                                    </span>
                                                 </div>
                                             </div>
 
@@ -770,9 +726,7 @@ export default function FaaliatList() {
                 </>
             )}
 
-            {/* ============================================================
-                مودال جزئیات
-                ============================================================ */}
+            {/* مودال جزئیات */}
             {showModal && modalMode === 'detail' && renderDetailModal()}
 
             {showModal && modalMode === 'detail' && (

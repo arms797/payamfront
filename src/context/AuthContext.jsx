@@ -186,19 +186,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     // ============================================================
-    // تابع تغییر نقش فعال
-    // ============================================================
-    /*const changeRole = (roleId, markazId) => {
-        setCurrentRoleId(roleId);
-        setCurrentMarkazId(markazId);
-        if (user) {
-            const updatedUser = { ...user, currentRoleId: roleId, markazId: markazId };
-            setUser(updatedUser);
-            setUserData(updatedUser);
-        }
-    };*/
-
-    // ============================================================
     // توابع بررسی مجوز
     // ============================================================
     const hasPermission = (permissionName) => {

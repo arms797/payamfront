@@ -39,7 +39,8 @@ export const MarkazProvider = ({ children }) => {
     const value = {
         markazList,
         loading,
-        error
+        error,
+        //refreshMarkaz:fetchMarkaz
     };
 
     return (

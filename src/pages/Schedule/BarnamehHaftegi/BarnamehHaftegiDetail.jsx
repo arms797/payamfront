@@ -5,7 +5,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useMarkaz } from '../../../context/MarkazContext';
 import { useTerm } from '../../../context/TermContext';
-import { useFaaliat } from '../../../context/FaaliatContext';
+import { useLookup } from '../../../context/LookupContext';
 import { toast } from 'react-toastify';
 import api from '../../../api/axiosConfig';
 import PersianNumber from '../../../components/common/PersianNumber';
@@ -14,11 +14,11 @@ import { useConfirm } from '../../../hooks/useConfirm';
 export default function BarnamehHaftegiDetail() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { id } = useParams(); // OstadId یا ProgramId؟ بهتره از OstadId استفاده کنیم
+    const { id } = useParams();
     const { user, hasPermission } = useAuth();
     const { markazList } = useMarkaz();
     const { termList } = useTerm();
-    const { faaliatList } = useFaaliat();
+    const { faaliats, getFaaliatName, getDayTitle } = useLookup();
     const { confirm, ConfirmModal } = useConfirm();
 
     const [program, setProgram] = useState(null);
@@ -30,8 +30,8 @@ export default function BarnamehHaftegiDetail() {
     // تشخیص نقش کاربر
     // ============================================================
     const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
-    const isModirGrooh = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmModir'), [hasPermission]);
-    const isMoaven = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmMoaven'), [hasPermission]);
+    const isModirGrooh = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmByModir'), [hasPermission]);
+    const isMoaven = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmByMoaven'), [hasPermission]);
     const isAdmin = useMemo(() => user?.codeRole === 1, [user]);
 
     // ============================================================
@@ -47,10 +47,10 @@ export default function BarnamehHaftegiDetail() {
             } else {
                 setError('برنامه یافت نشد');
             }
+           // console.log()
         } catch (error) {
             console.error('خطا در دریافت برنامه:', error);
-            //setError('خطا در دریافت اطلاعات برنامه');
-            toast.error('خطا در دریافت اطلاعات برنامه');
+            //toast.error('خطا در دریافت اطلاعات برنامه');
         } finally {
             setLoading(false);
         }
@@ -65,12 +65,13 @@ export default function BarnamehHaftegiDetail() {
     // ============================================================
     const handleBackToList = () => {
         navigate('/dashboard/barnameh-haftegi-list', {
-            state: location.state?.fromList ? {
-                page: location.state.page,
-                pageSize: location.state.pageSize,
-                filters: location.state.filters,
-                termCode: location.state.termCode
-            } : undefined
+            state: {
+                fromDetail: true,
+                page: location.state?.page || 1,
+                pageSize: location.state?.pageSize || 20,
+                filters: location.state?.filters || {},
+                termCode: location.state?.termCode || ''
+            }
         });
     };
 
@@ -125,9 +126,7 @@ export default function BarnamehHaftegiDetail() {
     };
 
     const handleConfirmByMoaven = async (approveStatus) => {
-        // بررسی اینکه آیا نظر مدیرگروه وجود دارد
         const hasModirOpinion = program?.nazarModirGrooh !== 0;
-        let shouldContinue = true;
 
         if (!hasModirOpinion) {
             const confirmed = await confirm({
@@ -193,6 +192,10 @@ export default function BarnamehHaftegiDetail() {
         }
     };
 
+    const handleToggleLock = async () => {
+        toast.info('قفل/باز کردن قفل در حال توسعه است...');
+    };
+
     // ============================================================
     // تشخیص دکمه‌های قابل نمایش
     // ============================================================
@@ -202,7 +205,6 @@ export default function BarnamehHaftegiDetail() {
         const status = program.approveStatus;
         const isLocked = program.isLocked;
 
-        // 1️⃣ دکمه‌های استاد
         if (isOstad) {
             if (status === 'pishnevis' && !isLocked) {
                 return (
@@ -234,7 +236,6 @@ export default function BarnamehHaftegiDetail() {
             );
         }
 
-        // 2️⃣ دکمه‌های مدیر گروه
         if (isModirGrooh && status === 'tayeed_ostad') {
             return (
                 <div className="d-flex gap-2">
@@ -256,7 +257,6 @@ export default function BarnamehHaftegiDetail() {
             );
         }
 
-        // 3️⃣ دکمه‌های معاون
         if (isMoaven && status !== 'tayeed_moaven') {
             return (
                 <div className="d-flex gap-2">
@@ -278,7 +278,6 @@ export default function BarnamehHaftegiDetail() {
             );
         }
 
-        // 4️⃣ دکمه ریست (برای معاون یا ادمین)
         if ((isMoaven || isAdmin) && status !== 'pishnevis' && isLocked) {
             return (
                 <button
@@ -291,7 +290,6 @@ export default function BarnamehHaftegiDetail() {
             );
         }
 
-        // 5️⃣ دکمه قفل (فقط ادمین)
         if (isAdmin && program) {
             return (
                 <button
@@ -328,15 +326,6 @@ export default function BarnamehHaftegiDetail() {
     };
 
     // ============================================================
-    // دریافت نام فعالیت
-    // ============================================================
-    const getFaaliatName = (id) => {
-        if (!id) return '-';
-        const faaliat = faaliatList?.find(f => f.id === id);
-        return faaliat?.onvan || `فعالیت ${id}`;
-    };
-
-    // ============================================================
     // دریافت نام مرکز
     // ============================================================
     const getMarkazName = (markazId) => {
@@ -351,21 +340,16 @@ export default function BarnamehHaftegiDetail() {
     const renderWeekTable = () => {
         if (!program?.details) return null;
 
-        const days = ['1', '2', '3', '4', '5', '6'];
         const hours = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
-        const dayMap = {
-            '1': 'شنبه',
-            '2': 'یکشنبه',
-            '3': 'دوشنبه',
-            '4': 'سه‌شنبه',
-            '5': 'چهارشنبه',
-            '6': 'پنجشنبه'
-        };
-
-        // گروه‌بندی بر اساس روز
         const grouped = {};
-        days.forEach(d => grouped[d] = program.details.filter(item => item.roozeHafteh === d));
+        program.details.forEach(item => {
+            const day = item.roozeHafteh;
+            if (!grouped[day]) grouped[day] = [];
+            grouped[day].push(item);
+        });
+
+        const sortedDays = Object.keys(grouped).sort((a, b) => parseInt(a) - parseInt(b));
 
         return (
             <div className="table-responsive">
@@ -380,13 +364,13 @@ export default function BarnamehHaftegiDetail() {
                         </tr>
                     </thead>
                     <tbody>
-                        {days.map(day => {
+                        {sortedDays.map(day => {
                             const items = grouped[day] || [];
                             const firstItem = items[0];
 
                             return (
                                 <tr key={day}>
-                                    <td className="fw-bold">{dayMap[day]}</td>
+                                    <td className="fw-bold">{getDayTitle(day)}</td>
                                     {hours.map(hour => {
                                         const detail = items.find(d => d[hour.toLowerCase()]);
                                         const activityId = detail?.[hour.toLowerCase()];
@@ -565,9 +549,6 @@ export default function BarnamehHaftegiDetail() {
 
     return (
         <div className="container-fluid">
-            {/* ============================================================
-                هدر
-                ============================================================ */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <button
@@ -586,9 +567,6 @@ export default function BarnamehHaftegiDetail() {
                 </div>
             </div>
 
-            {/* ============================================================
-                اطلاعات استاد
-                ============================================================ */}
             <div className="card mb-4">
                 <div className="card-header">
                     <h6 className="mb-0">اطلاعات استاد</h6>
@@ -615,14 +593,8 @@ export default function BarnamehHaftegiDetail() {
                 </div>
             </div>
 
-            {/* ============================================================
-                وضعیت تأیید
-                ============================================================ */}
             {renderApprovalStatus()}
 
-            {/* ============================================================
-                جدول برنامه هفتگی
-                ============================================================ */}
             <div className="card mb-4">
                 <div className="card-header">
                     <h6 className="mb-0">برنامه هفتگی</h6>
@@ -632,13 +604,10 @@ export default function BarnamehHaftegiDetail() {
                 </div>
             </div>
 
-            {/* ============================================================
-                اطلاعات تکمیلی
-                ============================================================ */}
             <div className="row">
                 <div className="col-md-6">
                     <div className="card">
-                        <div classNanme="card-header">
+                        <div className="card-header">
                             <h6 className="mb-0">خلاصه</h6>
                         </div>
                         <div className="card-body">

@@ -5,6 +5,8 @@ import Sidebar from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { useMarkaz } from '../../context/MarkazContext';
 import api from '../../api/axiosConfig';
+import { useLookup } from '../../context/LookupContext';
+import { useTerm } from '../../context/TermContext';
 
 function DashboardContent() {
     const {
@@ -34,6 +36,28 @@ function DashboardContent() {
         return defaultRole || roles?.[0] || null;
     });
 
+    const { refreshLookups, loading: lookupLoading } = useLookup();
+    const { refreshTerms, loading: termLoading } = useTerm();
+
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            refreshLookups();
+            refreshTerms();
+            //markazList();
+        }
+    }, [isAuthenticated, user]);
+
+    // App.jsx
+    useEffect(() => {
+        const handleTokenExpired = () => {
+            toast.warning('نشست شما منقضی شده است. لطفاً دوباره وارد شوید.');
+            logout(); // تابع logout از AuthContext
+            navigate('/');
+        };
+
+        window.addEventListener('token-expired', handleTokenExpired);
+        return () => window.removeEventListener('token-expired', handleTokenExpired);
+    }, []);
     // ============================================================
     // همگام‌سازی selectedRole با roles و currentRoleId
     // ============================================================
