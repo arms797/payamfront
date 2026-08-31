@@ -1,7 +1,7 @@
-// src/pages/Schedule/BarnamehHaftegi/BarnamehHaftegiCreate.jsx
+// src/pages/Schedule/BarnamehHaftegi/BarnamehHaftegiEdit.jsx
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useMarkaz } from '../../../context/MarkazContext';
 import { useTerm } from '../../../context/TermContext';
@@ -13,23 +13,26 @@ import { useConfirm } from '../../../hooks/useConfirm';
 import CenterModal from './modals/CenterModal';
 import ActivityModal from './modals/ActivityModal';
 
-export default function BarnamehHaftegiCreate() {
+export default function BarnamehHaftegiEdit() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { id } = useParams();
     const { user } = useAuth();
     const { markazList, loading: markazLoading } = useMarkaz();
     const { termList, currentTermCode } = useTerm();
-    const { days, hours, faaliats, getDayTitle, getFaaliatName,
-        getFaaliatColor, haftegiExceptionsList, faaliatGroupList } = useLookup();
+    const {
+        days, hours, faaliats, getDayTitle, getFaaliatName,
+        getFaaliatColor, haftegiExceptionsList, faaliatGroupList
+    } = useLookup();
     const { confirm, ConfirmModal } = useConfirm();
 
     // ============================================================
     // Stateهای اصلی
     // ============================================================
-    //const [selectedTerm, setSelectedTerm] = useState(currentTermCode || '');
     const [schedule, setSchedule] = useState({});
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [ostadId, setOstadId] = useState(user?.ostadId || null);
+    const [ostadId, setOstadId] = useState(null);
     const [ostadInfo, setOstadInfo] = useState(null);
     const [ostadMarkazId, setOstadMarkazId] = useState(null);
     const [ostadOstanCode, setOstadOstanCode] = useState(null);
@@ -38,11 +41,7 @@ export default function BarnamehHaftegiCreate() {
     const [isElmiOstad, setIsElmiOstad] = useState(false);
     const [isMadove, setIsMadove] = useState(false);
     const [isHeyatElmiGheyrePayamNoor, setIsHeyatElmiGheyrePayamNoor] = useState(false);
-
-    const location = useLocation();
-    // مقدار اولیه ترم: از state اگر وجود داشت، وگرنه ترم جاری
-    const initialTermCode = location.state?.termCode || currentTermCode || '';
-    const [selectedTerm, setSelectedTerm] = useState(initialTermCode);
+    const [selectedTerm, setSelectedTerm] = useState('');
 
     // ============================================================
     // Stateهای مودال مرکز
@@ -78,17 +77,10 @@ export default function BarnamehHaftegiCreate() {
         return (
             <div className="alert alert-warning text-center mt-5">
                 <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                فقط اساتید می‌توانند برنامه هفتگی ایجاد کنند
+                فقط اساتید می‌توانند برنامه هفتگی ویرایش کنند
             </div>
         );
     }
-
-    useEffect(() => {
-        if (!selectedTerm) {
-            toast.warning('لطفاً ابتدا یک ترم را در صفحه لیست انتخاب کنید');
-            navigate('/dashboard/barnameh-haftegi-list');
-        }
-    }, [selectedTerm, navigate]);
 
     // ============================================================
     // دریافت مرکز و استان استاد
@@ -103,7 +95,7 @@ export default function BarnamehHaftegiCreate() {
         }
     }, [user, markazList]);
 
-    //دریافت اطلاعات استاد با UserId
+    // دریافت اطلاعات استاد با UserId
     useEffect(() => {
         if (!user?.id) return;
 
@@ -151,9 +143,7 @@ export default function BarnamehHaftegiCreate() {
     // دریافت مراکز مجاز از همجوار1
     // ============================================================
     useEffect(() => {
-        if (!ostadId || !selectedTerm) {
-            return;
-        }
+        if (!ostadId || !selectedTerm) return;
 
         const fetchPermittedMarkazs = async () => {
             try {
@@ -163,8 +153,6 @@ export default function BarnamehHaftegiCreate() {
                 if (response.data?.success) {
                     const ids = response.data.data.map(item => item.markazId);
                     setAllowedMarkazIds(ids);
-                } else {
-                    console.warn('⚠️ Response not successful:', response.data);
                 }
             } catch (error) {
                 console.error('❌ خطا در دریافت مراکز مجاز:', error);
@@ -198,6 +186,97 @@ export default function BarnamehHaftegiCreate() {
     }, [ostadId, selectedTerm]);
 
     // ============================================================
+    // 🔥 دریافت داده‌های برنامه برای ویرایش
+    // ============================================================
+    useEffect(() => {
+        if (!id) {
+            toast.warning('شناسه برنامه نامعتبر است');
+            navigate('/dashboard/barnameh-haftegi-list');
+            return;
+        }
+
+        const fetchProgram = async () => {
+            setLoading(true);
+            try {
+                const response = await api.get(`/BarnamehHaftegi/${id}`);
+                if (response.data?.success) {
+                    const data = response.data.data;
+
+                    // تنظیم ترم
+                    setSelectedTerm(data.codeTerm || '');
+
+                    // ساختار جدول از روی جزئیات
+                    const initialSchedule = {};
+                    const activeDays = days.filter(d => d.isActive);
+                    const activeHours = hours.filter(h => h.hozoori || h.majazi);
+
+                    // ابتدا همه روزها و ساعت‌ها را خالی ایجاد کن
+                    activeDays.forEach(day => {
+                        initialSchedule[day.code] = {
+                            markazId: null,
+                            hours: {}
+                        };
+                        activeHours.forEach(hour => {
+                            initialSchedule[day.code].hours[hour.codeSaat] = {
+                                faaliatId: null,
+                                markazId: null
+                            };
+                        });
+                    });
+
+                    // سپس داده‌های موجود را روی آن بنویس
+                    data.details.forEach(detail => {
+                        const dayCode = detail.roozeHafteh;
+                        if (!initialSchedule[dayCode]) {
+                            initialSchedule[dayCode] = {
+                                markazId: detail.markazId || null,
+                                hours: {}
+                            };
+                            activeHours.forEach(hour => {
+                                initialSchedule[dayCode].hours[hour.codeSaat] = {
+                                    faaliatId: null,
+                                    markazId: null
+                                };
+                            });
+                        }
+
+                        // تنظیم مرکز اصلی روز
+                        if (detail.markazId) {
+                            initialSchedule[dayCode].markazId = detail.markazId;
+                        }
+
+                        // تنظیم ساعت‌ها
+                        const hours = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                        hours.forEach(h => {
+                            const faaliatId = detail[h.toLowerCase()];
+                            const markazId = detail[`markazId${h}`];
+                            if (faaliatId) {
+                                initialSchedule[dayCode].hours[h] = {
+                                    faaliatId: parseInt(faaliatId, 10),
+                                    markazId: markazId ? parseInt(markazId, 10) : null
+                                };
+                            }
+                        });
+                    });
+
+                    setSchedule(initialSchedule);
+                } else {
+                    toast.error('برنامه یافت نشد');
+                    navigate('/dashboard/barnameh-haftegi-list');
+                }
+            } catch (error) {
+                console.error('خطا در دریافت برنامه:', error);
+                toast.error('خطا در دریافت اطلاعات برنامه');
+                navigate('/dashboard/barnameh-haftegi-list');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProgram();
+    }, [id, days, hours, navigate]);
+
+    // ============================================================
     // محاسبه آمار
     // ============================================================
     const stats = useMemo(() => {
@@ -226,7 +305,7 @@ export default function BarnamehHaftegiCreate() {
     }, [schedule, requiredSessions]);
 
     // ============================================================
-    // دریافت لیست مراکز قابل انتخاب (بر اساس قوانین)
+    // دریافت لیست مراکز قابل انتخاب
     // ============================================================
     const getAvailableMarkazs = useCallback(() => {
         if (!markazList || !ostadOstanCode) return [];
@@ -249,31 +328,6 @@ export default function BarnamehHaftegiCreate() {
     }, [markazList, ostadOstanCode, ostadMarkazId, allowedMarkazIds, isElmiOstad, stats.isComplete]);
 
     // ============================================================
-    // مقداردهی اولیه جدول
-    // ============================================================
-    useEffect(() => {
-        if (!days.length || !hours.length || !ostadMarkazId) return;
-
-        const activeDays = days.filter(d => d.isActive);
-        const activeHours = hours.filter(h => h.hozoori || h.majazi);
-
-        const initialSchedule = {};
-        activeDays.forEach(day => {
-            initialSchedule[day.code] = {
-                markazId: ostadMarkazId,
-                hours: {}
-            };
-            activeHours.forEach(hour => {
-                initialSchedule[day.code].hours[hour.codeSaat] = {
-                    faaliatId: null,
-                    markazId: null
-                };
-            });
-        });
-        setSchedule(initialSchedule);
-    }, [days, hours, ostadMarkazId]);
-
-    // ============================================================
     // لیست استان‌های دارای مرکز مجازی
     // ============================================================
     const virtualOstans = useMemo(() => {
@@ -286,7 +340,6 @@ export default function BarnamehHaftegiCreate() {
                 }
             }
         });
-        // مرتب‌سازی بر اساس نام استان
         return Array.from(ostanMap, ([code, name]) => ({ code, name }))
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [markazList]);
@@ -295,7 +348,6 @@ export default function BarnamehHaftegiCreate() {
     // توابع مودال مرکز
     // ============================================================
     const openCenterModal = (dayCode, currentMarkazId) => {
-        // 🔥 بررسی اینکه آیا این روز فعالیت دارد
         const day = schedule[dayCode];
         if (!day) return;
 
@@ -305,10 +357,9 @@ export default function BarnamehHaftegiCreate() {
             toast.warning(
                 'برای تغییر مرکز لطفاً ابتدا فعالیت‌های این روز را حذف کنید و سپس مرکز را تغییر دهید.'
             );
-            return; // ← مودال باز نمی‌شود
+            return;
         }
 
-        // اگر فعالیتی نبود، مودال را باز کن
         setCenterModalData({
             dayCode,
             selectedMarkazId: currentMarkazId || null
@@ -330,6 +381,7 @@ export default function BarnamehHaftegiCreate() {
 
         setShowCenterModal(false);
     };
+
     // ============================================================
     // توابع مودال فعالیت
     // ============================================================
@@ -337,7 +389,6 @@ export default function BarnamehHaftegiCreate() {
         const dayMarkazId = schedule[dayCode]?.markazId;
         const numericMarkazId = dayMarkazId ? parseInt(dayMarkazId) : null;
 
-        // 🔥 محاسبه لیست پایه فعالیت‌های حضوری (بدون فیلتر استثنا)
         let baseFaaliats = [];
         if (faaliats && faaliats.length > 0 && numericMarkazId) {
             const markaz = markazList?.find(m => m.id === numericMarkazId);
@@ -356,7 +407,6 @@ export default function BarnamehHaftegiCreate() {
             }
         }
 
-        // 🔥 اعمال فیلتر استثناها با استفاده از تابع getAllowedFaaliats
         const allowedFaaliats = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
 
         setActivityModalData({
@@ -371,7 +421,7 @@ export default function BarnamehHaftegiCreate() {
             markazId: currentMarkazId || dayMarkazId || '',
             ostanId: user?.markazOstan || '',
             faaliatId: currentFaaliatId || '',
-            allowedFaaliats: allowedFaaliats  // ← لیست فیلترشده
+            allowedFaaliats: allowedFaaliats
         });
 
         setShowActivityModal(true);
@@ -386,10 +436,9 @@ export default function BarnamehHaftegiCreate() {
             return;
         }
 
-        // 🔥 بررسی اینکه آیا فعالیت انتخاب‌شده در لیست مجاز است
         const isAllowed = allowedFaaliats.some(f => f.id === parseInt(faaliatId));
         if (!isAllowed) {
-            toast.warning('این فعالیت به دلیل قوانین استثنا در این ساعت ممنوع است');
+            toast.warning('این فعالیت در این ساعت ممنوع است');
             return;
         }
 
@@ -441,7 +490,6 @@ export default function BarnamehHaftegiCreate() {
             }));
             updateAllowedFaaliats(dayMarkazId, false, dayCode, hourCode);
         } else {
-            // حالت مجازی
             if (virtualOstans.length === 0) {
                 setActivityForm(prev => ({ ...prev, ostanId: '', markazId: '', allowedFaaliats: [] }));
                 return;
@@ -479,7 +527,6 @@ export default function BarnamehHaftegiCreate() {
         setActivityForm(prev => ({ ...prev, markazId: numericMarkazId, faaliatId: '' }));
 
         if (numericMarkazId) {
-            // 🔥 dayCode و hourCode از activityModalData گرفته می‌شوند
             updateAllowedFaaliats(numericMarkazId, true);
         } else {
             setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
@@ -489,8 +536,6 @@ export default function BarnamehHaftegiCreate() {
     const updateAllowedFaaliats = (markazId, isVirtual) => {
         const numericMarkazId = markazId ? parseInt(markazId) : null;
         const { dayCode, hourCode } = activityModalData;
-
-
 
         if (!faaliats || faaliats.length === 0 || !dayCode || !hourCode) {
             setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
@@ -503,7 +548,6 @@ export default function BarnamehHaftegiCreate() {
             return;
         }
 
-        // 🔥 مرحله ۱: فیلتر بر اساس نوع انجام (حضوری/مجازی)
         let baseFaaliats = faaliats.filter(f => f.vazeeat === true);
 
         if (isVirtual) {
@@ -511,7 +555,6 @@ export default function BarnamehHaftegiCreate() {
         } else {
             baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 1 || f.noeAnjam === 3);
 
-            // اعمال قوانین مراکز مجاز و IsMadove (فقط برای حضوری)
             const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
             if (!isMainMarkaz && isElmiOstad) {
                 baseFaaliats = baseFaaliats.filter(f => allowedMarkazIds.includes(f.id));
@@ -521,9 +564,7 @@ export default function BarnamehHaftegiCreate() {
             }
         }
 
-        // 🔥 مرحله ۲: اعمال استثناها (برای هر دو حالت)
         const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
-
         setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
     };
 
@@ -555,9 +596,9 @@ export default function BarnamehHaftegiCreate() {
     };
 
     // ============================================================
-    // ذخیره برنامه
+    // ذخیره ویرایش
     // ============================================================
-    const handleSubmit = async (isConfirm = false) => {
+    const handleSubmit = async () => {
         if (!selectedTerm) {
             toast.warning('لطفاً ترم را انتخاب کنید');
             return;
@@ -578,6 +619,9 @@ export default function BarnamehHaftegiCreate() {
                 const day = schedule[dayCode];
                 if (!day) return;
 
+                // 🔥 اگر مرکز اصلی روز null است، از مرکز اصلی استاد استفاده کن
+                const finalMarkazId = day.markazId ?? ostadMarkazId;
+
                 const hourData = {};
                 Object.keys(day.hours || {}).forEach(hourCode => {
                     const cell = day.hours[hourCode];
@@ -587,31 +631,30 @@ export default function BarnamehHaftegiCreate() {
 
                 details.push({
                     roozeHafteh: dayCode,
-                    markazId: day.markazId || null,
+                    markazId: finalMarkazId,
                     ...hourData
                 });
             });
 
             const payload = {
-                ostadId: ostadId,
-                codeTerm: selectedTerm,
                 details: details
             };
-
-            const endpoint = isConfirm ? '/BarnamehHaftegi/confirm' : '/BarnamehHaftegi/create';
-            const response = await api.post(endpoint, payload);
+            const response = await api.put(`/BarnamehHaftegi/update/${id}`, payload);
 
             if (response.data?.success) {
-                toast.success(isConfirm ? 'برنامه با موفقیت ثبت و تأیید شد' : 'پیش‌نویس با موفقیت ذخیره شد');
+                toast.success('برنامه با موفقیت ویرایش شد');
                 navigate('/dashboard/barnameh-haftegi-list');
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'خطا در ذخیره برنامه');
+            toast.error(error.response?.data?.message || 'خطا در ویرایش برنامه');
         } finally {
             setSubmitting(false);
         }
     };
 
+    // ============================================================
+    // توابع بررسی استثناها
+    // ============================================================
     const isCellBlocked = (dayCode, hourCode) => {
         const termCode = selectedTerm;
         const ostanCode = ostadOstanCode;
@@ -626,7 +669,6 @@ export default function BarnamehHaftegiCreate() {
 
         if (matchedExceptions.length === 0) return false;
 
-        // بررسی نوع همکاری (ماسک بیتی)
         const isNoeHamkariMatched = matchedExceptions.some(e =>
             (e.noeHamkariMask === null || e.noeHamkariMask === 0) ||
             (e.noeHamkariMask & (1 << (noeHamkari - 1))) !== 0
@@ -634,20 +676,15 @@ export default function BarnamehHaftegiCreate() {
 
         if (!isNoeHamkariMatched) return false;
 
-        // اگر faaliatIds === null باشد، یعنی همه فعالیت‌ها ممنوع هستند → سلول کاملاً مسدود است
         const isAllBlocked = matchedExceptions.some(e => e.faaliatIds === null);
         return isAllBlocked;
     };
 
-    // ============================================================
-    // 🔥 تابع دریافت فعالیت‌های مجاز برای یک سلول خاص
-    // ============================================================
     const getAllowedFaaliats = (dayCode, hourCode, baseFaaliats) => {
         const termCode = selectedTerm;
         const ostanCode = ostadOstanCode;
         const noeHamkari = ostadInfo?.noeHamkari || 0;
 
-        // اگر dayCode یا hourCode وجود نداشته باشد، استثناها را اعمال نکن
         if (!dayCode || !hourCode) return baseFaaliats;
 
         const matchedExceptions = haftegiExceptionsList.filter(e =>
@@ -675,7 +712,6 @@ export default function BarnamehHaftegiCreate() {
     const renderTable = () => {
         const activeDays = days.filter(d => d.isActive);
         const activeHours = hours.filter(h => h.hozoori || h.majazi);
-        const availableMarkazs = getAvailableMarkazs();
 
         if (activeDays.length === 0 || activeHours.length === 0) {
             return (
@@ -691,7 +727,7 @@ export default function BarnamehHaftegiCreate() {
                 <table
                     className="table table-bordered table-sm text-center"
                     style={{
-                        borderCollapse: 'collapse',  // ← برگشت به حالت پیش‌فرض
+                        borderCollapse: 'collapse',
                         minWidth: '700px'
                     }}
                 >
@@ -704,7 +740,7 @@ export default function BarnamehHaftegiCreate() {
                                     backgroundColor: '#f8f9fa',
                                     zIndex: 10,
                                     minWidth: '80px',
-                                    boxShadow: 'inset -2px 0 0 #dee2e6'  // ← جایگزین border-right
+                                    boxShadow: 'inset -2px 0 0 #dee2e6'
                                 }}
                             >
                                 روز
@@ -734,7 +770,7 @@ export default function BarnamehHaftegiCreate() {
                                             fontWeight: 'bold',
                                             verticalAlign: 'middle',
                                             height: '60px',
-                                            boxShadow: 'inset -2px 0 0 #dee2e6'  // ← جایگزین border-right
+                                            boxShadow: 'inset -2px 0 0 #dee2e6'
                                         }}
                                     >
                                         {getDayTitle(day.code)}
@@ -761,12 +797,11 @@ export default function BarnamehHaftegiCreate() {
                                         const faaliatName = getFaaliatName(activityId);
                                         const markazName = markazList?.find(m => m.id === cell.markazId)?.naamMarkaz || '';
                                         const color = getFaaliatColor(activityId);
-                                        const isBlocked = isCellBlocked(day.code, hour.codeSaat, activityId);
+                                        const isBlocked = isCellBlocked(day.code, hour.codeSaat);
 
                                         return (
                                             <td
                                                 key={hour.codeSaat}
-                                                //className={hasActivity ? 'bg-light' : ''}
                                                 style={{
                                                     cursor: 'pointer',
                                                     minWidth: '100px',
@@ -782,7 +817,8 @@ export default function BarnamehHaftegiCreate() {
                                                         return;
                                                     }
                                                     openActivityModal(day.code, hour.codeSaat, activityId, cell.markazId);
-                                                }}                                            >
+                                                }}
+                                            >
                                                 {hasActivity ? (
                                                     <div>
                                                         <div style={{ fontSize: '13px', fontWeight: 'bold' }}>
@@ -804,7 +840,6 @@ export default function BarnamehHaftegiCreate() {
                                                                 <i className="bi bi-x"></i>
                                                             </button>
                                                         )}
-
                                                     </div>
                                                 ) : (
                                                     <>
@@ -819,7 +854,6 @@ export default function BarnamehHaftegiCreate() {
                                                         )}
                                                     </>
                                                 )}
-                                                {/* نشانگر ممنوعیت (آیکون قفل) */}
                                                 {isBlocked && (
                                                     <div
                                                         style={{
@@ -848,7 +882,7 @@ export default function BarnamehHaftegiCreate() {
     // ============================================================
     // رندر اصلی
     // ============================================================
-    if (markazLoading) {
+    if (loading || markazLoading) {
         return (
             <div className="d-flex justify-content-center align-items-center py-5">
                 <div className="spinner-border text-primary" role="status">
@@ -861,7 +895,7 @@ export default function BarnamehHaftegiCreate() {
     return (
         <div className="container-fluid">
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <div >
+                <div>
                     <button
                         className="btn btn-outline-secondary me-3"
                         onClick={() => navigate('/dashboard/barnameh-haftegi-list')}
@@ -869,7 +903,7 @@ export default function BarnamehHaftegiCreate() {
                         <i className="bi bi-arrow-right me-1"></i>
                         بازگشت
                     </button>
-                    <h4 className="d-inline-block mb-0 mx-2">ایجاد برنامه هفتگی</h4>
+                    <h4 className="d-inline-block mb-0 mx-2">ویرایش برنامه هفتگی</h4>
                     {selectedTerm && (
                         <small className="text-muted fs-6 me-2">
                             <PersianNumber>
@@ -923,7 +957,6 @@ export default function BarnamehHaftegiCreate() {
                                 </thead>
                                 <tbody>
                                     {faaliatGroupList.map(group => {
-                                        // محاسبه مجموع جلسات این گروه از schedule
                                         let totalSessions = 0;
                                         Object.values(schedule).forEach(day => {
                                             Object.values(day.hours || {}).forEach(cell => {
@@ -937,7 +970,6 @@ export default function BarnamehHaftegiCreate() {
                                         });
                                         const totalHours = totalSessions * 2;
 
-                                        // تعیین وضعیت
                                         let statusColor = 'success';
                                         let statusText = '✅ مطابقت دارد';
 
@@ -959,17 +991,23 @@ export default function BarnamehHaftegiCreate() {
                                             <tr key={group.id}>
                                                 <td className="fw-bold">{group.title}</td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.minSaatDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.minSaatDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.maxSaatDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.maxSaatDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.minDayDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.minDayDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.maxDayDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.maxDayDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center fw-bold">
-                                                    <PersianNumber>{totalSessions}</PersianNumber></td>
+                                                    <PersianNumber>{totalSessions}</PersianNumber>
+                                                </td>
                                                 <td className="text-center fw-bold">
-                                                    <PersianNumber>{totalHours}</PersianNumber></td>
+                                                    <PersianNumber>{totalHours}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
                                                     <span className={`badge bg-${statusColor}`}>
                                                         {statusText}
@@ -988,17 +1026,10 @@ export default function BarnamehHaftegiCreate() {
             <div className="d-flex gap-2 mt-4">
                 <button
                     className="btn btn-primary"
-                    onClick={() => handleSubmit(false)}
+                    onClick={handleSubmit}
                     disabled={submitting || !selectedTerm || stats.totalSessions === 0}
                 >
-                    {submitting ? 'در حال ذخیره...' : 'ذخیره پیش‌نویس'}
-                </button>
-                <button
-                    className="btn btn-success"
-                    onClick={() => handleSubmit(true)}
-                    disabled={submitting || !selectedTerm || !stats.isComplete}
-                >
-                    {submitting ? 'در حال ذخیره...' : 'ثبت و تأیید'}
+                    {submitting ? 'در حال ذخیره...' : 'ذخیره تغییرات'}
                 </button>
                 <button
                     className="btn btn-secondary"
@@ -1051,7 +1082,7 @@ export default function BarnamehHaftegiCreate() {
                         setActivityForm(prev => ({ ...prev, markazId: '', allowedFaaliats: [] }));
                     }
                 }}
-                virtualOstans={virtualOstans}  // ← اضافه شد
+                virtualOstans={virtualOstans}
                 virtualMarkazs={markazList?.filter(m =>
                     m.codeOstan === activityForm.ostanId &&
                     m.vazeeyat &&

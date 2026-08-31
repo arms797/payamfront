@@ -9,7 +9,9 @@ export const LookupProvider = ({ children }) => {
     const [lookupData, setLookupData] = useState({
         days: [],
         hours: [],
-        faaliats: []
+        faaliats: [],
+        faaliatGroups: [],
+        haftegiExceptions: []
     });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -27,7 +29,9 @@ export const LookupProvider = ({ children }) => {
                 setLookupData({
                     days: response.data.data.days || [],
                     hours: response.data.data.hours || [],
-                    faaliats: response.data.data.faaliats || []   // ← اینجا اصلاح شد
+                    faaliats: response.data.data.faaliats || [],
+                    faaliatGroups: response.data.data.faaliatGroups || [],
+                    haftegiExceptions: response.data.data.haftegiExceptions || []
                 });
             }
         } catch (error) {
@@ -73,16 +77,26 @@ export const LookupProvider = ({ children }) => {
         return faaliat?.color || '#4d6bfe';
     };
 
+    const getHaftegiExceptionsByOstan = (code) => {
+        if (!ostanCode) return [];
+        return lookupData.haftegiExceptions.filter(e =>
+            e.ostanCode === ostanCode || e.ostanCode === null
+        );
+    }
     // برای دسترسی مستقیم به لیست‌ها
     const daysList = lookupData.days;
     const hoursList = lookupData.hours;
     const faaliatList = lookupData.faaliats;
+    const faaliatGroupList = lookupData.faaliatGroups;
+    const haftegiExceptionsList = lookupData.haftegiExceptions;
 
     const value = {
         ...lookupData,
         daysList,
         hoursList,
         faaliatList,
+        faaliatGroupList,
+        haftegiExceptionsList,
         loading,
         error,
         getDayTitle,
@@ -90,6 +104,7 @@ export const LookupProvider = ({ children }) => {
         getHourByCode,
         getFaaliatName,
         getFaaliatColor,
+        getHaftegiExceptionsByOstan,
         refreshLookups: fetchLookups,
     };
 

@@ -36,6 +36,7 @@ import SignatureManagement from './pages/Signature/SignatureManagement';
 import BarnamehHaftegiList from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiList';
 import BarnamehHaftegiDetail from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiDetail'
 import BarnamehHaftegiCreate from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiCreate';
+import BarnamehHaftegiEdit from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiEdit';
 
 
 // ============================================================
@@ -300,6 +301,14 @@ function App() {
                 element={
                   <ProtectedRouteWithPermission requiredPermission="BarnamehHaftegi.Create">
                     <BarnamehHaftegiCreate />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="barnameh-haftegi-edit/:id"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="BarnamehHaftegi.Update">
+                    <BarnamehHaftegiEdit />
                   </ProtectedRouteWithPermission>
                 }
               />
