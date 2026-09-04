@@ -1204,111 +1204,159 @@ export default function HamjavarCreate() {
             </div>
 
             {/* ============================================================
-                مودال افزودن/ویرایش آیتم
-                ============================================================ */}
-            {
-                showModal && (
+    مودال افزودن/ویرایش آیتم
+    ============================================================ */}
+            {showModal && (
+                <div
+                    className="modal show d-block"
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        zIndex: 1050,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px'
+                    }}
+                    onClick={closeModal}
+                >
                     <div
-                        className="modal show d-block"
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            backgroundColor: 'rgba(0,0,0,0.5)',
-                            zIndex: 1050,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '20px'
-                        }}
-                        onClick={closeModal}
+                        className="modal-dialog modal-lg modal-dialog-centered"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <div
-                            className="modal-dialog modal-lg"
-                            style={{
-                                margin: 0,
-                                width: '100%',
-                                maxWidth: '800px',
-                                maxHeight: '90vh',
-                                display: 'flex',
-                                alignItems: 'center'
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="modal-content" style={{ maxHeight: '90vh', overflow: 'auto' }}>
-                                <div className="modal-header">
-                                    <h5 className="modal-title">
-                                        {editingItem ? 'ویرایش مورد تقاضا' : 'افزودن مورد تقاضای جدید'}
-                                    </h5>
-                                    <button type="button" className="btn-close" onClick={closeModal}></button>
-                                </div>
-                                <div className="modal-body">
-                                    {/* رادیوهای داخل/خارج استان */}
-                                    <div className="mb-3">
-                                        <label className="form-label fw-bold">داخل/خارج استان <span className="text-danger">*</span></label>
-                                        <div className="d-flex gap-4">
-                                            <div className="form-check">
-                                                <input
-                                                    type="radio"
-                                                    className="form-check-input"
-                                                    id="inOstanTrue"
-                                                    checked={itemForm.inOstan === true}
-                                                    onChange={() => {
-                                                        setItemForm({
-                                                            inOstan: true,
-                                                            markazId: '',
-                                                            ostanId: '',
-                                                            noeAnjam: '',
-                                                            faaliatIds: [],
-                                                            tedadRoozElmi: ''
-                                                        });
-                                                    }}
-                                                />
-                                                <label className="form-check-label" htmlFor="inOstanTrue">داخل استان</label>
-                                            </div>
-                                            <div className="form-check">
-                                                <input
-                                                    type="radio"
-                                                    className="form-check-input"
-                                                    id="inOstanFalse"
-                                                    checked={itemForm.inOstan === false}
-                                                    onChange={() => {
-                                                        setItemForm({
-                                                            inOstan: false,
-                                                            markazId: '',
-                                                            ostanId: '',
-                                                            noeAnjam: '',
-                                                            faaliatIds: [],
-                                                            tedadRoozElmi: ''
-                                                        });
-                                                    }}
-                                                />
-                                                <label className="form-check-label" htmlFor="inOstanFalse">خارج از استان</label>
-                                            </div>
+                        <div className="modal-content" style={{ maxHeight: '90vh', overflow: 'auto' }}>
+                            <div className="modal-header">
+                                <h5 className="modal-title">
+                                    {editingItem ? 'ویرایش مورد تقاضا' : 'افزودن مورد تقاضای جدید'}
+                                </h5>
+                                <button type="button" className="btn-close" onClick={closeModal}></button>
+                            </div>
+                            <div className="modal-body">
+                                {/* رادیوهای داخل/خارج استان */}
+                                <div className="mb-3">
+                                    <label className="form-label fw-bold">داخل/خارج استان <span className="text-danger">*</span></label>
+                                    <div className="d-flex gap-4">
+                                        <div className="form-check">
+                                            <input
+                                                type="radio"
+                                                className="form-check-input"
+                                                id="inOstanTrue"
+                                                checked={itemForm.inOstan === true}
+                                                onChange={() => {
+                                                    setItemForm({
+                                                        inOstan: true,
+                                                        markazId: '',
+                                                        ostanId: '',
+                                                        noeAnjam: '1', // ← پیش‌فرض حضوری
+                                                        faaliatIds: [],
+                                                        tedadRoozElmi: ''
+                                                    });
+                                                }}
+                                            />
+                                            <label className="form-check-label" htmlFor="inOstanTrue">داخل استان</label>
+                                        </div>
+                                        <div className="form-check">
+                                            <input
+                                                type="radio"
+                                                className="form-check-input"
+                                                id="inOstanFalse"
+                                                checked={itemForm.inOstan === false}
+                                                onChange={() => {
+                                                    setItemForm({
+                                                        inOstan: false,
+                                                        markazId: '',
+                                                        ostanId: '',
+                                                        noeAnjam: '',
+                                                        faaliatIds: [],
+                                                        tedadRoozElmi: ''
+                                                    });
+                                                }}
+                                            />
+                                            <label className="form-check-label" htmlFor="inOstanFalse">خارج از استان</label>
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* بخش داخل استان */}
-                                    {itemForm.inOstan === true && (
-                                        <div className="border p-3 rounded bg-light">
-                                            <div className="row g-3">
-                                                <div className="col-md-6">
-                                                    <label className="form-label">
-                                                        انتخاب مرکز <span className="text-danger">*</span>
-                                                    </label>
-                                                    <select
-                                                        className="form-select"
-                                                        value={itemForm.markazId}
-                                                        onChange={(e) => setItemForm(prev => ({ ...prev, markazId: e.target.value }))}
-                                                        required
-                                                    >
-                                                        <option value="">انتخاب مرکز...</option>
-                                                        {insideOstanMarkazs.length === 0 ? (
-                                                            <option value="" disabled>هیچ مرکزی یافت نشد</option>
-                                                        ) : (
-                                                            insideOstanMarkazs.map(markaz => {
+                                {/* بخش داخل استان */}
+                                {itemForm.inOstan === true && (
+                                    <div className="border p-3 rounded bg-light">
+                                        <div className="row g-3">
+                                            {/* 🔥 نوع فعالیت (بالاترین گزینه) */}
+                                            <div className="col-md-6">
+                                                <label className="form-label">
+                                                    نوع فعالیت <span className="text-danger">*</span>
+                                                </label>
+                                                <div className="d-flex gap-3">
+                                                    <div className="form-check">
+                                                        <input
+                                                            type="radio"
+                                                            className="form-check-input"
+                                                            id="noeAnjamHozori"
+                                                            checked={itemForm.noeAnjam === '1'}
+                                                            onChange={() => {
+                                                                setItemForm(prev => ({
+                                                                    ...prev,
+                                                                    noeAnjam: '1',
+                                                                    markazId: '',
+                                                                    faaliatIds: []
+                                                                }));
+                                                            }}
+                                                        />
+                                                        <label className="form-check-label" htmlFor="noeAnjamHozori">حضوری</label>
+                                                    </div>
+                                                    <div className="form-check">
+                                                        <input
+                                                            type="radio"
+                                                            className="form-check-input"
+                                                            id="noeAnjamMajazi"
+                                                            checked={itemForm.noeAnjam === '2'}
+                                                            onChange={() => {
+                                                                setItemForm(prev => ({
+                                                                    ...prev,
+                                                                    noeAnjam: '2',
+                                                                    markazId: '',
+                                                                    faaliatIds: []
+                                                                }));
+                                                            }}
+                                                        />
+                                                        <label className="form-check-label" htmlFor="noeAnjamMajazi">مجازی</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* 🔥 انتخاب مرکز بر اساس نوع فعالیت */}
+                                            <div className="col-md-6">
+                                                <label className="form-label">
+                                                    انتخاب مرکز <span className="text-danger">*</span>
+                                                </label>
+                                                <select
+                                                    className="form-select"
+                                                    value={itemForm.markazId}
+                                                    onChange={(e) => setItemForm(prev => ({ ...prev, markazId: e.target.value }))}
+                                                    required
+                                                    disabled={!itemForm.noeAnjam}
+                                                >
+                                                    <option value="">انتخاب مرکز...</option>
+                                                    {!itemForm.noeAnjam ? (
+                                                        <option value="" disabled>لطفاً ابتدا نوع فعالیت را انتخاب کنید</option>
+                                                    ) : (
+                                                        insideOstanMarkazs
+                                                            .filter(markaz => {
+                                                                const noeMarkaz = markaz.noeMarkaz || 1;
+                                                                if (itemForm.noeAnjam === '1') {
+                                                                    // حضوری: مراکز با نوع 1 یا 3
+                                                                    return noeMarkaz === 1 || noeMarkaz === 3;
+                                                                } else if (itemForm.noeAnjam === '2') {
+                                                                    // مجازی: مراکز با نوع 2 یا 3
+                                                                    return noeMarkaz === 2 || noeMarkaz === 3;
+                                                                }
+                                                                return false;
+                                                            })
+                                                            .map(markaz => {
                                                                 let displayName = '';
                                                                 if (markaz.level === 3) {
                                                                     displayName = `ستاد استان ${markaz.naamOstan || ''}`;
@@ -1317,223 +1365,209 @@ export default function HamjavarCreate() {
                                                                 } else {
                                                                     displayName = markaz.naamMarkaz || `مرکز ${markaz.id}`;
                                                                 }
+                                                                // نشانگر نوع مرکز
+                                                                const noeMarkazText = markaz.noeMarkaz === 2 ? ' (مجازی)' :
+                                                                    markaz.noeMarkaz === 3 ? ' (حضوری-مجازی)' : '';
                                                                 return (
                                                                     <option key={markaz.id} value={markaz.id}>
-                                                                        {displayName}
+                                                                        {displayName}{noeMarkazText}
                                                                     </option>
                                                                 );
                                                             })
-                                                        )}
-                                                    </select>
-                                                </div>
-
-                                                <div className="col-md-6">
-                                                    <label className="form-label">
-                                                        تعداد روز در هفته <span className="text-danger">*</span>
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        className="form-control"
-                                                        value={itemForm.tedadRoozElmi}
-                                                        onChange={(e) => setItemForm(prev => ({ ...prev, tedadRoozElmi: e.target.value }))}
-                                                        min="1"
-                                                        max="6"
-                                                        required
-                                                        placeholder="۱ تا ۶"
-                                                    />
-                                                    <small className="text-muted">حداقل ۱ و حداکثر ۶</small>
-                                                </div>
-
-                                                <div className="col-md-6">
-                                                    <label className="form-label">
-                                                        نوع فعالیت <span className="text-danger">*</span>
-                                                    </label>
-                                                    <div className="d-flex gap-3">
-                                                        <div className="form-check">
-                                                            <input
-                                                                type="radio"
-                                                                className="form-check-input"
-                                                                id="noeAnjamHozori"
-                                                                checked={itemForm.noeAnjam === '1'}
-                                                                onChange={() => setItemForm(prev => ({ ...prev, noeAnjam: '1', faaliatIds: [] }))}
-                                                            />
-                                                            <label className="form-check-label" htmlFor="noeAnjamHozori">حضوری</label>
-                                                        </div>
-                                                        <div className="form-check">
-                                                            <input
-                                                                type="radio"
-                                                                className="form-check-input"
-                                                                id="noeAnjamMajazi"
-                                                                checked={itemForm.noeAnjam === '2'}
-                                                                onChange={() => setItemForm(prev => ({ ...prev, noeAnjam: '2', faaliatIds: [] }))}
-                                                            />
-                                                            <label className="form-check-label" htmlFor="noeAnjamMajazi">مجازی</label>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="col-md-6">
-                                                    <label className="form-label">
-                                                        فعالیت‌ها <span className="text-danger">*</span>
-                                                    </label>
-                                                    <div
-                                                        className="border rounded p-2 bg-white"
-                                                        style={{ maxHeight: '150px', overflowY: 'auto' }}
-                                                    >
-                                                        {!itemForm.noeAnjam ? (
-                                                            <div className="text-muted text-center py-2">
-                                                                <i className="bi bi-info-circle me-1"></i>
-                                                                ابتدا نوع فعالیت را انتخاب کنید
-                                                            </div>
-                                                        ) : filteredFaaliat.length === 0 ? (
-                                                            <div className="text-muted text-center py-2">
-                                                                <i className="bi bi-exclamation-circle me-1"></i>
-                                                                هیچ فعالیتی با این نوع انجام یافت نشد
-                                                            </div>
-                                                        ) : (
-                                                            filteredFaaliat.map(f => {
-                                                                const isChecked = itemForm.faaliatIds.includes(f.id);
-                                                                return (
-                                                                    <div key={f.id} className="form-check form-check-inline">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            className="form-check-input"
-                                                                            id={`faaliat_${f.id}`}
-                                                                            checked={isChecked}
-                                                                            onChange={() => {
-                                                                                if (isChecked) {
-                                                                                    setItemForm(prev => ({
-                                                                                        ...prev,
-                                                                                        faaliatIds: prev.faaliatIds.filter(id => id !== f.id)
-                                                                                    }));
-                                                                                } else {
-                                                                                    setItemForm(prev => ({
-                                                                                        ...prev,
-                                                                                        faaliatIds: [...prev.faaliatIds, f.id]
-                                                                                    }));
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                        <label
-                                                                            className="form-check-label"
-                                                                            htmlFor={`faaliat_${f.id}`}
-                                                                            style={{
-                                                                                cursor: 'pointer',
-                                                                                backgroundColor: isChecked ? '#e3f0ff' : 'transparent',
-                                                                                padding: '2px 8px',
-                                                                                borderRadius: '4px'
-                                                                            }}
-                                                                        >
-                                                                            {f.onvan}
-                                                                        </label>
-                                                                    </div>
-                                                                );
-                                                            })
-                                                        )}
-                                                    </div>
-                                                    {itemForm.faaliatIds.length > 0 && (
-                                                        <small className="text-muted d-block mt-1">
-                                                            <i className="bi bi-check-circle me-1 text-success"></i>
-                                                            {itemForm.faaliatIds.length} فعالیت انتخاب شده است
+                                                    )}
+                                                </select>
+                                                {itemForm.noeAnjam && insideOstanMarkazs.filter(m => {
+                                                    const noeMarkaz = m.noeMarkaz || 1;
+                                                    if (itemForm.noeAnjam === '1') return noeMarkaz === 1 || noeMarkaz === 3;
+                                                    if (itemForm.noeAnjam === '2') return noeMarkaz === 2 || noeMarkaz === 3;
+                                                    return false;
+                                                }).length === 0 && (
+                                                        <small className="text-warning d-block mt-1">
+                                                            هیچ مرکزی با این نوع فعالیت در استان شما یافت نشد
                                                         </small>
                                                     )}
-                                                </div>
                                             </div>
-                                        </div>
-                                    )}
 
-                                    {/* بخش خارج از استان */}
-                                    {itemForm.inOstan === false && (
-                                        <div className="border p-3 rounded bg-light">
-                                            <div className="row g-3">
-                                                <div className="col-md-4">
-                                                    <label className="form-label">
-                                                        انتخاب استان <span className="text-danger">*</span>
-                                                    </label>
-                                                    <select
-                                                        className="form-select"
-                                                        value={itemForm.ostanId}
-                                                        onChange={(e) => setItemForm(prev => ({
-                                                            ...prev,
-                                                            ostanId: e.target.value,
-                                                            markazId: ''
-                                                        }))}
-                                                        required
-                                                    >
-                                                        <option value="">انتخاب استان...</option>
-                                                        {accessibleOstans.map(ostan => (
-                                                            <option key={ostan.codeOstan} value={ostan.codeOstan}>
-                                                                {ostan.naamOstan}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
+                                            {/* تعداد روز در هفته */}
+                                            <div className="col-md-6">
+                                                <label className="form-label">
+                                                    تعداد روز در هفته <span className="text-danger">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    value={itemForm.tedadRoozElmi}
+                                                    onChange={(e) => setItemForm(prev => ({ ...prev, tedadRoozElmi: e.target.value }))}
+                                                    min="1"
+                                                    max="6"
+                                                    required
+                                                    placeholder="۱ تا ۶"
+                                                />
+                                                <small className="text-muted">حداقل ۱ و حداکثر ۶</small>
+                                            </div>
 
-                                                <div className="col-md-4">
-                                                    <label className="form-label">
-                                                        انتخاب مرکز <span className="text-danger">*</span>
-                                                    </label>
-                                                    <select
-                                                        className="form-select"
-                                                        value={itemForm.markazId}
-                                                        onChange={(e) => setItemForm(prev => ({ ...prev, markazId: e.target.value }))}
-                                                        disabled={!itemForm.ostanId || markazsByOstan.length === 0}
-                                                        required
-                                                    >
-                                                        <option value="">انتخاب مرکز...</option>
-                                                        {markazsByOstan.map(markaz => {
-                                                            const displayName = getDisplayName(markaz);
-                                                            const finalName = displayName || markaz.naamMarkaz || `مرکز ${markaz.id}`;
+                                            {/* فعالیت‌ها */}
+                                            <div className="col-md-6">
+                                                <label className="form-label">
+                                                    فعالیت‌ها <span className="text-danger">*</span>
+                                                </label>
+                                                <div
+                                                    className="border rounded p-2 bg-white"
+                                                    style={{ maxHeight: '150px', overflowY: 'auto' }}
+                                                >
+                                                    {!itemForm.noeAnjam ? (
+                                                        <div className="text-muted text-center py-2">
+                                                            <i className="bi bi-info-circle me-1"></i>
+                                                            ابتدا نوع فعالیت را انتخاب کنید
+                                                        </div>
+                                                    ) : filteredFaaliat.length === 0 ? (
+                                                        <div className="text-muted text-center py-2">
+                                                            <i className="bi bi-exclamation-circle me-1"></i>
+                                                            هیچ فعالیتی با این نوع انجام یافت نشد
+                                                        </div>
+                                                    ) : (
+                                                        filteredFaaliat.map(f => {
+                                                            const isChecked = itemForm.faaliatIds.includes(f.id);
                                                             return (
-                                                                <option key={markaz.id} value={markaz.id}>
-                                                                    {finalName}
-                                                                </option>
+                                                                <div key={f.id} className="form-check form-check-inline">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="form-check-input"
+                                                                        id={`faaliat_${f.id}`}
+                                                                        checked={isChecked}
+                                                                        onChange={() => {
+                                                                            if (isChecked) {
+                                                                                setItemForm(prev => ({
+                                                                                    ...prev,
+                                                                                    faaliatIds: prev.faaliatIds.filter(id => id !== f.id)
+                                                                                }));
+                                                                            } else {
+                                                                                setItemForm(prev => ({
+                                                                                    ...prev,
+                                                                                    faaliatIds: [...prev.faaliatIds, f.id]
+                                                                                }));
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <label
+                                                                        className="form-check-label"
+                                                                        htmlFor={`faaliat_${f.id}`}
+                                                                        style={{
+                                                                            cursor: 'pointer',
+                                                                            backgroundColor: isChecked ? '#e3f0ff' : 'transparent',
+                                                                            padding: '2px 8px',
+                                                                            borderRadius: '4px'
+                                                                        }}
+                                                                    >
+                                                                        {f.onvan}
+                                                                    </label>
+                                                                </div>
                                                             );
-                                                        })}
-                                                    </select>
+                                                        })
+                                                    )}
                                                 </div>
-
-                                                <div className="col-md-4">
-                                                    <label className="form-label">
-                                                        تعداد روز در هفته <span className="text-danger">*</span>
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        className="form-control"
-                                                        value={itemForm.tedadRoozElmi}
-                                                        onChange={(e) => setItemForm(prev => ({ ...prev, tedadRoozElmi: e.target.value }))}
-                                                        min="1"
-                                                        max="6"
-                                                        required
-                                                        placeholder="۱ تا ۶"
-                                                    />
-                                                    <small className="text-muted">حداقل ۱ و حداکثر ۶</small>
-                                                </div>
+                                                {itemForm.faaliatIds.length > 0 && (
+                                                    <small className="text-muted d-block mt-1">
+                                                        <i className="bi bi-check-circle me-1 text-success"></i>
+                                                        {itemForm.faaliatIds.length} فعالیت انتخاب شده است
+                                                    </small>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-                                <div className="modal-footer">
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary"
-                                        onClick={closeModal}
-                                    >
-                                        انصراف
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn btn-primary"
-                                        onClick={saveItem}
-                                    >
-                                        {editingItem ? 'ویرایش' : 'افزودن'}
-                                    </button>
-                                </div>
+                                    </div>
+                                )}
+
+                                {/* بخش خارج از استان */}
+                                {itemForm.inOstan === false && (
+                                    <div className="border p-3 rounded bg-light">
+                                        <div className="row g-3">
+                                            <div className="col-md-4">
+                                                <label className="form-label">
+                                                    انتخاب استان <span className="text-danger">*</span>
+                                                </label>
+                                                <select
+                                                    className="form-select"
+                                                    value={itemForm.ostanId}
+                                                    onChange={(e) => setItemForm(prev => ({
+                                                        ...prev,
+                                                        ostanId: e.target.value,
+                                                        markazId: ''
+                                                    }))}
+                                                    required
+                                                >
+                                                    <option value="">انتخاب استان...</option>
+                                                    {accessibleOstans.map(ostan => (
+                                                        <option key={ostan.codeOstan} value={ostan.codeOstan}>
+                                                            {ostan.naamOstan}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div className="col-md-4">
+                                                <label className="form-label">
+                                                    انتخاب مرکز <span className="text-danger">*</span>
+                                                </label>
+                                                <select
+                                                    className="form-select"
+                                                    value={itemForm.markazId}
+                                                    onChange={(e) => setItemForm(prev => ({ ...prev, markazId: e.target.value }))}
+                                                    disabled={!itemForm.ostanId || markazsByOstan.length === 0}
+                                                    required
+                                                >
+                                                    <option value="">انتخاب مرکز...</option>
+                                                    {markazsByOstan.map(markaz => {
+                                                        const displayName = getDisplayName(markaz);
+                                                        const finalName = displayName || markaz.naamMarkaz || `مرکز ${markaz.id}`;
+                                                        return (
+                                                            <option key={markaz.id} value={markaz.id}>
+                                                                {finalName}
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            </div>
+
+                                            <div className="col-md-4">
+                                                <label className="form-label">
+                                                    تعداد روز در هفته <span className="text-danger">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    value={itemForm.tedadRoozElmi}
+                                                    onChange={(e) => setItemForm(prev => ({ ...prev, tedadRoozElmi: e.target.value }))}
+                                                    min="1"
+                                                    max="6"
+                                                    required
+                                                    placeholder="۱ تا ۶"
+                                                />
+                                                <small className="text-muted">حداقل ۱ و حداکثر ۶</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={closeModal}
+                                >
+                                    انصراف
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={saveItem}
+                                >
+                                    {editingItem ? 'ویرایش' : 'افزودن'}
+                                </button>
                             </div>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            )}
             <ConfirmModal />
         </div >
     );
