@@ -386,7 +386,7 @@ export default function FaaliatList() {
             {/* هدر */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4>مدیریت فعالیت‌ها</h4>
-                <PermissionWrapper permission="Faaliat.*">
+                <PermissionWrapper permission="Faaliat.Create">
                     <button
                         className="btn btn-primary"
                         onClick={openCreateModal}
@@ -472,7 +472,7 @@ export default function FaaliatList() {
                                         </td>
                                         <td onClick={(e) => e.stopPropagation()}>
                                             <div className="btn-group btn-group-sm">
-                                                <PermissionWrapper permission="Faaliat.*">
+                                                <PermissionWrapper permission="Faaliat.Update">
                                                     <button
                                                         className="btn btn-warning"
                                                         onClick={() => openEditModal(item)}
@@ -481,7 +481,7 @@ export default function FaaliatList() {
                                                         <i className="bi bi-pencil"></i>
                                                     </button>
                                                 </PermissionWrapper>
-                                                <PermissionWrapper permission="Faaliat.*">
+                                                <PermissionWrapper permission="Faaliat.Delete">
                                                     <button
                                                         className="btn btn-danger"
                                                         onClick={() => handleDelete(item.id, item.onvan)}

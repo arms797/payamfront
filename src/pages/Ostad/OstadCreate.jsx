@@ -153,9 +153,6 @@ export default function OstadCreate() {
     // ============================================================
     // آپلود فایل اکسل
     // ============================================================
-    // ============================================================
-    // آپلود فایل اکسل
-    // ============================================================
     const handleUploadExcel = async () => {
         if (!selectedFile) {
             toast.warning('لطفاً ابتدا فایل را انتخاب کنید');
@@ -213,6 +210,7 @@ export default function OstadCreate() {
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در بارگذاری فایل');
+            console.log(error.response?.data)
         } finally {
             setUploading(false);
         }
