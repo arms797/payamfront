@@ -29,12 +29,18 @@ export default function BarnamehHaftegiDetail() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
+    const [signatures, setSignatures] = useState({});
+
     // تشخیص نقش
     const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
     const isModirGrooh = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmByModir'), [hasPermission]);
     const isMoaven = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmByMoaven'), [hasPermission]);
     const isAdmin = useMemo(() => user?.codeRole === 1, [user]);
-
+    const [errorModal, setErrorModal] = useState({
+        show: false,
+        title: 'خطاها',
+        errors: []
+    });
     // دریافت برنامه
     const fetchProgram = useCallback(async () => {
         setLoading(true);
@@ -314,6 +320,20 @@ export default function BarnamehHaftegiDetail() {
         });
     };
 
+    const showErrorModal = (errors) => {
+        setErrorModal({
+            show: true,
+            title: 'خطاهای برنامه',
+            errors: Array.isArray(errors) ? errors : [errors]
+        });
+    };
+    const closeErrorModal = () => {
+        setErrorModal({
+            show: false,
+            title: 'خطاها',
+            errors: []
+        });
+    };
     // عملیات‌های تأیید
     const handleConfirmByOstad = async () => {
         const confirmed = await confirm({
@@ -323,6 +343,7 @@ export default function BarnamehHaftegiDetail() {
             confirmVariant: 'success'
         });
         if (!confirmed) return;
+
         setSubmitting(true);
         try {
             const response = await api.patch(`/BarnamehHaftegi/confirm/ostad/${id}`);
@@ -331,7 +352,25 @@ export default function BarnamehHaftegiDetail() {
                 fetchProgram();
             }
         } catch (error) {
-            toast.error(error.response?.data?.message || 'خطا در تأیید برنامه');
+            const errors = error.response?.data?.errors;
+            const message = error.response?.data?.message || 'خطا در تأیید برنامه';
+
+            // اگر خطاها به صورت آرایه هستند
+            if (Array.isArray(errors) && errors.length > 0) {
+                showErrorModal(errors);
+            }
+            // اگر خطاها به صورت رشته هستند
+            else if (typeof errors === 'string') {
+                showErrorModal([errors]);
+            }
+            // اگر پیام خطا وجود دارد
+            else if (message) {
+                showErrorModal([message]);
+            }
+            // در غیر این صورت خطای عمومی
+            else {
+                toast.error('خطا در تأیید برنامه');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -400,7 +439,41 @@ export default function BarnamehHaftegiDetail() {
             setSubmitting(false);
         }
     };
+    const isRaeisMarkaz = useMemo(() => {
+        return hasPermission('BarnamehHaftegi.ConfirmByRaeis');
+    }, [hasPermission]);
+    const handleConfirmByRaeisMarkaz = async (approveStatus) => {
+        const actionText = approveStatus === 1 ? 'تأیید' : 'رد';
 
+        const confirmed = await confirm({
+            title: `${actionText} توسط رئیس مرکز`,
+            message: `آیا از ${actionText} این برنامه توسط رئیس مرکز مطمئن هستید؟`,
+            confirmText: `بله، ${actionText} می‌شود`,
+            confirmVariant: approveStatus === 1 ? 'success' : 'danger'
+        });
+
+        if (!confirmed) return;
+
+        setSubmitting(true);
+        try {
+            const response = await api.patch(`/BarnamehHaftegi/confirm/raeis/${id}`, { approveStatus });
+            if (response.data?.success) {
+                toast.success(`برنامه با موفقیت توسط رئیس مرکز ${actionText} شد`);
+                fetchProgram();
+            }
+        } catch (error) {
+            const errors = error.response?.data?.errors;
+            const message = error.response?.data?.message || `خطا در ${actionText} برنامه`;
+
+            if (errors && Array.isArray(errors) && errors.length > 0) {
+                showErrorModal(errors);
+            } else {
+                toast.error(message);
+            }
+        } finally {
+            setSubmitting(false);
+        }
+    };
     const handleReset = async () => {
         const confirmed = await confirm({
             title: 'ریست برنامه',
@@ -423,15 +496,82 @@ export default function BarnamehHaftegiDetail() {
         }
     };
 
+    // تابع دریافت امضاها
+    const fetchSignatures = useCallback(async () => {
+        if (!program) return;
+
+        // جمع‌آوری UserIdهای مربوط به هر نقش
+        const userIds = [];
+
+        // استاد (UserId از برنامه)
+        if (program.ostadUserId) {
+            userIds.push(program.ostadUserId);
+        }
+
+        // مدیر گروه
+        if (program.userIdModirGrooh) {
+            userIds.push(program.userIdModirGrooh);
+        }
+
+        // رئیس مرکز
+        if (program.userIdRaeisMarkaz) {
+            userIds.push(program.userIdRaeisMarkaz);
+        }
+
+        // معاون
+        if (program.userIdMoaven) {
+            userIds.push(program.userIdMoaven);
+        }
+
+        // اگر هیچ UserId وجود نداشت، برگرد
+        if (userIds.length === 0) return;
+
+        try {
+            const response = await api.post('/Signature/get-multiple', { userIds });
+            if (response.data?.success) {
+                setSignatures(response.data.data || {});
+            }
+        } catch (error) {
+            console.error('خطا در دریافت امضاها:', error);
+        }
+    }, [program]);
+
+    // بعد از دریافت برنامه، امضاها را بگیر
+    useEffect(() => {
+        if (program) {
+            fetchSignatures();
+        }
+    }, [program, fetchSignatures]);
+
+
     // نمایش دکمه‌های عملیاتی
     const renderActionButtons = () => {
         if (!program) return null;
-        const status = program.approveStatus;
+
+        // نظرات هر نقش (عدد: 0=بدون نظر, 1=تایید, 2=رد)
+        const nazarOstad = program.nazarElmi;        // نظر استاد
+        const nazarModir = program.nazarModirGrooh;   // نظر مدیر گروه
+        const nazarRaeis = program.nazarRaeisMarkaz;  // نظر رئیس مرکز
+        const nazarMoaven = program.nazarMoaven;      // نظر معاون
+
         const isLocked = program.isLocked;
+
+        // تشخیص اینکه برنامه در چه مرحله‌ای است
+        const isOstadApproved = nazarOstad === 1;
+        const isModirApproved = nazarModir === 1;
+        const isRaeisApproved = nazarRaeis === 1;
+        const isMoavenApproved = nazarMoaven === 1;
+
+        // اگر معاون تایید کرده، برنامه نهایی شده است
+        const isFinalApproved = isMoavenApproved;
 
         return (
             <div className="d-flex gap-2 flex-wrap no-print">
-                {isOstad && status === 'pishnevis' && !isLocked && (
+
+                {/* ============================================================
+                ۱️⃣ استاد - فقط اگر هنوز تایید نکرده و قفل نیست
+                ============================================================ */}
+                {isOstad && !isOstadApproved && !isLocked && (
                     <>
                         <button className="btn btn-warning btn-sm" onClick={() => navigate(`/dashboard/barnameh-haftegi-edit/${id}`)}>
                             <i className="bi bi-pencil me-1"></i> ویرایش
@@ -441,24 +581,64 @@ export default function BarnamehHaftegiDetail() {
                         </button>
                     </>
                 )}
-                {isModirGrooh && status === 'tayeed_ostad' && (
+
+                {/* ============================================================
+                ۲️⃣ مدیر گروه - فقط اگر استاد تایید کرده و خودش هنوز نظر نداده
+                ============================================================ */}
+                {isModirGrooh && isOstadApproved  && !isFinalApproved && (
                     <>
-                        <button className="btn btn-success btn-sm" onClick={() => handleConfirmByModir(1)} disabled={submitting}>تأیید</button>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleConfirmByModir(2)} disabled={submitting}>رد</button>
+                        <button className="btn btn-success btn-sm" onClick={() => handleConfirmByModir(1)} disabled={submitting}>
+                            <i className="bi bi-check-lg me-1"></i> تأیید
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleConfirmByModir(2)} disabled={submitting}>
+                            <i className="bi bi-x-lg me-1"></i> رد
+                        </button>
                     </>
                 )}
-                {isMoaven && status !== 'tayeed_moaven' && (
+
+                {/* ============================================================
+                ۳️⃣ رئیس مرکز - فقط اگر استاد تایید کرده و خودش هنوز نظر نداده
+                ============================================================ */}
+                {isRaeisMarkaz && isOstadApproved && !isFinalApproved && (
                     <>
-                        <button className="btn btn-success btn-sm" onClick={() => handleConfirmByMoaven(1)} disabled={submitting}>تأیید نهایی</button>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleConfirmByMoaven(2)} disabled={submitting}>رد نهایی</button>
+                        <button className="btn btn-success btn-sm" onClick={() => handleConfirmByRaeisMarkaz(1)} disabled={submitting}>
+                            <i className="bi bi-check-lg me-1"></i> تأیید
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleConfirmByRaeisMarkaz(2)} disabled={submitting}>
+                            <i className="bi bi-x-lg me-1"></i> رد
+                        </button>
                     </>
                 )}
-                {(isMoaven || isAdmin) && status !== 'pishnevis' && isLocked && (
-                    <button className="btn btn-warning btn-sm" onClick={handleReset} disabled={submitting}>ریست</button>
+
+                {/* ============================================================
+                ۴️⃣ معاون - فقط اگر استاد تایید کرده و خودش هنوز نظر نداده
+                ============================================================ */}
+                {isMoaven && isOstadApproved && !isMoavenApproved && (
+                    <>
+                        <button className="btn btn-success btn-sm" onClick={() => handleConfirmByMoaven(1)} disabled={submitting}>
+                            <i className="bi bi-check-lg me-1"></i> تأیید نهایی
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleConfirmByMoaven(2)} disabled={submitting}>
+                            <i className="bi bi-x-lg me-1"></i> رد نهایی
+                        </button>
+                    </>
                 )}
-                <button className="btn btn-outline-secondary btn-sm" onClick={handlePrint}>
+
+                {/* ============================================================
+                ۵️⃣ ریست - فقط معاون یا ادمین (وقتی برنامه قفل است)
+                ============================================================ */}
+                {(isMoaven || isAdmin) && isLocked && (
+                    <button className="btn btn-warning btn-sm" onClick={handleReset} disabled={submitting}>
+                        <i className="bi bi-arrow-counterclockwise me-1"></i> ریست
+                    </button>
+                )}
+
+                {/* ============================================================
+                ۶️⃣ پرینت - برای همه
+                ============================================================ */}
+                {/*<button className="btn btn-outline-secondary btn-sm" onClick={handlePrint}>
                     <i className="bi bi-printer me-1"></i> پرینت
-                </button>
+                </button>*/}
             </div>
         );
     };
@@ -614,11 +794,28 @@ export default function BarnamehHaftegiDetail() {
     // ============================================================
     // کارت‌های امضا (چاپی و نمایشی)
     // ============================================================
+    // ============================================================
+    // 2️⃣ کارت‌های امضا
+    // ============================================================
     const renderSignatures = () => {
         if (!program) return null;
+
         const hasOstad = program.nazarElmi === 1;
         const hasModir = program.nazarModirGrooh === 1;
+        const hasRaeis = program.nazarRaeisMarkaz === 1;
         const hasMoaven = program.nazarMoaven === 1;
+
+        // دریافت امضای هر کاربر
+        const ostadSignature = signatures[program.ostadUserId]?.signature || null;
+        const modirSignature = signatures[program.userIdModirGrooh]?.signature || null;
+        const raeisSignature = signatures[program.userIdRaeisMarkaz]?.signature || null;
+        const moavenSignature = signatures[program.userIdMoaven]?.signature || null;
+
+        // موقعیت امضاها
+        const ostadPosition = signatures[program.ostadUserId]?.position || 'BC';
+        const modirPosition = signatures[program.userIdModirGrooh]?.position || 'BC';
+        const raeisPosition = signatures[program.userIdRaeisMarkaz]?.position || 'BC';
+        const moavenPosition = signatures[program.userIdMoaven]?.position || 'BC';
 
         const sigStyle = {
             minHeight: '70px',
@@ -630,82 +827,125 @@ export default function BarnamehHaftegiDetail() {
 
         return (
             <div className="row mt-3">
-                <div className="col-4">
-                    <div className="card h-100 border-0">  {/* ← حذف border */}
-                        <div className="card-header py-1 bg-light text-center">  {/* ← وسط‌چین */}
+                {/* 1️⃣ امضا استاد */}
+                <div className="col-3">
+                    <div className="card h-100 border-0">
+                        <div className="card-header py-1 bg-light text-center">
                             <small className="fw-bold">امضا استاد</small>
                         </div>
                         <div className="card-body" style={sigStyle}>
-                            {hasOstad ? (
+                            {hasOstad && ostadSignature ? (
                                 <>
                                     <SignatureDisplay
-                                        signatureData={null}
+                                        signatureData={ostadSignature}
                                         textTop={program.ostadName}
                                         textBottom={`کد: ${program.ostadCode || ''}`}
+                                        position={ostadPosition}
                                         width={180}
                                         height={60}
                                         textFontSize={10}
                                     />
                                     <small className="text-muted" style={{ fontSize: '8px' }}>
-                                        {new Date(program.tarikhElmi).toLocaleDateString('fa-IR')}
+                                        {program.tarikhElmi ? new Date(program.tarikhElmi).toLocaleDateString('fa-IR') : ''}
                                     </small>
                                 </>
                             ) : (
-                                <span className="text-muted" style={{ fontSize: '10px' }}>ثبت نشده</span>
+                                <span className="text-muted" style={{ fontSize: '10px' }}>
+                                    {hasOstad ? 'امضا موجود نیست' : 'ثبت نشده'}
+                                </span>
                             )}
                         </div>
                     </div>
                 </div>
 
-                <div className="col-4">
+                {/* 2️⃣ امضا مدیر گروه */}
+                <div className="col-3">
                     <div className="card h-100 border-0">
                         <div className="card-header py-1 bg-light text-center">
                             <small className="fw-bold">امضا مدیر گروه</small>
                         </div>
                         <div className="card-body" style={sigStyle}>
-                            {hasModir ? (
+                            {hasModir && modirSignature ? (
                                 <>
                                     <SignatureDisplay
-                                        signatureData={null}
+                                        signatureData={modirSignature}
                                         textTop="مدیر گروه"
                                         textBottom={program.roleMarkazModirGrooh || ''}
+                                        position={modirPosition}
                                         width={180}
                                         height={60}
                                         textFontSize={10}
                                     />
                                     <small className="text-muted" style={{ fontSize: '8px' }}>
-                                        {new Date(program.tarikhModirGrooh).toLocaleDateString('fa-IR')}
+                                        {program.tarikhModirGrooh ? new Date(program.tarikhModirGrooh).toLocaleDateString('fa-IR') : ''}
                                     </small>
                                 </>
                             ) : (
-                                <span className="text-muted" style={{ fontSize: '10px' }}>ثبت نشده</span>
+                                <span className="text-muted" style={{ fontSize: '10px' }}>
+                                    {hasModir ? 'امضا موجود نیست' : 'ثبت نشده'}
+                                </span>
                             )}
                         </div>
                     </div>
                 </div>
 
-                <div className="col-4">
+                {/* 3️⃣ امضا رئیس مرکز */}
+                <div className="col-3">
                     <div className="card h-100 border-0">
                         <div className="card-header py-1 bg-light text-center">
-                            <small className="fw-bold">امضا معاون آموزشی</small>
+                            <small className="fw-bold">امضا رئیس مرکز</small>
                         </div>
                         <div className="card-body" style={sigStyle}>
-                            {hasMoaven ? (
+                            {hasRaeis && raeisSignature ? (
                                 <>
                                     <SignatureDisplay
-                                        signatureData={null}
-                                        textTop="معاون آموزشی"
-                                        textBottom={program.roleMarkazMoaven || ''}
+                                        signatureData={raeisSignature}
+                                        textTop="رئیس مرکز"
+                                        textBottom={program.roleMarkazRaeisMarkaz || ''}
+                                        position={raeisPosition}
                                         width={180}
                                         height={60}
                                         textFontSize={10}
                                     />
                                     <small className="text-muted" style={{ fontSize: '8px' }}>
-                                        {new Date(program.tarikhMoaven).toLocaleDateString('fa-IR')}
+                                        {program.tarikhRaeisMarkaz ? new Date(program.tarikhRaeisMarkaz).toLocaleDateString('fa-IR') : ''}
                                     </small>
                                 </>
                             ) : (
-                                <span className="text-muted" style={{ fontSize: '10px' }}>ثبت نشده</span>
+                                <span className="text-muted" style={{ fontSize: '10px' }}>
+                                    {hasRaeis ? 'امضا موجود نیست' : 'ثبت نشده'}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4️⃣ امضا معاون آموزشی */}
+                <div className="col-3">
+                    <div className="card h-100 border-0">
+                        <div className="card-header py-1 bg-light text-center">
+                            <small className="fw-bold">امضا معاون آموزشی</small>
+                        </div>
+                        <div className="card-body" style={sigStyle}>
+                            {hasMoaven && moavenSignature ? (
+                                <>
+                                    <SignatureDisplay
+                                        signatureData={moavenSignature}
+                                        textTop="معاون آموزشی"
+                                        textBottom={program.roleMarkazMoaven || ''}
+                                        position={moavenPosition}
+                                        width={180}
+                                        height={60}
+                                        textFontSize={10}
+                                    />
+                                    <small className="text-muted" style={{ fontSize: '8px' }}>
+                                        {program.tarikhMoaven ? new Date(program.tarikhMoaven).toLocaleDateString('fa-IR') : ''}
+                                    </small>
+                                </>
+                            ) : (
+                                <span className="text-muted" style={{ fontSize: '10px' }}>
+                                    {hasMoaven ? 'امضا موجود نیست' : 'ثبت نشده'}
+                                </span>
                             )}
                         </div>
                     </div>
@@ -713,7 +953,6 @@ export default function BarnamehHaftegiDetail() {
             </div>
         );
     };
-
     // ============================================================
     // رندر اصلی
     // ============================================================
@@ -817,7 +1056,7 @@ export default function BarnamehHaftegiDetail() {
                         <div className="row g-2 mt-2">
                             <div className="col-md-4 d-flex align-items-baseline gap-2">
                                 <small className="text-muted" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>مرکز:</small>
-                                <span style={{ fontSize: '15px' }}>{program.ostadMarkaz || '-'}</span>
+                                <span style={{ fontSize: '15px' }}>{program.ostadMarkaz.markazNaam || '-'}</span>
                             </div>
                             <div className="col-md-4 d-flex align-items-baseline gap-2">
                                 <small className="text-muted" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>سمت اجرایی:</small>
@@ -853,6 +1092,65 @@ export default function BarnamehHaftegiDetail() {
             </div>
 
             <ConfirmModal />
+
+            {errorModal.show && (
+                <div
+                    className="modal show d-block"
+                    style={{
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        zIndex: 1060,
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={closeErrorModal}
+                >
+                    <div
+                        className="modal-dialog modal-dialog-centered"
+                        style={{ maxWidth: '500px', width: '95%' }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="modal-content">
+                            <div className="modal-header bg-danger text-white">
+                                <h5 className="modal-title">
+                                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                    {errorModal.title || 'خطاها'}
+                                </h5>
+                                <button
+                                    type="button"
+                                    className="btn-close btn-close-white"
+                                    onClick={closeErrorModal}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <p className="text-muted mb-2">لطفاً خطاهای زیر را برطرف کنید:</p>
+                                <ul className="list-group">
+                                    {errorModal.errors.map((err, index) => (
+                                        <li key={index} className="list-group-item list-group-item-danger">
+                                            <i className="bi bi-x-circle-fill me-2 text-danger"></i>
+                                            {err}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary"
+                                    onClick={closeErrorModal}
+                                >
+                                    بستن
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

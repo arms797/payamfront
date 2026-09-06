@@ -147,7 +147,7 @@ function DashboardContent() {
 
       <div className="dashboard-body-wrapper">
         <div className={`dashboard-sidebar ${isOpen ? 'open' : ''}`}>
-          <Sidebar  />
+          <Sidebar />
         </div>
 
         <div className={`dashboard-content ${isOpen ? 'shifted' : ''}`}>
@@ -157,6 +157,9 @@ function DashboardContent() {
               نقش فعلی: {activeRole?.name} | مرکز: {markazName}
             </p>
           </div>
+
+          {/*
+
 
           <div className="row g-4 mt-3">
             <div className="col-md-4 col-sm-6">
@@ -202,6 +205,7 @@ function DashboardContent() {
               </div>
             </div>
           </div>
+          */}
         </div>
       </div>
     </div>

@@ -9,6 +9,8 @@ export default function Login() {
   const { login } = useAuth();  // ← اضافه شد
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [captchaKey, setCaptchaKey] = useState('');
@@ -44,7 +46,12 @@ export default function Login() {
         // ============================================================
         // 🔥 هدایت به داشبورد
         // ============================================================
-        navigate('/dashboard', { replace: true });
+        
+        if (response.data.data.isElmiOstad && !response.data.data.hasActiveElmiTerm) {
+          navigate('/dashboard/elmi-term');
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || 'خطا در ارتباط با سرور';
@@ -80,12 +87,12 @@ export default function Login() {
       </div>
 
       <h5 className="text-center text-muted">
-        زمانبندی برنامه هفتگی اساتید دانشگاه پیام نور استان فارس
+        سامانه خدمات الکترونیکی دانشگاه پیام نور استان فارس
       </h5>
 
       <hr />
 
-      <h5 className="text-center mb-4">ورود به سامانه</h5>
+      <h6 className="text-center mb-4">ورود به سامانه</h6>
 
       {error && (
         <div className="alert alert-danger">
@@ -109,14 +116,34 @@ export default function Login() {
 
         <div className="mb-3">
           <label className="form-label">رمز عبور</label>
-          <input
-            type="password"
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={loading}
-          />
+          <div className="position-relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="form-control"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              style={{ paddingRight: '40px' }} // جا برای آیکون
+            />
+            <button
+              type="button"
+              className="btn btn-link position-absolute top-50 start-0 translate-middle-y"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                textDecoration: 'none',
+                color: '#6c757d',
+                padding: '0 10px',
+                border: 'none',
+                background: 'transparent',
+                zIndex: 5
+              }}
+              tabIndex="-1"
+              disabled={loading}
+            >
+              <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+            </button>
+          </div>
         </div>
 
         <CaptchaInput

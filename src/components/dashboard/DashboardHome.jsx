@@ -7,11 +7,14 @@ export default function DashboardHome() {
     return (
         <>
             <div className="dashboard-welcome">
-                <h2>خوش آمدید {user?.firstName} {user?.lastName}</h2>
+                <h2>{user?.firstName} {user?.lastName} خوش آمدید </h2>
                 <p className="text-muted">
-                    نقش فعلی: {user?.currentRoleName}
+                    {user?.currentRoleName}
                 </p>
             </div>
+
+            {/*
+
 
             <div className="row g-4 mt-3">
                 <div className="col-md-4 col-sm-6">
@@ -57,6 +60,7 @@ export default function DashboardHome() {
                     </div>
                 </div>
             </div>
+            */}
         </>
     );
 }

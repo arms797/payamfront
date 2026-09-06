@@ -386,7 +386,7 @@ export default function FaaliatList() {
             {/* هدر */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h4>مدیریت فعالیت‌ها</h4>
-                <PermissionWrapper permission="Faaliat.*">
+                <PermissionWrapper permission="Faaliat.Create">
                     <button
                         className="btn btn-primary"
                         onClick={openCreateModal}

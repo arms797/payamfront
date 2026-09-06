@@ -315,7 +315,7 @@ export default function HamjavarList() {
                 ============================================================ */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h4 className="mb-0">درخواست‌های تدریس در سایر مراکز</h4>
+                    <h4 className="mb-0">درخواست‌های فعالیت در سایر مراکز</h4>
                     <small className="text-muted">
                         برای مشاهده جزئیات و انجام عملیات، روی هر ردیف کلیک کنید
                     </small>

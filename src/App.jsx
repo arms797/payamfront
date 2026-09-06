@@ -38,6 +38,8 @@ import BarnamehHaftegiDetail from './pages/Schedule/BarnamehHaftegi/BarnamehHaft
 import BarnamehHaftegiCreate from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiCreate';
 import BarnamehHaftegiEdit from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiEdit';
 
+import ChangePassword from './pages/Profile/ChangePassword';
+
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -309,6 +311,15 @@ function App() {
                 element={
                   <ProtectedRouteWithPermission requiredPermission="BarnamehHaftegi.Update">
                     <BarnamehHaftegiEdit />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+
+              <Route
+                path="profile/change-password"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="User.Update">
+                    <ChangePassword />
                   </ProtectedRouteWithPermission>
                 }
               />

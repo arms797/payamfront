@@ -174,17 +174,17 @@ export default function OstadSelector({
         if (value && !selectedOstad) {
             const fetchOstad = async () => {
                 try {
-                    const response = await api.get(`/User/by-type?type=ostad&id=${value}`);
+                    const response = await api.get(`/User/${value}`);
                     if (response.data?.success) {
                         const userData = response.data.data;
                         if (userData) {
                             setSelectedOstad({
                                 id: userData.id,
                                 userId: userData.id,
-                                naam: userData.firstName || '',
-                                naamKhanevadegi: userData.lastName || '',
+                                naam: userData.ostadNaam || '',
+                                naamKhanevadegi: userData.ostadNaamKhanevadegi || '',
                                 codeOstadi: userData.userName || '',
-                                markazName: '',
+                                markazName: user.markazName,
                                 noeHamkari: 1
                             });
                             setSearchTerm(userData.userName || '');

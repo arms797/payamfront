@@ -138,7 +138,7 @@ export default function CreateModal({
                                     />
                                 </div>
                                 <div className="col-md-4 mb-3">
-                                    <label className="form-label">فایل مستندات</label>
+                                    <label className="form-label">حکم کارگزینی</label>
                                     <input
                                         type="file"
                                         className="form-control"
