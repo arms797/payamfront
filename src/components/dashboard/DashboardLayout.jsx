@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom'; // ← useLocation اضافه شد
 import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
 import { useAuth } from '../../context/AuthContext';
@@ -17,20 +17,17 @@ function DashboardContent() {
         roles,
         currentRoleId,
         currentMarkazId,
-        //changeRole
     } = useAuth();
 
     const { markazList, loading: markazLoading } = useMarkaz();
     const navigate = useNavigate();
+    const location = useLocation(); // ← اضافه شد
     const [isOpen, setIsOpen] = useState(true);
     const [changingRole, setChangingRole] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
     const [displayRole, setDisplayRole] = useState(null);
 
-    // ============================================================
-    // 🔥 State برای نقش انتخاب‌شده در کومبو
-    // ============================================================
     const [selectedRole, setSelectedRole] = useState(() => {
         const defaultRole = roles?.find(r => r.isDefault === true);
         return defaultRole || roles?.[0] || null;
@@ -43,28 +40,36 @@ function DashboardContent() {
         if (isAuthenticated && user) {
             refreshLookups();
             refreshTerms();
-            //markazList();
         }
     }, [isAuthenticated, user]);
 
-    // App.jsx
     useEffect(() => {
         const handleTokenExpired = () => {
             toast.warning('نشست شما منقضی شده است. لطفاً دوباره وارد شوید.');
-            logout(); // تابع logout از AuthContext
+            logout();
             navigate('/');
         };
 
         window.addEventListener('token-expired', handleTokenExpired);
         return () => window.removeEventListener('token-expired', handleTokenExpired);
     }, []);
+
+    // ============================================================
+    // 🔥 بستن خودکار منو در موبایل بعد از تغییر مسیر
+    // ============================================================
+    useEffect(() => {
+        // فقط در صفحه‌های کوچک (موبایل/تبلت) منو را ببند
+        if (window.innerWidth < 992) {
+            setIsOpen(false);
+        }
+    }, [location.pathname]); // هر وقت مسیر عوض شد، این تابع اجرا می‌شود
+
     // ============================================================
     // همگام‌سازی selectedRole با roles و currentRoleId
     // ============================================================
     useEffect(() => {
         if (roles && roles.length > 0 && currentRoleId) {
             const activeRole = roles.find(r => r.id === currentRoleId && r.markazId === currentMarkazId);
-            // اگر پیدا نشد، فقط بر اساس roleId پیدا کن (fallback)
             const fallbackRole = roles.find(r => r.id === currentRoleId);
             const roleToSet = activeRole || fallbackRole;
 
@@ -76,14 +81,13 @@ function DashboardContent() {
     }, [roles, currentRoleId, currentMarkazId]);
 
     // ============================================================
-    // 🔥 پیدا کردن نام مرکز (با پشتیبانی از Level)
+    // 🔥 پیدا کردن نام مرکز
     // ============================================================
     const getMarkazName = (markazId) => {
         if (!markazId) return 'مرکز اصلی';
         const markaz = markazList?.find(m => m.id === markazId);
         if (!markaz) return 'مرکز اصلی';
 
-        // بر اساس Level نام مناسب را نمایش بده
         if (markaz.level === 2) {
             return 'سازمان مرکزی';
         } else if (markaz.level === 3) {
@@ -95,9 +99,6 @@ function DashboardContent() {
         return markaz.naamMarkaz || 'مرکز اصلی';
     };
 
-    // ============================================================
-    // 🔥 مقدار نمایشی دکمه
-    // ============================================================
     const displayName = displayRole?.name || 'نقش نامشخص';
     const displayMarkaz = getMarkazName(displayRole?.markazId);
     const buttonText = `${displayName} - ${displayMarkaz}`;
@@ -120,31 +121,19 @@ function DashboardContent() {
 
             if (response.data?.success && response.data?.data) {
                 const newUserData = response.data.data;
-
-                // ============================================================
-                // 🔥 بروزرسانی اطلاعات کاربر در AuthContext
-                // ============================================================
                 updateUser(newUserData);
-                //changeRole(roleId, markazId);
 
-                // ساخت نمایش نهایی
                 const finalDisplayRole = {
                     ...baseRole,
                     markazId: markazId,
                     name: newUserData.currentRoleName || baseRole.name
                 };
 
-                // Stateهای محلی رو به‌روز کن
                 setSelectedRole(finalDisplayRole);
                 setDisplayRole(finalDisplayRole);
-                //setSelectedRole(finalDisplayRole);
-                //setDisplayRole(finalDisplayRole);
                 setDropdownOpen(false);
                 toast.success('نقش با موفقیت تغییر کرد');
 
-                // ============================================================
-                // 🔥 رفرش صفحه برای به‌روزرسانی منوها و مجوزها
-                // ============================================================                
                 window.location.href = '/dashboard';
             }
         } catch (error) {
@@ -216,9 +205,6 @@ function DashboardContent() {
                     </div>
 
                     <div className="d-flex align-items-center gap-3">
-                        {/* ============================================================
-                            🔥 نمایش نام کاربر (با useMemo برای به‌روزرسانی)
-                            ============================================================ */}
                         <span className="fw-semibold text-dark">
                             {userDisplayName}
                         </span>
@@ -275,7 +261,7 @@ function DashboardContent() {
 
             <div className="dashboard-body-wrapper">
                 <div className={`dashboard-sidebar ${isOpen ? 'open' : ''}`}>
-                    <Sidebar />
+                    <Sidebar />  {/* دیگر نیازی به onNavigate نیست */}
                 </div>
 
                 <div className={`dashboard-content ${isOpen ? 'shifted' : ''}`}>

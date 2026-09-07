@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useMenu } from '../../context/MenuContext';
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }) {
     const { menus } = useMenu();
-    const [openMenuId, setOpenMenuId] = useState(null); // فقط یک منو باز می‌شود
+    const [openMenuId, setOpenMenuId] = useState(null);
 
     if (!menus || menus.length === 0) {
         return (
@@ -17,16 +17,10 @@ export default function Sidebar() {
         );
     }
 
-    // ============================================================
-    // 🔥 تغییر وضعیت منو: فقط یک منو در هر لحظه باز می‌شود
-    // ============================================================
     const toggleMenu = (menuId) => {
         setOpenMenuId(prev => (prev === menuId ? null : menuId));
     };
 
-    // ============================================================
-    // 🔥 فیلتر کردن منوهایی که هم مسیر ندارند و هم زیرمنو ندارند
-    // ============================================================
     const filterEmptyMenus = (menuList) => {
         return menuList.filter(menu => {
             if (menu.children && menu.children.length > 0) {
@@ -52,9 +46,6 @@ export default function Sidebar() {
 
     const renderMenus = (menuList) => {
         return menuList.map((menu) => {
-            // ============================================================
-            // 🔥 تشخیص منوی بدون والد (سرمنو)
-            // ============================================================
             const isParentMenu = menu.parentId === null;
 
             if (menu.children && menu.children.length > 0) {
@@ -79,9 +70,6 @@ export default function Sidebar() {
                 );
             }
 
-            // ============================================================
-            // 🔥 اصلاح مسیرها
-            // ============================================================
             let path;
             if (menu.path === '/dashboard') {
                 path = '/dashboard';
@@ -100,6 +88,7 @@ export default function Sidebar() {
                         className={({ isActive }) =>
                             `nav-link ${isActive ? 'active' : ''} ${isParentMenu ? 'fw-bold' : ''}`
                         }
+                        onClick={onNavigate}
                     >
                         {menu.icon && <i className={`bi ${menu.icon} me-2`}></i>}
                         {menu.title}

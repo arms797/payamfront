@@ -893,24 +893,7 @@ export default function HamjavarCreate() {
                                 </div>
                             </div>
 
-                            {/* تایید دستورالعمل */}
-                            <div className="mb-4">
-                                <div className="form-check p-3 bg-light rounded border d-flex align-items-center flex-row-reverse justify-content-end gap-2">
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        id="agree"
-                                        checked={formData.isAgree}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, isAgree: e.target.checked }))}
-                                        required
-                                        style={{ width: '20px', height: '20px', cursor: 'pointer', flexShrink: 0 }}
-                                    />
-                                    <label className="form-check-label fw-bold" htmlFor="agree" style={{ cursor: 'pointer' }}>
-                                        <i className="bi bi-check-circle me-2 text-primary"></i>
-                                        اینجانب با مطالعه کامل دستورالعمل فوق، تقاضای فعالیت در خارج از مرکز فعلی را دارم.
-                                    </label>
-                                </div>
-                            </div>
+
 
                             {/* انتخاب ترم */}
                             <div className="row mb-3">
@@ -977,7 +960,7 @@ export default function HamjavarCreate() {
                                 <div className="row mb-3">
                                     <div className="col-md-3">
                                         <label className="form-label">
-                                            پیش‌بینی تکمیل واحد در مرکز استاد <span className="text-danger">*</span>
+                                            پیش‌بینی تعداد واحد قابل تکمیل در مرکز استاد <span className="text-danger">*</span>
                                         </label>
                                         <input
                                             type="number"
@@ -991,7 +974,7 @@ export default function HamjavarCreate() {
                                         />
                                     </div>
                                     <div className="col-md-3">
-                                        <label className="form-label">پیش‌بینی واحد کسری</label>
+                                        <label className="form-label">پیش‌بینی تعداد واحد معادل کسری استاد</label>
                                         <input
                                             type="text"
                                             className="form-control bg-light"
@@ -1002,7 +985,7 @@ export default function HamjavarCreate() {
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label">
-                                            پیش‌بینی فعالیت حضوری در مراکز دیگر <span className="text-danger">*</span>
+                                            پیش‌بینی تعداد واحد معادل فعالیت حضوری در مراکز دیگر <span className="text-danger">*</span>
                                         </label>
                                         <input
                                             type="number"
@@ -1017,7 +1000,7 @@ export default function HamjavarCreate() {
                                     </div>
                                     <div className="col-md-3">
                                         <label className="form-label">
-                                            پیش‌بینی فعالیت مجازی در مراکز دیگر
+                                            پیش‌بینی تعداد واحد معادل فعالیت مجازی در مراکز دیگر
                                         </label>
                                         <input
                                             type="number"
@@ -1101,7 +1084,7 @@ export default function HamjavarCreate() {
                                 onClick={openAddModal}
                             >
                                 <i className="bi bi-plus-circle me-1"></i>
-                                افزودن مورد جدید
+                                افزودن درخواست فعالیت در مرکز جدید
                             </button>
                         </div>
 
@@ -1177,6 +1160,49 @@ export default function HamjavarCreate() {
                             </div>
                         )}
                     </div>
+
+                    {/* تایید دستورالعمل */}
+                    <div className="mb-4">
+                        <div className="form-check p-3 bg-light rounded border d-flex align-items-center flex-row-reverse justify-content-end gap-2" style={{ borderColor: formData.isAgree ? '#198754' : '#dc3545', borderWidth: '2px' }}>
+                            <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id="agree"
+                                checked={formData.isAgree}
+                                onChange={(e) => setFormData(prev => ({ ...prev, isAgree: e.target.checked }))}
+                                required
+                                style={{
+                                    width: '20px',
+                                    height: '20px',
+                                    cursor: 'pointer',
+                                    flexShrink: 0,
+                                    accentColor: '#0d6efd',
+                                    border: '2px solid #0d6efd',
+                                    borderRadius: '3px',
+                                    transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.boxShadow = '0 0 0 3px rgba(13, 110, 253, 0.3)';
+                                    e.target.style.transform = 'scale(1.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.boxShadow = 'none';
+                                    e.target.style.transform = 'scale(1)';
+                                }}
+                            />
+                            <label className="form-check-label fw-bold" htmlFor="agree" style={{ cursor: 'pointer' }}>
+                                <i className="bi bi-check-circle me-2 text-primary"></i>
+                                اینجانب مطالب فوق را تایید مینمایم.
+                            </label>
+                        </div>
+
+                    </div>
+                    {
+                        <div className="text-danger small mt-1">
+                            <i className="bi bi-exclamation-circle me-1"></i>
+                            برای ثبت، لطفاًهمه موارد ستاره دار را تکمیل و موافقت نامه را تایید نمایید
+                        </div>
+                    }
 
                     {/* ============================================================
                         دکمه ثبت/ویرایش

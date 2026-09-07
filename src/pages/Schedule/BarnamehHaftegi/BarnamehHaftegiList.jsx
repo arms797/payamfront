@@ -774,6 +774,7 @@ export default function BarnamehHaftegiList() {
                                     <th>مرتبه/مقطع</th>
                                     <th>رشته تحصیلی</th>
                                     <th>وضعیت برنامه</th>
+                                    <th>عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -815,6 +816,15 @@ export default function BarnamehHaftegiList() {
                                                 <td>{displayRank}</td>
                                                 <td>{item.reshteh || '-'}</td>
                                                 <td>{getStatusBadge(item.approveStatus)}</td>
+                                                <td >{/*onClick={(e) => e.stopPropagation()}*/}
+                                                <button
+                                                    className="btn btn-sm btn-primary"
+
+                                                >
+                                                    <i className="bi bi-eye me-1"></i>
+                                                    مشاهده و تایید
+                                                </button>
+                                            </td>
                                             </tr>
                                         );
                                     })

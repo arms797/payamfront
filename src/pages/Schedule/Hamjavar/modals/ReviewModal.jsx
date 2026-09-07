@@ -14,10 +14,11 @@ export default function ReviewModal({
     const { markazList } = useMarkaz();
 
     // ============================================================
-    // همه Stateها و Hooks باید در ابتدا تعریف شوند
+    // Stateها
     // ============================================================
     const [formData, setFormData] = useState({
         tedadRoozList: [],
+        selectedFaaliatIds: [], // ← لیست فعالیت‌های انتخاب‌شده برای هر مرکز
         tozihat: '',
         upload: null
     });
@@ -38,10 +39,15 @@ export default function ReviewModal({
             (item) => parseInt(item.value) === 0
         );
 
-        if (allEqual) return 2; // تایید ✅
-        if (allZero) return 3;  // رد ❌
-        return 4;               // اصلاح ✏️
-    }, [formData.tedadRoozList]);
+        // اگر همه روزها صفر باشد و همه فعالیت‌ها غیرفعال باشد → رد
+        const allFaaliatOff = formData.selectedFaaliatIds.every(
+            (item) => item.selectedIds.length === 0
+        );
+
+        if (allEqual && !allFaaliatOff) return 2; // تایید ✅
+        if (allZero || allFaaliatOff) return 3;   // رد ❌
+        return 4;                                  // اصلاح ✏️
+    }, [formData.tedadRoozList, formData.selectedFaaliatIds]);
 
     // ============================================================
     // دریافت عنوان نقش
@@ -49,7 +55,7 @@ export default function ReviewModal({
     const roleTitle = {
         raeis: 'رئیس مرکز',
         khadamat: 'خدمات آموزشی استان',
-        moaven: 'معاونت آموزشی استان'
+        moaven: 'معاون آموزشی استان'
     }[role] || '';
 
     // ============================================================
@@ -103,7 +109,6 @@ export default function ReviewModal({
         const markaz = markazList?.find(m => m.id === markazId);
         if (!markaz) return '-';
 
-        // بر اساس Level نام مناسب را نمایش بده
         if (markaz.level === 2) {
             return 'سازمان مرکزی';
         } else if (markaz.level === 3) {
@@ -117,14 +122,25 @@ export default function ReviewModal({
     // ============================================================
     useEffect(() => {
         if (show && item?.hamjavar1s) {
+            // لیست تعداد روز
             const initialList = item.hamjavar1s.map(detail => ({
                 id: detail.id,
                 value: getDefaultValue(detail),
                 defaultValue: detail.tedadRoozElmi || 0
             }));
+
+            // لیست فعالیت‌های انتخاب‌شده برای هر مرکز (همه فعالیت‌ها به‌صورت پیش‌فرض انتخاب‌شده)
+            const initialFaaliatList = item.hamjavar1s.map(detail => ({
+                markazId: detail.markazId,
+                markazName: getMarkazName(detail.markazId),
+                faaliatIds: detail.faaliatIds || [],
+                selectedIds: detail.faaliatIds || [] // ← همه فعالیت‌ها انتخاب‌شده
+            }));
+
             setFormData(prev => ({
                 ...prev,
                 tedadRoozList: initialList,
+                selectedFaaliatIds: initialFaaliatList,
                 tozihat: '',
                 upload: null
             }));
@@ -132,7 +148,7 @@ export default function ReviewModal({
     }, [show, item, role]);
 
     // ============================================================
-    // تغییر مقدار
+    // تغییر تعداد روز
     // ============================================================
     const handleTedadChange = (index, value) => {
         const newList = [...formData.tedadRoozList];
@@ -140,6 +156,30 @@ export default function ReviewModal({
         setFormData(prev => ({ ...prev, tedadRoozList: newList }));
     };
 
+    // ============================================================
+    // تغییر انتخاب فعالیت (فقط برای معاون)
+    // ============================================================
+    const handleFaaliatToggle = (markazIndex, faaliatId) => {
+        if (role !== 'moaven') return; // فقط معاون می‌تواند فعالیت‌ها را تغییر دهد
+
+        const newList = [...formData.selectedFaaliatIds];
+        const current = newList[markazIndex];
+        const selectedIds = current.selectedIds || [];
+
+        if (selectedIds.includes(faaliatId)) {
+            // اگر قبلاً انتخاب شده بود، حذف کن
+            current.selectedIds = selectedIds.filter(id => id !== faaliatId);
+        } else {
+            // اگر انتخاب نشده بود، اضافه کن
+            current.selectedIds = [...selectedIds, faaliatId];
+        }
+
+        setFormData(prev => ({ ...prev, selectedFaaliatIds: newList }));
+    };
+
+    // ============================================================
+    // ثبت نظر
+    // ============================================================
     // ============================================================
     // ثبت نظر
     // ============================================================
@@ -153,16 +193,52 @@ export default function ReviewModal({
                 : null
         }));
 
-        onSubmit({
-            tedadRoozList: tedadRoozList,
+        // ============================================================
+        // 🔥 ساخت رشته فعالیت‌ها برای هر مرکز (فقط برای معاون)
+        // ============================================================
+        let faaliatIdsString = '';
+        if (role === 'moaven') {
+            const faaliatParts = formData.selectedFaaliatIds.map(item => {
+                // فقط فعالیت‌های انتخاب‌شده را به رشته تبدیل کن
+                if (item.selectedIds && item.selectedIds.length > 0) {
+                    return item.selectedIds.join('|');
+                }
+                return '';
+            });
+            faaliatIdsString = faaliatParts.filter(p => p !== '').join('|');
+        }
+
+        console.log('📤 ارسال به سرور:', {
+            tedadRoozList,
+            faaliatIdsString,
             nazar: autoNazar,
-            tozihat: formData.tozihat,
-            upload: formData.upload
+            tozihat: formData.tozihat
         });
+
+        // ============================================================
+        // 🔥 ساخت FormData (با رشته فعالیت‌ها)
+        // ============================================================
+        const formDataToSend = new FormData();
+        formDataToSend.append('hamjavarId', item.id);
+        formDataToSend.append('nazar', autoNazar);
+        formDataToSend.append('tozihat', formData.tozihat || '');
+        formDataToSend.append('tedadRoozList', JSON.stringify(tedadRoozList));
+
+        // فقط اگر معاون است و رشته خالی نیست، ارسال کن
+        if (role === 'moaven' && faaliatIdsString) {
+            formDataToSend.append('faaliatIdsString', faaliatIdsString);
+        }
+
+        if (formData.upload) {
+            formDataToSend.append('uploadFile', formData.upload);
+        }
+
+        // ارسال به سرور
+        onSubmit(formDataToSend);
     };
 
     // ============================================================
-    // شرط نمایش در انتهای کامپوننت (بعد از همه Hooks)
+    // شرط نمایش
     // ============================================================
     if (!show || !item) return null;
 
@@ -185,7 +261,7 @@ export default function ReviewModal({
                 style={{
                     margin: '0 auto',
                     width: '100%',
-                    maxWidth: '800px',
+                    maxWidth: '900px',
                     minHeight: '100vh',
                     display: 'flex',
                     alignItems: 'center'
@@ -197,6 +273,9 @@ export default function ReviewModal({
                         <div className="modal-header">
                             <h5 className="modal-title">
                                 ثبت نظر - {roleTitle}
+                                {role === 'moaven' && (
+                                    <span className="badge bg-info ms-2">قابل ویرایش - تعداد روز و فعالیت‌ها</span>
+                                )}
                             </h5>
                             <button type="button" className="btn-close" onClick={onClose}></button>
                         </div>
@@ -214,56 +293,109 @@ export default function ReviewModal({
                                 </div>
                             </div>
 
-                            {/* تعداد روز پیشنهادی */}
-                            <h6 className="text-primary">تعداد روز پیشنهادی</h6>
+                            {/* ============================================================
+                                لیست مراکز و فعالیت‌ها
+                                ============================================================ */}
+                            <h6 className="text-primary">
+                                مراکز و فعالیت‌های درخواستی
+                                {role === 'moaven' && (
+                                    <small className="text-muted fw-normal ms-2">
+                                        (برای غیرفعال کردن هر فعالیت، روی آن کلیک کنید)
+                                    </small>
+                                )}
+                            </h6>
                             <hr />
 
                             {item.hamjavar1s?.map((detail, index) => {
                                 const markazName = getMarkazName(detail.markazId);
-                                const faaliatNames = detail.faaliatNames?.join('، ') || '-';
+                                const faaliatNames = detail.faaliatNames || [];
                                 const currentValue = formData.tedadRoozList[index]?.value ?? '';
                                 const defaultValue = formData.tedadRoozList[index]?.defaultValue ?? 0;
+                                const selectedIds = formData.selectedFaaliatIds[index]?.selectedIds || [];
+                                const isMoaven = role === 'moaven';
 
                                 return (
-                                    <div key={detail.id} className="mb-3 p-2 border rounded bg-light">
-                                        <div className="row align-items-center">
-                                            <div className="col-md-8">
-                                                <strong>مرکز:</strong> {markazName}
+                                    <div key={detail.id} className="mb-3 p-3 border rounded bg-light">
+                                        <div className="row">
+                                            {/* ستون اطلاعات مرکز */}
+                                            <div className="col-md-6">
+                                                <strong className="fs-6">{markazName}</strong>
                                                 <br />
                                                 <small className="text-muted">
-                                                    فعالیت‌های علمی: {faaliatNames}
-                                                </small>
-                                                <br />
-                                                <small className="text-muted">
-                                                    تعداد روز درخواستی استاد: <PersianNumber className="fw-bold">{defaultValue}</PersianNumber>
+                                                    تعداد روز درخواستی استاد:{' '}
+                                                    <PersianNumber className="fw-bold">{defaultValue}</PersianNumber>
                                                 </small>
 
                                                 {/* ============================================================
-                                                    نمایش نظرات قبلی به صورت یک خط
+                                                    فعالیت‌ها (قابل کلیک برای معاون)
                                                     ============================================================ */}
-                                                <div className="mt-1 d-flex flex-wrap gap-2">
+                                                <div className="mt-2">
+                                                    <small className="text-muted d-block mb-1">فعالیت‌ها:</small>
+                                                    <div className="d-flex flex-wrap gap-1">
+                                                        {faaliatNames.length > 0 ? (
+                                                            faaliatNames.map((name, idx) => {
+                                                                const faaliatId = detail.faaliatIds?.[idx];
+                                                                const isSelected = selectedIds.includes(faaliatId);
+                                                                const isDisabled = !isMoaven; // فقط معاون می‌تواند تغییر دهد
+
+                                                                return (
+                                                                    <button
+                                                                        key={idx}
+                                                                        type="button"
+                                                                        className={`badge ${isSelected ? 'bg-primary' : 'bg-secondary'} p-2`}
+                                                                        style={{
+                                                                            cursor: isMoaven ? 'pointer' : 'default',
+                                                                            opacity: isSelected ? 1 : 0.5,
+                                                                            fontSize: '12px',
+                                                                            border: isSelected ? '2px solid #0d6efd' : '2px solid transparent',
+                                                                            transition: 'all 0.2s'
+                                                                        }}
+                                                                        onClick={() => {
+                                                                            if (isMoaven && faaliatId) {
+                                                                                handleFaaliatToggle(index, faaliatId);
+                                                                            }
+                                                                        }}
+                                                                        title={isMoaven ? 'کلیک برای تغییر وضعیت' : ''}
+                                                                    >
+                                                                        {isSelected ? '✅' : '⬜'} {name}
+                                                                    </button>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <span className="text-muted">-</span>
+                                                        )}
+                                                    </div>
+                                                    {isMoaven && faaliatNames.length > 0 && (
+                                                        <small className="text-muted d-block mt-1">
+                                                            <i className="bi bi-info-circle me-1"></i>
+                                                            برای غیرفعال کردن هر فعالیت، روی آن کلیک کنید
+                                                        </small>
+                                                    )}
+                                                </div>
+
+                                                {/* ============================================================
+                                                    نظرات قبلی
+                                                    ============================================================ */}
+                                                <div className="mt-2 d-flex flex-wrap gap-2">
                                                     <small className="text-muted">
-                                                        <span className="fw-bold">نظر مسئولین</span>
+                                                        <span className="fw-bold">نظرات قبلی:</span>
                                                     </small>
                                                     <small className="text-muted">
-                                                        <span className="fw-bold">رئیس: </span>
-                                                        <PersianNumber className="fw-bold text-secondary">
+                                                        رئیس: <PersianNumber className="fw-bold">
                                                             {detail.tedadRoozRaeis !== null && detail.tedadRoozRaeis !== undefined
                                                                 ? detail.tedadRoozRaeis
                                                                 : '-'}
                                                         </PersianNumber>
                                                     </small>
                                                     <small className="text-muted">
-                                                        <span className="fw-bold">خدمات آموزشی استان: </span>
-                                                        <PersianNumber className="fw-bold text-secondary">
+                                                        خدمات: <PersianNumber className="fw-bold">
                                                             {detail.tedadRoozKhadamat !== null && detail.tedadRoozKhadamat !== undefined
                                                                 ? detail.tedadRoozKhadamat
                                                                 : '-'}
                                                         </PersianNumber>
                                                     </small>
                                                     <small className="text-muted">
-                                                        <span className="fw-bold">معاونت آموزشی استان: </span>
-                                                        <PersianNumber className="fw-bold text-secondary">
+                                                        معاون: <PersianNumber className="fw-bold">
                                                             {detail.tedadRoozMoaven !== null && detail.tedadRoozMoaven !== undefined
                                                                 ? detail.tedadRoozMoaven
                                                                 : '-'}
@@ -272,26 +404,37 @@ export default function ReviewModal({
                                                 </div>
                                             </div>
 
-                                            <div className="col-md-4">
-                                                <small className="form-label">
-                                                    تعداد روز مد نظر {roleTitle}
-                                                </small>
-                                                <input
-                                                    type="number"
-                                                    className="form-control"
-                                                    value={currentValue}
-                                                    onChange={(e) => handleTedadChange(index, e.target.value)}
-                                                    min="0"
-                                                    max="6"
-                                                    placeholder="۰ تا ۶"
-                                                />
+                                            {/* ستون تعداد روز */}
+                                            <div className="col-md-6">
+                                                <div className="d-flex flex-column">
+                                                    <label className="form-label small">
+                                                        تعداد روز مد نظر {roleTitle}
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        className="form-control"
+                                                        value={currentValue}
+                                                        onChange={(e) => handleTedadChange(index, e.target.value)}
+                                                        min="0"
+                                                        max="6"
+                                                        placeholder="۰ تا ۶"
+                                                    />
+                                                    {role === 'moaven' && (
+                                                        <small className="text-muted mt-1">
+                                                            <i className="bi bi-info-circle me-1"></i>
+                                                            با تغییر تعداد روز، نظر خودکار به‌روز می‌شود
+                                                        </small>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 );
                             })}
 
-                            {/* نمایش نظر خودکار */}
+                            {/* ============================================================
+                                نمایش نظر خودکار
+                                ============================================================ */}
                             <div className="mb-3 p-2 border rounded bg-light d-flex align-items-center gap-3 flex-wrap">
                                 {autoNazar ? (
                                     <span className={`fw-bold fs-6 ${getNazarClass(autoNazar)}`}>
@@ -302,11 +445,12 @@ export default function ReviewModal({
                                 )}
                                 <small className="text-muted">
                                     <i className="bi bi-info-circle me-1"></i>
-                                    {autoNazar === 2 && 'تمامی روزهای پیشنهادی با روزهای علمی برابر است → تایید'}
-                                    {autoNazar === 3 && 'تمامی روزهای پیشنهادی صفر است → رد'}
-                                    {autoNazar === 4 && 'برخی روزهای پیشنهادی با روزهای علمی برابر نیست و همه صفر نیستند → اصلاح'}
+                                    {autoNazar === 2 && 'تمامی روزها با پیشنهاد استاد برابر است و همه فعالیت‌ها فعال → تایید'}
+                                    {autoNazar === 3 && 'تمامی روزها صفر است یا همه فعالیت‌ها غیرفعال → رد'}
+                                    {autoNazar === 4 && 'برخی تغییرات اعمال شده است → اصلاح'}
                                 </small>
                             </div>
+
                             {/* توضیحات تکمیلی */}
                             <div className="mb-3">
                                 <label className="form-label">توضیحات تکمیلی (اختیاری)</label>
