@@ -640,6 +640,22 @@ export default function HamjavarCreate() {
             }
         }
     };
+    // ============================================================
+    // 🔥 تابع نمایش نام مرکز بر اساس Level
+    // ============================================================
+    const getMarkazDisplayName = (markazId) => {
+        if (!markazId) return '-';
+        const markaz = markazList?.find(m => m.id === markazId);
+        if (!markaz) return 'مرکز نامشخص';
+
+        if (markaz.level === 2) {
+            return 'سازمان مرکزی';
+        }
+        if (markaz.level === 3) {
+            return `ستاد استان ${markaz.naamOstan || ''}`.trim() || 'ستاد استان';
+        }
+        return markaz.naamMarkaz || `مرکز ${markaz.id}`;
+    };
 
     // ============================================================
     // دریافت نام فعالیت
@@ -1121,7 +1137,10 @@ export default function HamjavarCreate() {
                                                             {item.inOstan ? 'داخل استان' : 'خارج استان'}
                                                         </span>
                                                     </td>
-                                                    <td>{markaz?.naamMarkaz || '-'}</td>
+                                                    <td>
+                                                        {getMarkazDisplayName(markaz.id)
+                                                        /*markaz?.naamMarkaz || '-'*/}
+                                                    </td>
                                                     <td>{noeAnjamText}</td>
                                                     <td>
                                                         <div className="d-flex flex-wrap gap-1">
@@ -1230,8 +1249,8 @@ export default function HamjavarCreate() {
             </div>
 
             {/* ============================================================
-    مودال افزودن/ویرایش آیتم
-    ============================================================ */}
+                مودال افزودن/ویرایش آیتم
+                ============================================================ */}
             {showModal && (
                 <div
                     className="modal show d-block"

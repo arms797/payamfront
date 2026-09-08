@@ -585,7 +585,7 @@ export default function BarnamehHaftegiDetail() {
                 {/* ============================================================
                 ۲️⃣ مدیر گروه - فقط اگر استاد تایید کرده و خودش هنوز نظر نداده
                 ============================================================ */}
-                {isModirGrooh && isOstadApproved  && !isFinalApproved && (
+                {isModirGrooh && isOstadApproved && !isFinalApproved && (
                     <>
                         <button className="btn btn-success btn-sm" onClick={() => handleConfirmByModir(1)} disabled={submitting}>
                             <i className="bi bi-check-lg me-1"></i> تأیید
@@ -670,7 +670,22 @@ export default function BarnamehHaftegiDetail() {
         const map = { 5: 'کارشناسی', 10: 'کارشناسی ارشد', 15: 'دکتری' };
         return map[maghta] || maghta || '-';
     };
+    // ============================================================
+    // 🔥 تابع نمایش نام مرکز بر اساس Level
+    // ============================================================
+    const getMarkazDisplayName = (markazId) => {
+        if (!markazId) return '-';
+        const markaz = markazList?.find(m => m.id === markazId);
+        if (!markaz) return 'مرکز نامشخص';
 
+        if (markaz.level === 2) {
+            return 'سازمان مرکزی';
+        }
+        if (markaz.level === 3) {
+            return `ستاد استان ${markaz.naamOstan || ''}`.trim() || 'ستاد استان';
+        }
+        return markaz.naamMarkaz || `مرکز ${markaz.id}`;
+    };
     // ============================================================
     // جدول جدید: مینیمال و شفاف
     // ============================================================
@@ -739,13 +754,12 @@ export default function BarnamehHaftegiDetail() {
                                             {getDayTitle(dayCode)}
                                         </td>
                                         <td className="align-middle" style={{ height: '60px' }}>
-                                            {dayMarkazName || '-'}
-                                        </td>
+                                            {getMarkazDisplayName(firstItem?.markazId) || '-'}                                        </td>
                                         {activeHours.map(hour => {
                                             const cell = hourMap[hour.codeSaat];
                                             const activityId = cell?.activityId || null;
                                             const hasActivity = !!activityId;
-                                            const markazName = getMarkazName(cell?.markazId); // ✅ حرف کوچک
+                                            const markazName = getMarkazDisplayName(cell?.markazId); // ✅ حرف کوچک
                                             const color = getFaaliatColor(activityId);
 
                                             return (

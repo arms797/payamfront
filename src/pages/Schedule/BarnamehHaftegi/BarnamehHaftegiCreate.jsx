@@ -34,6 +34,7 @@ export default function BarnamehHaftegiCreate() {
     const [ostadMarkazId, setOstadMarkazId] = useState(null);
     const [ostadOstanCode, setOstadOstanCode] = useState(null);
     const [allowedMarkazIds, setAllowedMarkazIds] = useState([]);
+    const [permittedMarkazs, setPermittedMarkazs] = useState([]); // لیست کامل مراکز مجاز با جزئیات
     const [requiredSessions, setRequiredSessions] = useState(20);
     const [isElmiOstad, setIsElmiOstad] = useState(false);
     const [isMadove, setIsMadove] = useState(false);
@@ -161,6 +162,10 @@ export default function BarnamehHaftegiCreate() {
                     params: { ostadId, termCode: selectedTerm }
                 });
                 if (response.data?.success) {
+                    console.log('📊 داده‌های مراکز مجاز از بک‌اند:', response.data.data);
+
+                    setPermittedMarkazs(response.data.data);
+
                     const ids = response.data.data.map(item => item.markazId);
                     setAllowedMarkazIds(ids);
                 } else {
@@ -202,11 +207,12 @@ export default function BarnamehHaftegiCreate() {
     // ============================================================
     const stats = useMemo(() => {
         let totalSessions = 0;
-        let daysWithActivity = new Set();
+        const daysWithActivity = new Set();
 
         Object.keys(schedule).forEach(dayCode => {
             const day = schedule[dayCode];
             if (!day) return;
+
             let daySessions = 0;
             Object.values(day.hours || {}).forEach(cell => {
                 if (cell?.faaliatId) {
@@ -214,6 +220,7 @@ export default function BarnamehHaftegiCreate() {
                     daySessions++;
                 }
             });
+
             if (daySessions > 0) {
                 daysWithActivity.add(dayCode);
             }
@@ -222,12 +229,65 @@ export default function BarnamehHaftegiCreate() {
         const totalDays = daysWithActivity.size;
         const isComplete = totalSessions >= requiredSessions && totalDays >= 5;
 
+        console.log('📊 آمار:', {
+            totalSessions,
+            totalDays,
+            requiredSessions,
+            isComplete,
+            daysWithActivity: Array.from(daysWithActivity)
+        });
+
         return { totalSessions, totalDays, requiredSessions, isComplete };
     }, [schedule, requiredSessions]);
-
     // ============================================================
     // دریافت لیست مراکز قابل انتخاب (بر اساس قوانین)
     // ============================================================
+    const getAvailableMarkazs = useCallback(() => {
+        if (!markazList) return [];
+
+        // 1️⃣ مراکز داخل استان استاد (Level 4 و Level 3)
+        let available = markazList.filter(m =>
+            m.vazeeyat === true &&
+            m.codeOstan === ostadOstanCode &&
+            (m.level === 4 || m.level === 3 || m.level === 2) // مراکز و ستاد استان
+        );
+
+        // 2️⃣ مراکز مجاز از Hamjavar1 (می‌توانند خارج از استان باشند)
+        if (allowedMarkazIds && allowedMarkazIds.length > 0) {
+            const permittedFromHamjavar = markazList.filter(m =>
+                m.vazeeyat === true &&
+                allowedMarkazIds.includes(m.id)
+            );
+            // اضافه کردن به لیست (بدون تکرار)
+            permittedFromHamjavar.forEach(m => {
+                if (!available.some(a => a.id === m.id)) {
+                    available.push(m);
+                }
+            });
+        }
+        //console.log('available :', available)
+
+        // 3️⃣ مرکز اصلی استاد (Level 4)
+        const mainMarkaz = markazList.find(m => m.id === ostadMarkazId);
+        if (mainMarkaz && mainMarkaz.vazeeyat === true) {
+            if (!available.some(a => a.id === mainMarkaz.id)) {
+                available.push(mainMarkaz);
+            }
+        }
+        //console.log('mainMarkaz :', mainMarkaz)
+        // 4️⃣ فیلتر نهایی بر اساس نوع استاد (هیات علمی/مدعو)
+        if (isElmiOstad && !stats.isComplete) {
+            // فقط مرکز اصلی و مراکز مجاز
+            return available.filter(m =>
+                m.id === ostadMarkazId ||
+                allowedMarkazIds.includes(m.id) ||
+                (m.level === 3 && m.codeOstan === ostadOstanCode) // ستاد استان خود استاد
+            );
+        }
+
+        return available;
+    }, [markazList, ostadOstanCode, ostadMarkazId, allowedMarkazIds, isElmiOstad, stats.isComplete]);
+    /*
     const getAvailableMarkazs = useCallback(() => {
         if (!markazList || !ostadOstanCode) return [];
 
@@ -247,7 +307,7 @@ export default function BarnamehHaftegiCreate() {
 
         return available;
     }, [markazList, ostadOstanCode, ostadMarkazId, allowedMarkazIds, isElmiOstad, stats.isComplete]);
-
+*/
     // ============================================================
     // مقداردهی اولیه جدول
     // ============================================================
@@ -346,6 +406,83 @@ export default function BarnamehHaftegiCreate() {
                     f.vazeeat === true &&
                     (f.noeAnjam === 1 || f.noeAnjam === 3)
                 );
+
+                // تشخیص نوع مرکز
+                const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
+                const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+
+                // ============================================================
+                // حالت ۱: مرکز اصلی استاد → بدون فیلتر اضافی
+                // ============================================================
+                if (isMainMarkaz) {
+                    // هیچ فیلتر اضافی اعمال نمی‌شود
+                }
+                // ============================================================
+                // حالت ۲: مرکز خارج از استان → بدون فیلتر اضافی
+                // ============================================================
+                else if (isOutsideOstan) {
+                    // هیچ فیلتر اضافی اعمال نمی‌شود
+                }
+                // ============================================================
+                // حالت ۳: ستاد استان و مراکز همجوار داخل استان → بر اساس allowedFaaliatIds
+                // ============================================================
+                else {
+                    // پیدا کردن اطلاعات مرکز مجاز از لیست permittedMarkazs
+                    const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
+
+                    if (permittedMarkaz?.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
+                        baseFaaliats = baseFaaliats.filter(f =>
+                            permittedMarkaz.allowedFaaliatIds.includes(f.id)
+                        );
+                    } else {
+                        // اگر لیست مجوزها خالی بود، هیچ فعالیتی نمایش نده
+                        baseFaaliats = [];
+                    }
+                }
+
+                // ============================================================
+                // قانون IsMadove برای مدرس مدعو
+                // ============================================================
+                if (isMadove) {
+                    baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+                }
+            }
+        }
+
+        // 🔥 اعمال فیلتر استثناها با استفاده از تابع getAllowedFaaliats
+        const allowedFaaliats = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
+
+        setActivityModalData({
+            dayCode,
+            hourCode,
+            currentFaaliatId: currentFaaliatId || null,
+            currentMarkazId: currentMarkazId || null
+        });
+
+        setActivityForm({
+            mode: 'hozoory',
+            markazId: currentMarkazId || dayMarkazId || '',
+            ostanId: user?.markazOstan || '',
+            faaliatId: currentFaaliatId || '',
+            allowedFaaliats: allowedFaaliats  // ← لیست فیلترشده
+        });
+
+        setShowActivityModal(true);
+    };
+    /*
+    const openActivityModal = (dayCode, hourCode, currentFaaliatId, currentMarkazId) => {
+        const dayMarkazId = schedule[dayCode]?.markazId;
+        const numericMarkazId = dayMarkazId ? parseInt(dayMarkazId) : null;
+
+        // 🔥 محاسبه لیست پایه فعالیت‌های حضوری (بدون فیلتر استثنا)
+        let baseFaaliats = [];
+        if (faaliats && faaliats.length > 0 && numericMarkazId) {
+            const markaz = markazList?.find(m => m.id === numericMarkazId);
+            if (markaz) {
+                baseFaaliats = faaliats.filter(f =>
+                    f.vazeeat === true &&
+                    (f.noeAnjam === 1 || f.noeAnjam === 3)
+                );
                 const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
                 if (!isMainMarkaz && isElmiOstad) {
                     baseFaaliats = baseFaaliats.filter(f => allowedMarkazIds.includes(f.id));
@@ -376,7 +513,7 @@ export default function BarnamehHaftegiCreate() {
 
         setShowActivityModal(true);
     };
-
+*/
     const handleActivityModalSave = () => {
         const { dayCode, hourCode } = activityModalData;
         const { mode, markazId, faaliatId, allowedFaaliats } = activityForm;
@@ -421,6 +558,221 @@ export default function BarnamehHaftegiCreate() {
         toast.success('فعالیت با موفقیت انتخاب شد');
     };
 
+    // فعالیت های مجاز
+    const updateAllowedFaaliats = (markazId, isVirtual) => {
+        const numericMarkazId = markazId ? parseInt(markazId) : null;
+        const { dayCode, hourCode } = activityModalData;
+
+        console.log('🔍 updateAllowedFaaliats called with:', {
+            numericMarkazId,
+            isVirtual,
+            dayCode,
+            hourCode,
+            permittedMarkazsLength: permittedMarkazs?.length,
+            faaliatsLength: faaliats?.length
+        });
+
+        if (!faaliats || faaliats.length === 0 || !dayCode || !hourCode) {
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
+            return;
+        }
+
+        const markaz = markazList?.find(m => m.id === numericMarkazId);
+        if (!markaz) {
+            console.log('❌ مرکز پیدا نشد:', numericMarkazId);
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
+            return;
+        }
+
+        // پیدا کردن اطلاعات مرکز مجاز از لیست permittedMarkazs
+        const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
+        console.log('📊 permittedMarkaz پیدا شد:', permittedMarkaz);
+
+        // تشخیص نوع مرکز
+        const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
+        const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+
+        console.log('🏷️ نوع مرکز:', {
+            isMainMarkaz,
+            isOutsideOstan,
+            markazLevel: markaz.level,
+            markazCodeOstan: markaz.codeOstan,
+            ostadOstanCode
+        });
+
+        // ============================================================
+        // فیلتر اولیه بر اساس نوع انجام (حضوری/مجازی)
+        // ============================================================
+        let baseFaaliats = faaliats.filter(f => f.vazeeat === true);
+
+        if (isVirtual) {
+            baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 2 || f.noeAnjam === 3);
+        } else {
+            baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 1 || f.noeAnjam === 3);
+        }
+
+        console.log('📋 baseFaaliats بعد از فیلتر noeAnjam:', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
+
+        // ============================================================
+        // قوانین اصلی
+        // ============================================================
+        // 🔥 اگر حالت مجازی است، هیچ فیلتر مجوزی اعمال نکن
+        if (isVirtual) {
+            console.log('✅ حالت مجازی - بدون فیلتر مجوز');
+            // هیچ فیلتر اضافی اعمال نمی‌شود
+        }
+        // حالت ۱: مرکز اصلی استاد → فقط بر اساس نوع مرکز
+        else if (isMainMarkaz) {
+            console.log('✅ مرکز اصلی استاد - بدون فیلتر اضافی');
+        }
+        // حالت ۲: مرکز خارج از استان → فقط بر اساس نوع مرکز
+        else if (isOutsideOstan) {
+            console.log('✅ مرکز خارج از استان - بدون فیلتر اضافی');
+        }
+        // حالت ۳: ستاد استان و مراکز همجوار داخل استان → بر اساس allowedFaaliatIds
+        else if (permittedMarkaz) {
+            console.log('✅ مرکز همجوار/ستاد استان - اعمال allowedFaaliatIds');
+            console.log('📋 allowedFaaliatIds:', permittedMarkaz.allowedFaaliatIds);
+
+            if (permittedMarkaz.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
+                const beforeFilter = baseFaaliats.length;
+                baseFaaliats = baseFaaliats.filter(f =>
+                    permittedMarkaz.allowedFaaliatIds.includes(f.id)
+                );
+                console.log(`📊 از ${beforeFilter} فعالیت به ${baseFaaliats.length} فعالیت رسیدیم`);
+                console.log('📋 فعالیت‌های نهایی:', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
+            } else {
+                console.log('⚠️ allowedFaaliatIds خالی است');
+                baseFaaliats = [];
+            }
+        } else {
+            console.log('⚠️ مرکز در permittedMarkazs پیدا نشد!');
+            baseFaaliats = [];
+        }
+
+        // ============================================================
+        // قانون IsMadove برای مدرس مدعو (برای همه حالت‌ها)
+        // ============================================================
+        if (isMadove) {
+            const beforeFilter = baseFaaliats.length;
+            baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+            console.log(`📊 بعد از فیلتر IsMadove: از ${beforeFilter} به ${baseFaaliats.length}`);
+        }
+
+        // ============================================================
+        // اعمال استثناها
+        // ============================================================
+        const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
+        console.log('✅ فعالیت‌های نهایی مجاز:', allowed.map(f => ({ id: f.id, name: f.name })));
+
+        setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
+    };
+    /*
+        const updateAllowedFaaliats = (markazId, isVirtual) => {
+            const numericMarkazId = markazId ? parseInt(markazId) : null;
+            const { dayCode, hourCode } = activityModalData;
+    
+            console.log('🔍 updateAllowedFaaliats called with:', {
+                numericMarkazId,
+                isVirtual,
+                dayCode,
+                hourCode,
+                permittedMarkazsLength: permittedMarkazs?.length,
+                faaliatsLength: faaliats?.length
+            });
+    
+            if (!faaliats || faaliats.length === 0 || !dayCode || !hourCode) {
+                setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
+                return;
+            }
+    
+            const markaz = markazList?.find(m => m.id === numericMarkazId);
+            if (!markaz) {
+                console.log('❌ مرکز پیدا نشد:', numericMarkazId);
+                setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
+                return;
+            }
+    
+            // پیدا کردن اطلاعات مرکز مجاز از لیست permittedMarkazs
+            const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
+            console.log('📊 permittedMarkaz پیدا شد:', permittedMarkaz);
+    
+            // تشخیص نوع مرکز
+            const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
+            const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+    
+            console.log('🏷️ نوع مرکز:', {
+                isMainMarkaz,
+                isOutsideOstan,
+                markazLevel: markaz.level,
+                markazCodeOstan: markaz.codeOstan,
+                ostadOstanCode
+            });
+    
+            // ============================================================
+            // فیلتر اولیه بر اساس نوع انجام (حضوری/مجازی)
+            // ============================================================
+            let baseFaaliats = faaliats.filter(f => f.vazeeat === true);
+    
+            if (isVirtual) {
+                baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 2 || f.noeAnjam === 3);
+            } else {
+                baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 1 || f.noeAnjam === 3);
+            }
+    
+            console.log('📋 baseFaaliats بعد از فیلتر noeAnjam:', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
+    
+            // ============================================================
+            // قوانین اصلی
+            // ============================================================
+    
+            // حالت ۱: مرکز اصلی استاد → فقط بر اساس نوع مرکز
+            if (isMainMarkaz) {
+                console.log('✅ مرکز اصلی استاد - بدون فیلتر اضافی');
+            }
+            // حالت ۲: مرکز خارج از استان → فقط بر اساس نوع مرکز
+            else if (isOutsideOstan) {
+                console.log('✅ مرکز خارج از استان - بدون فیلتر اضافی');
+            }
+            // حالت ۳: ستاد استان و مراکز همجوار داخل استان → بر اساس allowedFaaliatIds
+            else if (permittedMarkaz) {
+                console.log('✅ مرکز همجوار/ستاد استان - اعمال allowedFaaliatIds');
+                console.log('📋 allowedFaaliatIds:', permittedMarkaz.allowedFaaliatIds);
+    
+                if (permittedMarkaz.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
+                    const beforeFilter = baseFaaliats.length;
+                    baseFaaliats = baseFaaliats.filter(f =>
+                        permittedMarkaz.allowedFaaliatIds.includes(f.id)
+                    );
+                    console.log(`📊 از ${beforeFilter} فعالیت به ${baseFaaliats.length} فعالیت رسیدیم`);
+                    console.log('📋 فعالیت‌های نهایی:', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
+                } else {
+                    console.log('⚠️ allowedFaaliatIds خالی است');
+                    baseFaaliats = [];
+                }
+            } else {
+                console.log('⚠️ مرکز در permittedMarkazs پیدا نشد!');
+                baseFaaliats = [];
+            }
+    
+            // ============================================================
+            // قانون IsMadove برای مدرس مدعو
+            // ============================================================
+            if (isMadove) {
+                const beforeFilter = baseFaaliats.length;
+                baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+                console.log(`📊 بعد از فیلتر IsMadove: از ${beforeFilter} به ${baseFaaliats.length}`);
+            }
+    
+            // ============================================================
+            // اعمال استثناها
+            // ============================================================
+            const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
+            console.log('✅ فعالیت‌های نهایی مجاز:', allowed.map(f => ({ id: f.id, name: f.name })));
+    
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
+        };
+        */
     const handleActivityModeChange = (mode) => {
         const dayCode = activityModalData.dayCode;
         const hourCode = activityModalData.hourCode;
@@ -486,45 +838,21 @@ export default function BarnamehHaftegiCreate() {
         }
     };
 
-    const updateAllowedFaaliats = (markazId, isVirtual) => {
-        const numericMarkazId = markazId ? parseInt(markazId) : null;
-        const { dayCode, hourCode } = activityModalData;
+    // ============================================================
+    // 🔥 تابع نمایش نام مرکز بر اساس Level (برای جدول)
+    // ============================================================
+    const getMarkazDisplayName = (markazId) => {
+        if (!markazId) return 'انتخاب مرکز';
+        const markaz = markazList?.find(m => m.id === markazId);
+        if (!markaz) return 'مرکز نامشخص';
 
-
-
-        if (!faaliats || faaliats.length === 0 || !dayCode || !hourCode) {
-            setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
-            return;
+        if (markaz.level === 2) {
+            return 'سازمان مرکزی';
         }
-
-        const markaz = markazList?.find(m => m.id === numericMarkazId);
-        if (!markaz) {
-            setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
-            return;
+        if (markaz.level === 3) {
+            return `ستاد استان ${markaz.naamOstan || ''}`.trim() || 'ستاد استان';
         }
-
-        // 🔥 مرحله ۱: فیلتر بر اساس نوع انجام (حضوری/مجازی)
-        let baseFaaliats = faaliats.filter(f => f.vazeeat === true);
-
-        if (isVirtual) {
-            baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 2 || f.noeAnjam === 3);
-        } else {
-            baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 1 || f.noeAnjam === 3);
-
-            // اعمال قوانین مراکز مجاز و IsMadove (فقط برای حضوری)
-            const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
-            if (!isMainMarkaz && isElmiOstad) {
-                baseFaaliats = baseFaaliats.filter(f => allowedMarkazIds.includes(f.id));
-            }
-            if (isMadove) {
-                baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
-            }
-        }
-
-        // 🔥 مرحله ۲: اعمال استثناها (برای هر دو حالت)
-        const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
-
-        setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
+        return markaz.naamMarkaz || `مرکز ${markaz.id}`;
     };
 
     // ============================================================
@@ -747,7 +1075,8 @@ export default function BarnamehHaftegiCreate() {
                                         >
                                             {dayData.markazId ? (
                                                 <span>
-                                                    {markazList?.find(m => m.id === dayData.markazId)?.naamMarkaz || ' '}
+                                                    {getMarkazDisplayName(dayData.markazId)}
+                                                    {/*markazList?.find(m => m.id === dayData.markazId)?.naamMarkaz || ' '*/}
                                                 </span>
                                             ) : (
                                                 <span className="text-muted">انتخاب مرکز</span>
@@ -922,20 +1251,31 @@ export default function BarnamehHaftegiCreate() {
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    // ============================================================
+                                    // محاسبه تعداد روزهای منحصربه‌فرد برای هر گروه
+                                    // ============================================================
                                     {faaliatGroupList.map(group => {
-                                        // محاسبه مجموع جلسات این گروه از schedule
                                         let totalSessions = 0;
+                                        const daysWithActivity = new Set(); // ← اضافه شد
+
                                         Object.values(schedule).forEach(day => {
+                                            let dayHasActivity = false;
                                             Object.values(day.hours || {}).forEach(cell => {
                                                 if (cell?.faaliatId) {
                                                     const faaliat = faaliats.find(f => f.id === cell.faaliatId);
                                                     if (faaliat?.faaliatGroupId === group.id) {
                                                         totalSessions++;
+                                                        dayHasActivity = true;
                                                     }
                                                 }
                                             });
+                                            if (dayHasActivity) {
+                                                daysWithActivity.add(day); // یا dayCode
+                                            }
                                         });
+
                                         const totalHours = totalSessions * 2;
+                                        const totalDays = daysWithActivity.size; // ← تعداد روزهای منحصربه‌فرد
 
                                         // تعیین وضعیت
                                         let statusColor = 'success';
@@ -947,10 +1287,10 @@ export default function BarnamehHaftegiCreate() {
                                         } else if (group.maxSaatDarHafteh && totalHours > group.maxSaatDarHafteh) {
                                             statusColor = 'danger';
                                             statusText = `❌ بیشتر از ${group.maxSaatDarHafteh} ساعت`;
-                                        } else if (group.minDayDarHafteh && totalSessions < group.minDayDarHafteh) {
+                                        } else if (group.minDayDarHafteh && totalDays < group.minDayDarHafteh) {
                                             statusColor = 'warning';
                                             statusText = `⚠️ کمتر از ${group.minDayDarHafteh} روز`;
-                                        } else if (group.maxDayDarHafteh && totalSessions > group.maxDayDarHafteh) {
+                                        } else if (group.maxDayDarHafteh && totalDays > group.maxDayDarHafteh) {
                                             statusColor = 'danger';
                                             statusText = `❌ بیشتر از ${group.maxDayDarHafteh} روز`;
                                         }
@@ -959,17 +1299,23 @@ export default function BarnamehHaftegiCreate() {
                                             <tr key={group.id}>
                                                 <td className="fw-bold">{group.title}</td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.minSaatDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.minSaatDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.maxSaatDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.maxSaatDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.minDayDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.minDayDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
-                                                    <PersianNumber>{group.maxDayDarHafteh ?? '-'}</PersianNumber></td>
+                                                    <PersianNumber>{group.maxDayDarHafteh ?? '-'}</PersianNumber>
+                                                </td>
                                                 <td className="text-center fw-bold">
-                                                    <PersianNumber>{totalSessions}</PersianNumber></td>
+                                                    <PersianNumber>{totalSessions}</PersianNumber>
+                                                </td>
                                                 <td className="text-center fw-bold">
-                                                    <PersianNumber>{totalHours}</PersianNumber></td>
+                                                    <PersianNumber>{totalHours}</PersianNumber>
+                                                </td>
                                                 <td className="text-center">
                                                     <span className={`badge bg-${statusColor}`}>
                                                         {statusText}

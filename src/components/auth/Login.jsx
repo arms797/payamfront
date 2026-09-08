@@ -91,9 +91,6 @@ export default function Login() {
       </h5>
 
       <hr />
-
-      <h6 className="text-center mb-4">ورود به سامانه</h6>
-
       {error && (
         <div className="alert alert-danger">
           <i className="bi bi-exclamation-triangle-fill me-2"></i>

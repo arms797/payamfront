@@ -17,6 +17,26 @@ const CenterModal = ({
 }) => {
     if (!show) return null;
 
+    // ============================================================
+    // 🔥 تابع نمایش نام مرکز بر اساس Level
+    // ============================================================
+    const getDisplayName = (markaz) => {
+        if (!markaz) return '';
+
+        // سطح 2: سازمان مرکزی
+        if (markaz.level === 2) {
+            return 'سازمان مرکزی پیام نور';
+        }
+
+        // سطح 3: ستاد استان
+        if (markaz.level === 3) {
+            return `ستاد استان ${markaz.naamOstan || ''}`.trim() || 'ستاد استان';
+        }
+
+        // سطح 4: مرکز عادی
+        return markaz.naamMarkaz || '';
+    };
+
     return (
         <div
             className="modal show d-block"
@@ -61,11 +81,15 @@ const CenterModal = ({
                                 {availableCenters.map(m => {
                                     const isMain = m.id === ostadMarkazId;
                                     const isPermitted = allowedMarkazIds.includes(m.id);
+                                    const displayName = getDisplayName(m);
+                                    // اگر نام نمایشی خالی بود، از naamMarkaz استفاده کن
+                                    const finalName = displayName || m.naamMarkaz || `مرکز ${m.id}`;
+
                                     return (
                                         <option key={m.id} value={m.id}>
-                                            {m.naamMarkaz}
-                                            {/*isMain && ' (مرکز اصلی)'}
-                                            {isPermitted && !isMain && ' (همجوار)'*/}
+                                            {finalName}
+                                            {isMain && ' (مرکز اصلی)'}
+                                            {/*isPermitted && !isMain && ' (مجوز گرفته شده)'*/}
                                         </option>
                                     );
                                 })}
