@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import {
@@ -27,52 +27,7 @@ export const AuthProvider = ({ children }) => {
 
     // ============================================================
     // بارگذاری اطلاعات کاربر از localStorage
-    // ============================================================
-    /* useEffect(() => {
-         const loadUser = async () => {
-             try {
-                 console.log('🔍 loadUser STARTED');
- 
-                 const token = getAccessToken();
-                 const refresh = getRefreshToken();
-                 const userData = getUserData();
- 
-                 // ============================================================
-                 // 🔥 لاگ دقیق
-                 // ============================================================
-                 console.log('🔍 loadUser - token (first 30):', token?.substring(0, 30) + '...');
-                 console.log('🔍 loadUser - userData:', userData);
-                 console.log('🔍 loadUser - currentRoleId from userData:', userData?.currentRoleId);
-                 console.log('🔍 loadUser - currentRoleName from userData:', userData?.currentRoleName);
- 
-                 if (token && refresh && userData) {
-                     setAccessToken(token);
-                     setRefreshToken(refresh);
-                     setUser(userData);
-                     setRoles(userData.roles || []);
-                     setMenus(userData.menus || []);
-                     setPermissions(userData.permissions || []);
-                     setCurrentRoleId(userData.currentRoleId || null);
-                     setIsAuthenticated(true);
- 
-                     // ============================================================
-                     // 🔥 تنظیم هدر Axios هنگام بارگذاری اولیه
-                     // ============================================================
-                     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                 }
-                 else {
-                     console.log('❌ loadUser - missing data, not authenticated');
-                     setIsAuthenticated(false);
-                 }
-             } catch (error) {
-                 console.error('خطا در بارگذاری کاربر:', error);
-             } finally {
-                 setLoading(false);
-             }
-         };
- 
-         loadUser();
-     }, []);*/
+    // ============================================================    
 
     // در AuthContext.jsx - useEffect
     useEffect(() => {
@@ -124,7 +79,6 @@ export const AuthProvider = ({ children }) => {
         setCurrentRoleId(data.currentRoleId || null);
         setCurrentMarkazId(data.markazId || null);
         setIsAuthenticated(true);
-
         // ============================================================
         // 🔥 تنظیم هدر Axios بعد از لاگین
         // ============================================================
@@ -202,6 +156,35 @@ export const AuthProvider = ({ children }) => {
         if (!permissionList || permissionList.length === 0) return true;
         return permissionList.every(p => permissions.includes(p));
     };
+    // ============================================================
+    // 🔥 تعیین نوع کاربر (فقط بر اساس نقش و نوع همکاری)
+    // ============================================================
+    // 🔥 محاسبه یکباره نوع کاربر
+    // ============================================================
+    const userType = useMemo(() => {
+        if (!user) return 'guest';
+
+        if (user.currentRoleName === 'استاد') {
+            if (user.noeHamkari === 1) {
+                return 'ostadElmi';
+            } else {
+                return 'ostadMadov';
+            }
+        }
+        return 'ostadNo';
+    }, [user]);
+
+    const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
+    const isOstadElmi = useMemo(() => {
+        if (!user || user.currentRoleName !== 'استاد') return false;
+        if (user.noeHamkari === undefined || user.noeHamkari === null) return false;
+        return Number(user.noeHamkari) === 1;
+    }, [user]);
+    const isOstadMadov = useMemo(() => {
+        if (!user || user.currentRoleName !== 'استاد') return false;
+        if (user.noeHamkari === undefined || user.noeHamkari === null) return false;
+        return Number(user.noeHamkari) !== 1;
+    }, [user]);
 
     // ============================================================
     // مقدار Context
@@ -223,7 +206,11 @@ export const AuthProvider = ({ children }) => {
         //changeRole,
         hasPermission,
         hasAnyPermission,
-        hasAllPermissions
+        hasAllPermissions,
+        userType,
+        isOstad,
+        isOstadElmi,
+        isOstadMadov
     };
 
     return (

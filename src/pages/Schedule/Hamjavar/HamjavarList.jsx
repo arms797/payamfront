@@ -15,7 +15,7 @@ import { getStatusBadge } from './HamjavarHelpers';
 
 export default function HamjavarList() {
     const navigate = useNavigate();
-    const { user, hasPermission } = useAuth();
+    const { user, hasPermission, isOstadElmi, isOstad } = useAuth();
     const { termList, currentTermCode } = useTerm();
     const { markazList, loading: markazLoading } = useMarkaz();
     const { ConfirmModal } = useConfirm();
@@ -23,8 +23,9 @@ export default function HamjavarList() {
     // ============================================================
     // تشخیص نقش کاربر
     // ============================================================
-    const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
+    //const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
     const isMoaven = useMemo(() => hasPermission('Hamjavar.ReviewMoaven') || hasPermission('Hamjavar.CreateMoaven'), [hasPermission]);
+
 
     // ============================================================
     // 🔥 دریافت CodeRole کاربر
@@ -71,6 +72,25 @@ export default function HamjavarList() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const searchTimerRef = useRef(null);
 
+    // ============================================================
+    // بررسی دسترسی: فقط اساتید غیر علمی محدود شوند
+    // ============================================================
+    if (isOstad && !isOstadElmi) {
+        return (
+            <div className="alert alert-warning text-center mt-5">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                این بخش فقط برای اعضای هیات علمی پیام نور استان فارس قابل دسترسی است
+                <br />
+                <button
+                    className="btn btn-primary mt-3"
+                    onClick={() => navigate('/dashboard')}
+                >
+                    <i className="bi bi-arrow-right me-2"></i>
+                    بازگشت به داشبورد
+                </button>
+            </div>
+        );
+    }
     // ============================================================
     // 🔥 Debounce برای جستجو (700ms)
     // ============================================================

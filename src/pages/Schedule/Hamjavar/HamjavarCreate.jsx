@@ -10,15 +10,22 @@ import PersianNumber from '../../../components/common/PersianNumber';
 import OstadSelector from '../../../components/common/OstadSelector';
 import MarkazSelector from '../../../components/common/MarkazSelector';
 import { useConfirm } from '../../../hooks/useConfirm';
+import { useLookup } from '../../../context/LookupContext';
 
 export default function HamjavarCreate() {
     const navigate = useNavigate();
     const { id } = useParams();  // ← گرفتن id از مسیر (برای ویرایش)
-    const { user, hasPermission } = useAuth();
+    const { user, hasPermission, isOstadElmi, isOstad } = useAuth();
     const { currentTermCode, termList } = useTerm();
     const { markazList } = useMarkaz();
     const { confirm, ConfirmModal } = useConfirm();
 
+    // ============================================================
+    // اطلاعات استاد (برای نمایش)
+    // ============================================================
+    const [ostadInfo, setOstadInfo] = useState(null);
+
+    
     // ============================================================
     // تشخیص نقش معاون
     // ============================================================
@@ -26,11 +33,7 @@ export default function HamjavarCreate() {
         return user?.permissions?.includes('Hamjavar.CreateMoaven') || false;
     }, [user]);
 
-    // ============================================================
-    // اطلاعات استاد (برای نمایش)
-    // ============================================================
-    const [ostadInfo, setOstadInfo] = useState(null);
-
+    
     // ============================================================
     // State اصلی فرم
     // ============================================================
@@ -79,12 +82,19 @@ export default function HamjavarCreate() {
     // ============================================================
     // 🔥 لیست فعالیت‌ها (از API)
     // ============================================================
-    const [faaliatList, setFaaliatList] = useState([]);
+    //const [faaliatList, setFaaliatList] = useState([]);
     const [loadingFaaliat, setLoadingFaaliat] = useState(false);
+
+    const {
+        faaliats,           // ← لیست فعالیت‌ها از کانتکست
+        faaliatList,        // ← نام دیگر لیست فعالیت‌ها
+        loading: lookupLoading  // ← وضعیت بارگذاری کانتکست
+    } = useLookup();
 
     // ============================================================
     // دریافت لیست فعالیت‌ها
     // ============================================================
+    /*
     useEffect(() => {
         const fetchFaaliat = async () => {
             setLoadingFaaliat(true);
@@ -101,7 +111,7 @@ export default function HamjavarCreate() {
         };
         fetchFaaliat();
     }, []);
-
+*/
     // ============================================================
     // 🔥 تعیین استان‌های قابل دسترس
     // ============================================================

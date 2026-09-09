@@ -20,6 +20,7 @@ export const setUserData = (data) => {
         markazId: data.markazId,  // ← اضافه کن
         menus: data.menus,
         permissions: data.permissions,
+        noeHamkari:data.noeHamkari ?? 0,
         expiresIn: data.expiresIn
     }));
   } catch (error) {

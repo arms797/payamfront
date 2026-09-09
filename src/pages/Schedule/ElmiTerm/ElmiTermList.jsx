@@ -8,6 +8,8 @@ import { useMarkaz } from '../../../context/MarkazContext';
 import PersianNumber from '../../../components/common/PersianNumber'
 import { useConfirm } from '../../../hooks/useConfirm';
 import DownloadButton from '../../../components/common/DownloadButton';
+import { useNavigate } from 'react-router-dom';
+
 
 // import کامپوننت‌های مودال
 import CreateModal from './modals/CreateModal';
@@ -22,8 +24,10 @@ import {
 
 export default function ElmiTermList() {
     // کانتکست ها
-    const { hasPermission, user } = useAuth();
+    const { hasPermission, user, isOstadElmi, isOstad } = useAuth();
     const { markazList } = useMarkaz();
+    const navigate = useNavigate();
+
 
     // ============================================================
     // Stateهای اصلی
@@ -76,11 +80,24 @@ export default function ElmiTermList() {
     const { confirm, ConfirmModal } = useConfirm();
 
     // ============================================================
-    // بررسی آیا کاربر استاد است
+    // بررسی دسترسی: فقط اساتید غیر علمی محدود شوند
     // ============================================================
-    const isOstad = useMemo(() => {
-        return user?.currentRoleName === 'استاد';
-    }, [user]);
+    if (isOstad && !isOstadElmi) {
+        return (
+            <div className="alert alert-warning text-center mt-5">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                این بخش فقط برای اعضای هیات علمی پیام نور استان فارس قابل دسترسی است
+                <br />
+                <button
+                    className="btn btn-primary mt-3"
+                    onClick={() => navigate('/dashboard')}
+                >
+                    <i className="bi bi-arrow-right me-2"></i>
+                    بازگشت به داشبورد
+                </button>
+            </div>
+        );
+    }
 
     // ============================================================
     // بررسی آیا کاربر مدیر است (غیر استاد)

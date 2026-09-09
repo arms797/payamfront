@@ -333,22 +333,61 @@ export default function BarnamehHaftegiEdit() {
     const getAvailableMarkazs = useCallback(() => {
         if (!markazList || !ostadOstanCode) return [];
 
+        // ============================================================
+        // اگر استاد هیات علمی پیام نور نیست (noeHamkari !== 1)
+        // تمام مراکز Level 4 استان خودش را ببیند
+        // ============================================================
+        const isNotElmiOstad = ostadInfo?.noeHamkari !== 1;
+
+        if (isNotElmiOstad) {
+            // همه مراکز Level 4 در استان استاد
+            return markazList.filter(m =>
+                m.vazeeyat === true &&
+                m.codeOstan === ostadOstanCode &&
+                m.level === 4
+            );
+        }
+
+        // ============================================================
+        // قوانین برای هیات علمی پیام نور (noeHamkari === 1)
+        // ============================================================
         let available = markazList.filter(m =>
-            m.vazeeyat === true && m.codeOstan === ostadOstanCode
+            m.vazeeyat === true &&
+            m.codeOstan === ostadOstanCode &&
+            (m.level === 4 || m.level === 3) // مراکز و ستاد استان
         );
 
-        if (isElmiOstad) {
-            const mainMarkazId = ostadMarkazId;
-            if (stats.isComplete) {
-                return available;
+        // مراکز مجاز از Hamjavar1 (می‌توانند خارج از استان باشند)
+        if (allowedMarkazIds && allowedMarkazIds.length > 0) {
+            const permittedFromHamjavar = markazList.filter(m =>
+                m.vazeeyat === true &&
+                allowedMarkazIds.includes(m.id)
+            );
+            permittedFromHamjavar.forEach(m => {
+                if (!available.some(a => a.id === m.id)) {
+                    available.push(m);
+                }
+            });
+        }
+
+        // مرکز اصلی استاد
+        const mainMarkaz = markazList.find(m => m.id === ostadMarkazId);
+        if (mainMarkaz && mainMarkaz.vazeeyat === true) {
+            if (!available.some(a => a.id === mainMarkaz.id)) {
+                available.push(mainMarkaz);
             }
+        }
+
+        // فیلتر نهایی برای هیات علمی
+        if (isElmiOstad && !stats.isComplete) {
             return available.filter(m =>
-                m.id === mainMarkazId || allowedMarkazIds.includes(m.id)
+                m.id === ostadMarkazId ||
+                allowedMarkazIds.includes(m.id)
             );
         }
 
         return available;
-    }, [markazList, ostadOstanCode, ostadMarkazId, allowedMarkazIds, isElmiOstad, stats.isComplete]);
+    }, [markazList, ostadOstanCode, ostadMarkazId, allowedMarkazIds, isElmiOstad, stats.isComplete, ostadInfo?.noeHamkari]);
 
     // ============================================================
     // لیست استان‌های دارای مرکز مجازی
@@ -421,38 +460,33 @@ export default function BarnamehHaftegiEdit() {
                     (f.noeAnjam === 1 || f.noeAnjam === 3)
                 );
 
-                // تشخیص نوع مرکز
-                const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
-                const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+                // ============================================================
+                // قانون ویژه: اگر استاد غیر هیات علمی باشد (noeHamkari !== 1)
+                // فقط فعالیت‌های isMadove === true نمایش داده شود
+                // ============================================================
+                const isNotElmiOstad = ostadInfo?.noeHamkari !== 1;
 
-                // ============================================================
-                // حالت ۱: مرکز اصلی استاد → بدون فیلتر اضافی
-                // ============================================================
-                if (isMainMarkaz) {
-                    // هیچ فیلتر اضافی اعمال نمی‌شود
-                }
-                // ============================================================
-                // حالت ۲: مرکز خارج از استان → بدون فیلتر اضافی
-                // ============================================================
-                else if (isOutsideOstan) {
-                    // هیچ فیلتر اضافی اعمال نمی‌شود
-                }
-                // ============================================================
-                // حالت ۳: ستاد استان و مراکز همجوار داخل استان → بر اساس allowedFaaliatIds
-                // ============================================================
-                else {
-                    const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
-                    if (permittedMarkaz?.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
-                        baseFaaliats = baseFaaliats.filter(f =>
-                            permittedMarkaz.allowedFaaliatIds.includes(f.id)
-                        );
-                    } else {
-                        baseFaaliats = [];
-                    }
-                }
-
-                if (isMadove) {
+                if (isNotElmiOstad) {
                     baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+                } else {
+                    // قوانین هیات علمی
+                    const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
+                    const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+
+                    if (isMainMarkaz) {
+                        // هیچ فیلتر اضافی اعمال نمی‌شود
+                    } else if (isOutsideOstan) {
+                        // هیچ فیلتر اضافی اعمال نمی‌شود
+                    } else {
+                        const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
+                        if (permittedMarkaz?.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
+                            baseFaaliats = baseFaaliats.filter(f =>
+                                permittedMarkaz.allowedFaaliatIds.includes(f.id)
+                            );
+                        } else {
+                            baseFaaliats = [];
+                        }
+                    }
                 }
             }
         }
@@ -596,7 +630,10 @@ export default function BarnamehHaftegiEdit() {
             dayCode,
             hourCode,
             permittedMarkazsLength: permittedMarkazs?.length,
-            faaliatsLength: faaliats?.length
+            faaliatsLength: faaliats?.length,
+            isElmiOstad,
+            isMadove,
+            noeHamkari: ostadInfo?.noeHamkari
         });
 
         if (!faaliats || faaliats.length === 0 || !dayCode || !hourCode) {
@@ -641,8 +678,28 @@ export default function BarnamehHaftegiEdit() {
         console.log('📋 baseFaaliats بعد از فیلتر noeAnjam:', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
 
         // ============================================================
-        // قوانین اصلی
+        // قانون ویژه: اگر استاد مدعو یا غیر هیات علمی باشد (noeHamkari !== 1)
+        // فقط فعالیت‌های isMadove === true نمایش داده شود
         // ============================================================
+        const isNotElmiOstad = ostadInfo?.noeHamkari !== 1;
+
+        if (isNotElmiOstad) {
+            console.log('✅ استاد غیر هیات علمی (مدعو یا سایر) - فقط فعالیت‌های isMadove');
+            const beforeFilter = baseFaaliats.length;
+            baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+            console.log(`📊 از ${beforeFilter} فعالیت به ${baseFaaliats.length} فعالیت رسیدیم`);
+            console.log('📋 فعالیت‌های نهایی (isMadove):', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
+
+            // اعمال استثناها و برگردان
+            const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
+            return;
+        }
+
+        // ============================================================
+        // قوانین اصلی (فقط برای هیات علمی - noeHamkari === 1)
+        // ============================================================
+
         // 🔥 اگر حالت مجازی است، هیچ فیلتر مجوزی اعمال نکن
         if (isVirtual) {
             console.log('✅ حالت مجازی - بدون فیلتر مجوز');

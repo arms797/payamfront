@@ -162,8 +162,7 @@ export default function BarnamehHaftegiCreate() {
                     params: { ostadId, termCode: selectedTerm }
                 });
                 if (response.data?.success) {
-                    console.log('📊 داده‌های مراکز مجاز از بک‌اند:', response.data.data);
-
+                    //console.log('📊 داده‌های مراکز مجاز از بک‌اند:', response.data.data);
                     setPermittedMarkazs(response.data.data);
 
                     const ids = response.data.data.map(item => item.markazId);
@@ -243,50 +242,64 @@ export default function BarnamehHaftegiCreate() {
     // دریافت لیست مراکز قابل انتخاب (بر اساس قوانین)
     // ============================================================
     const getAvailableMarkazs = useCallback(() => {
-        if (!markazList) return [];
+        if (!markazList || !ostadOstanCode) return [];
 
-        // 1️⃣ مراکز داخل استان استاد (Level 4 و Level 3)
+        // ============================================================
+        // اگر استاد هیات علمی پیام نور نیست (noeHamkari !== 1)
+        // تمام مراکز Level 4 استان خودش را ببیند
+        // ============================================================
+        const isNotElmiOstad = ostadInfo?.noeHamkari !== 1;
+
+        if (isNotElmiOstad) {
+            // همه مراکز Level 4 در استان استاد
+            return markazList.filter(m =>
+                m.vazeeyat === true &&
+                m.codeOstan === ostadOstanCode &&
+                m.level === 4
+            );
+        }
+
+        // ============================================================
+        // قوانین برای هیات علمی پیام نور (noeHamkari === 1)
+        // ============================================================
         let available = markazList.filter(m =>
             m.vazeeyat === true &&
             m.codeOstan === ostadOstanCode &&
-            (m.level === 4 || m.level === 3 || m.level === 2) // مراکز و ستاد استان
+            (m.level === 4 || m.level === 3) // مراکز و ستاد استان
         );
 
-        // 2️⃣ مراکز مجاز از Hamjavar1 (می‌توانند خارج از استان باشند)
+        // مراکز مجاز از Hamjavar1 (می‌توانند خارج از استان باشند)
         if (allowedMarkazIds && allowedMarkazIds.length > 0) {
             const permittedFromHamjavar = markazList.filter(m =>
                 m.vazeeyat === true &&
                 allowedMarkazIds.includes(m.id)
             );
-            // اضافه کردن به لیست (بدون تکرار)
             permittedFromHamjavar.forEach(m => {
                 if (!available.some(a => a.id === m.id)) {
                     available.push(m);
                 }
             });
         }
-        //console.log('available :', available)
 
-        // 3️⃣ مرکز اصلی استاد (Level 4)
+        // مرکز اصلی استاد
         const mainMarkaz = markazList.find(m => m.id === ostadMarkazId);
         if (mainMarkaz && mainMarkaz.vazeeyat === true) {
             if (!available.some(a => a.id === mainMarkaz.id)) {
                 available.push(mainMarkaz);
             }
         }
-        //console.log('mainMarkaz :', mainMarkaz)
-        // 4️⃣ فیلتر نهایی بر اساس نوع استاد (هیات علمی/مدعو)
+
+        // فیلتر نهایی برای هیات علمی
         if (isElmiOstad && !stats.isComplete) {
-            // فقط مرکز اصلی و مراکز مجاز
             return available.filter(m =>
                 m.id === ostadMarkazId ||
-                allowedMarkazIds.includes(m.id) ||
-                (m.level === 3 && m.codeOstan === ostadOstanCode) // ستاد استان خود استاد
+                allowedMarkazIds.includes(m.id)
             );
         }
 
         return available;
-    }, [markazList, ostadOstanCode, ostadMarkazId, allowedMarkazIds, isElmiOstad, stats.isComplete]);
+    }, [markazList, ostadOstanCode, ostadMarkazId, allowedMarkazIds, isElmiOstad, stats.isComplete, ostadInfo?.noeHamkari]);
+
     /*
     const getAvailableMarkazs = useCallback(() => {
         if (!markazList || !ostadOstanCode) return [];
@@ -397,7 +410,6 @@ export default function BarnamehHaftegiCreate() {
         const dayMarkazId = schedule[dayCode]?.markazId;
         const numericMarkazId = dayMarkazId ? parseInt(dayMarkazId) : null;
 
-        // 🔥 محاسبه لیست پایه فعالیت‌های حضوری (بدون فیلتر استثنا)
         let baseFaaliats = [];
         if (faaliats && faaliats.length > 0 && numericMarkazId) {
             const markaz = markazList?.find(m => m.id === numericMarkazId);
@@ -407,49 +419,37 @@ export default function BarnamehHaftegiCreate() {
                     (f.noeAnjam === 1 || f.noeAnjam === 3)
                 );
 
-                // تشخیص نوع مرکز
-                const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
-                const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+                // ============================================================
+                // اگر استاد هیات علمی پیام نور نیست (noeHamkari !== 1)
+                // فقط فعالیت‌های isMadove === true
+                // ============================================================
+                const isNotElmiOstad = ostadInfo?.noeHamkari !== 1;
 
-                // ============================================================
-                // حالت ۱: مرکز اصلی استاد → بدون فیلتر اضافی
-                // ============================================================
-                if (isMainMarkaz) {
-                    // هیچ فیلتر اضافی اعمال نمی‌شود
-                }
-                // ============================================================
-                // حالت ۲: مرکز خارج از استان → بدون فیلتر اضافی
-                // ============================================================
-                else if (isOutsideOstan) {
-                    // هیچ فیلتر اضافی اعمال نمی‌شود
-                }
-                // ============================================================
-                // حالت ۳: ستاد استان و مراکز همجوار داخل استان → بر اساس allowedFaaliatIds
-                // ============================================================
-                else {
-                    // پیدا کردن اطلاعات مرکز مجاز از لیست permittedMarkazs
-                    const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
-
-                    if (permittedMarkaz?.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
-                        baseFaaliats = baseFaaliats.filter(f =>
-                            permittedMarkaz.allowedFaaliatIds.includes(f.id)
-                        );
-                    } else {
-                        // اگر لیست مجوزها خالی بود، هیچ فعالیتی نمایش نده
-                        baseFaaliats = [];
-                    }
-                }
-
-                // ============================================================
-                // قانون IsMadove برای مدرس مدعو
-                // ============================================================
-                if (isMadove) {
+                if (isNotElmiOstad) {
                     baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+                } else {
+                    // قوانین هیات علمی پیام نور
+                    const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
+                    const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+
+                    if (isMainMarkaz) {
+                        // هیچ فیلتر اضافی
+                    } else if (isOutsideOstan) {
+                        // هیچ فیلتر اضافی
+                    } else {
+                        const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
+                        if (permittedMarkaz?.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
+                            baseFaaliats = baseFaaliats.filter(f =>
+                                permittedMarkaz.allowedFaaliatIds.includes(f.id)
+                            );
+                        } else {
+                            baseFaaliats = [];
+                        }
+                    }
                 }
             }
         }
 
-        // 🔥 اعمال فیلتر استثناها با استفاده از تابع getAllowedFaaliats
         const allowedFaaliats = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
 
         setActivityModalData({
@@ -464,7 +464,7 @@ export default function BarnamehHaftegiCreate() {
             markazId: currentMarkazId || dayMarkazId || '',
             ostanId: user?.markazOstan || '',
             faaliatId: currentFaaliatId || '',
-            allowedFaaliats: allowedFaaliats  // ← لیست فیلترشده
+            allowedFaaliats: allowedFaaliats
         });
 
         setShowActivityModal(true);
@@ -563,15 +563,6 @@ export default function BarnamehHaftegiCreate() {
         const numericMarkazId = markazId ? parseInt(markazId) : null;
         const { dayCode, hourCode } = activityModalData;
 
-        console.log('🔍 updateAllowedFaaliats called with:', {
-            numericMarkazId,
-            isVirtual,
-            dayCode,
-            hourCode,
-            permittedMarkazsLength: permittedMarkazs?.length,
-            faaliatsLength: faaliats?.length
-        });
-
         if (!faaliats || faaliats.length === 0 || !dayCode || !hourCode) {
             setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
             return;
@@ -579,26 +570,16 @@ export default function BarnamehHaftegiCreate() {
 
         const markaz = markazList?.find(m => m.id === numericMarkazId);
         if (!markaz) {
-            console.log('❌ مرکز پیدا نشد:', numericMarkazId);
             setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
             return;
         }
 
         // پیدا کردن اطلاعات مرکز مجاز از لیست permittedMarkazs
         const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
-        console.log('📊 permittedMarkaz پیدا شد:', permittedMarkaz);
 
         // تشخیص نوع مرکز
         const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
         const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
-
-        console.log('🏷️ نوع مرکز:', {
-            isMainMarkaz,
-            isOutsideOstan,
-            markazLevel: markaz.level,
-            markazCodeOstan: markaz.codeOstan,
-            ostadOstanCode
-        });
 
         // ============================================================
         // فیلتر اولیه بر اساس نوع انجام (حضوری/مجازی)
@@ -611,60 +592,46 @@ export default function BarnamehHaftegiCreate() {
             baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 1 || f.noeAnjam === 3);
         }
 
-        console.log('📋 baseFaaliats بعد از فیلتر noeAnjam:', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
+        // ============================================================
+        // اگر استاد هیات علمی پیام نور نیست (noeHamkari !== 1)
+        // فقط فعالیت‌های isMadove === true
+        // ============================================================
+        const isNotElmiOstad = ostadInfo?.noeHamkari !== 1;
+
+        if (isNotElmiOstad) {
+            baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+            const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
+            return;
+        }
 
         // ============================================================
-        // قوانین اصلی
+        // قوانین هیات علمی پیام نور (noeHamkari === 1)
         // ============================================================
-        // 🔥 اگر حالت مجازی است، هیچ فیلتر مجوزی اعمال نکن
         if (isVirtual) {
-            console.log('✅ حالت مجازی - بدون فیلتر مجوز');
-            // هیچ فیلتر اضافی اعمال نمی‌شود
-        }
-        // حالت ۱: مرکز اصلی استاد → فقط بر اساس نوع مرکز
-        else if (isMainMarkaz) {
-            console.log('✅ مرکز اصلی استاد - بدون فیلتر اضافی');
-        }
-        // حالت ۲: مرکز خارج از استان → فقط بر اساس نوع مرکز
-        else if (isOutsideOstan) {
-            console.log('✅ مرکز خارج از استان - بدون فیلتر اضافی');
-        }
-        // حالت ۳: ستاد استان و مراکز همجوار داخل استان → بر اساس allowedFaaliatIds
-        else if (permittedMarkaz) {
-            console.log('✅ مرکز همجوار/ستاد استان - اعمال allowedFaaliatIds');
-            console.log('📋 allowedFaaliatIds:', permittedMarkaz.allowedFaaliatIds);
-
+            // هیچ فیلتر اضافی
+        } else if (isMainMarkaz) {
+            // هیچ فیلتر اضافی
+        } else if (isOutsideOstan) {
+            // هیچ فیلتر اضافی
+        } else if (permittedMarkaz) {
             if (permittedMarkaz.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
-                const beforeFilter = baseFaaliats.length;
                 baseFaaliats = baseFaaliats.filter(f =>
                     permittedMarkaz.allowedFaaliatIds.includes(f.id)
                 );
-                console.log(`📊 از ${beforeFilter} فعالیت به ${baseFaaliats.length} فعالیت رسیدیم`);
-                console.log('📋 فعالیت‌های نهایی:', baseFaaliats.map(f => ({ id: f.id, name: f.name })));
             } else {
-                console.log('⚠️ allowedFaaliatIds خالی است');
                 baseFaaliats = [];
             }
         } else {
-            console.log('⚠️ مرکز در permittedMarkazs پیدا نشد!');
             baseFaaliats = [];
         }
 
-        // ============================================================
-        // قانون IsMadove برای مدرس مدعو (برای همه حالت‌ها)
-        // ============================================================
+        // قانون IsMadove برای هیات علمی (اگر مدعو باشد)
         if (isMadove) {
-            const beforeFilter = baseFaaliats.length;
             baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
-            console.log(`📊 بعد از فیلتر IsMadove: از ${beforeFilter} به ${baseFaaliats.length}`);
         }
 
-        // ============================================================
-        // اعمال استثناها
-        // ============================================================
         const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
-        console.log('✅ فعالیت‌های نهایی مجاز:', allowed.map(f => ({ id: f.id, name: f.name })));
-
         setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
     };
     /*
