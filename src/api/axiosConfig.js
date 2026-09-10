@@ -3,7 +3,20 @@
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, setUserData, clearUserData } from '../utils/storage';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5023/api';
+//تنظیمات اتومات
+//const API_BASE_URL = import.meta.env.DEV 
+//  ? '/api'  // در dev، Vite proxy به http://localhost:5000/api می‌فرستد
+//  : '/api'; // در production، همان سرور، پس مسیر نسبی کار می‌کند
+const API_BASE_URL='/api';
+
+//تنظیمات قدیمی . ابتدا محتوای دوفایل .env و فایل  .env.production و بعدش هم تنظیمات axios.config
+//محتوای فایل .env
+//VITE_API_URL=http://localhost:5000/api
+//محتوای فایل .env.production
+//VITE_API_URL=http://94.74.170.19/api
+
+// تنظیمات دستی ولی درست
+//const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5023/api';
 //const API_BASE_URL =  'http://localhost:5023/api';
 
 const api = axios.create({
@@ -80,7 +93,8 @@ api.interceptors.response.use(
         throw new Error('No refresh token');
       }
 
-      const response = await axios.post(`${API_BASE_URL}/Auth/refresh`, {
+      //const response = await axios.post(`${API_BASE_URL}/Auth/refresh`, {
+      const response = await axios.post(`/api/Auth/refresh`, {
         accessToken: getAccessToken(),
         refreshToken: refreshToken,
       });

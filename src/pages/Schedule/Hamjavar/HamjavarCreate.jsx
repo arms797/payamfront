@@ -90,28 +90,7 @@ export default function HamjavarCreate() {
         faaliatList,        // ← نام دیگر لیست فعالیت‌ها
         loading: lookupLoading  // ← وضعیت بارگذاری کانتکست
     } = useLookup();
-
-    // ============================================================
-    // دریافت لیست فعالیت‌ها
-    // ============================================================
-    /*
-    useEffect(() => {
-        const fetchFaaliat = async () => {
-            setLoadingFaaliat(true);
-            try {
-                const response = await api.get('/Faaliat/list');
-                if (response.data?.success) {
-                    setFaaliatList(response.data.data || []);
-                }
-            } catch (error) {
-                console.error('خطا در دریافت فعالیت‌ها:', error);
-            } finally {
-                setLoadingFaaliat(false);
-            }
-        };
-        fetchFaaliat();
-    }, []);
-*/
+    
     // ============================================================
     // 🔥 تعیین استان‌های قابل دسترس
     // ============================================================

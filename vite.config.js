@@ -9,7 +9,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5023',
         changeOrigin: true,
         secure: false,
       },
@@ -18,5 +18,12 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-  },
+    rollupOptions: {
+        output: {
+            entryFileNames: `assets/[name].[hash].js`,
+            chunkFileNames: `assets/[name].[hash].js`,
+            assetFileNames: `assets/[name].[hash].[ext]`
+        }
+    }
+  }
 });
