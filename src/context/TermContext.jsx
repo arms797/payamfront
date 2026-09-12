@@ -83,6 +83,8 @@ export const TermProvider = ({ children }) => {
         return currentTerm?.onvanTerm || 'ترم جاری';
     }, [currentTerm]);
 
+   
+
     const value = {
         termList,
         currentTerm,

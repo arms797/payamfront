@@ -1,8 +1,8 @@
 // src/pages/Schedule/BarnamehHaftegi/BarnamehHaftegiDetail.jsx
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useReactToPrint } from 'react-to-print';
+//import { useReactToPrint } from 'react-to-print';
 import { useAuth } from '../../../context/AuthContext';
 import { useMarkaz } from '../../../context/MarkazContext';
 import { useTerm } from '../../../context/TermContext';
@@ -12,6 +12,8 @@ import api from '../../../api/axiosConfig';
 import PersianNumber from '../../../components/common/PersianNumber';
 import { useConfirm } from '../../../hooks/useConfirm';
 import SignatureDisplay from '../../../components/common/SignatureDisplay';
+import PrintButton from '../../../components/common/PrintButton';
+import PrintContent from './PrintContent';
 
 export default function BarnamehHaftegiDetail() {
     const navigate = useNavigate();
@@ -19,10 +21,10 @@ export default function BarnamehHaftegiDetail() {
     const { id } = useParams();
     const { user, hasPermission } = useAuth();
     const { markazList } = useMarkaz();
-    const { termList } = useTerm();
+    const { termList, getTermTitle } = useTerm();
     const { faaliats, getFaaliatName, getDayTitle, getFaaliatColor, hoursList } = useLookup();
     const { confirm, ConfirmModal } = useConfirm();
-    const printRef = useRef(null);
+    //const printRef = useRef(null);
 
     const [program, setProgram] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -65,247 +67,6 @@ export default function BarnamehHaftegiDetail() {
     }, [id, fetchProgram]);
 
     // پرینت
-    const handlePrint = useReactToPrint({
-        contentRef: printRef,
-        documentTitle: `برنامه-هفتگی-${program?.ostadCode || ''}`,
-        pageStyle: `
-        @page {
-            size: A4 portrait;
-            margin: 4mm 5mm 4mm 5mm;
-        }
-        @media print {
-            /* ============================================================
-               تنظیمات پایه
-               ============================================================ */
-            * {
-                box-sizing: border-box !important;
-            }
-            body {
-                font-size: 8px !important;
-                line-height: 1.15 !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: white !important;
-                color: black !important;
-                direction: rtl !important;
-            }
-            .no-print {
-                display: none !important;
-            }
-
-            /* ============================================================
-               کارت‌ها
-               ============================================================ */
-            .card {
-                border: 1px solid #999 !important;
-                margin-bottom: 3px !important;
-                box-shadow: none !important;
-                border-radius: 0 !important;
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-            }
-            .card-header {
-                background: #f0f0f0 !important;
-                padding: 2px 6px !important;
-                font-size: 8px !important;
-                font-weight: bold !important;
-                border-bottom: 1px solid #999 !important;
-            }
-            .card-body {
-                padding: 4px 6px !important;
-            }
-
-            /* ============================================================
-               کارت اطلاعات استاد - سه ستون
-               ============================================================ */
-            .card-body .row {
-                display: flex !important;
-                flex-wrap: nowrap !important;
-                margin: 0 !important;
-                gap: 0 !important;
-            }
-            .card-body .col-md-4 {
-                flex: 0 0 33.333% !important;
-                max-width: 33.333% !important;
-                padding: 1px 3px !important;
-                font-size: 8px !important;
-                display: flex !important;
-                align-items: baseline !important;
-                gap: 2px !important;
-            }
-            .card-body .col-md-4 .text-muted {
-                font-size: 7px !important;
-                color: #555 !important;
-                white-space: nowrap !important;
-            }
-            .card-body .col-md-4 span {
-                font-size: 9px !important;
-            }
-
-            /* ============================================================
-               جدول برنامه - خط‌کشی کامل و یکدست
-               ============================================================ */
-            .table-responsive {
-                overflow: visible !important;
-            }
-            .table {
-                font-size: 6.5px !important;
-                border-collapse: collapse !important;
-                width: 100% !important;
-                margin: 0 !important;
-                table-layout: fixed !important;
-                border: 1px solid #666 !important;
-            }
-            .table th,
-            .table td {
-                border: 1px solid #666 !important;  /* ← یکسان برای همه */
-                padding: 1px 2px !important;
-                text-align: center !important;
-                vertical-align: middle !important;
-                background-color: white !important;
-                color: black !important;
-            }
-            /* 🔥 همه ستون‌ها حاشیه یکدست داشته باشند */
-            .table th:first-child,
-            .table td:first-child {
-                border-right: 1px solid #666 !important;
-            }
-            .table th:last-child,
-            .table td:last-child {
-                border-left: 1px solid #666 !important;
-            }
-            /* حذف شادوهای استیکی */
-            .table td[style*="box-shadow"] {
-                box-shadow: none !important;
-                border-right: 1px solid #666 !important;
-            }
-            .table thead th {
-                background-color: #e8e8e8 !important;
-                font-weight: bold !important;
-                font-size: 6.5px !important;
-                padding: 1px 2px !important;
-            }
-            .table thead th div:first-child {
-                font-size: 7px !important;
-            }
-            .table thead th div:last-child {
-                font-size: 5.5px !important;
-                color: #555 !important;
-            }
-            .table tbody td {
-                font-size: 6.5px !important;
-                padding: 1px 2px !important;
-            }
-            .table tbody td div:first-child {
-                font-size: 6.5px !important;
-                font-weight: bold !important;
-            }
-            .table tbody td div:last-child {
-                font-size: 5.5px !important;
-                color: #333 !important;
-            }
-            .table tbody td[style*="background-color"] {
-                background-color: white !important;
-            }
-
-            /* ============================================================
-               خلاصه وضعیت (فقط صفحه، نه پرینت)
-               ============================================================ */
-            .card.mt-3.no-print {
-                display: none !important;
-            }
-
-            /* ============================================================
-               کارت‌های امضا - بدون border و background
-               ============================================================ */
-            .row.mt-3 .card {
-                border: none !important;
-                box-shadow: none !important;
-                background: transparent !important;
-            }
-            .row.mt-3 .card-header {
-                background: transparent !important;
-                border: none !important;
-                padding: 2px 4px !important;
-                text-align: center !important;
-                font-size: 7px !important;
-                color: black !important;
-            }
-            .row.mt-3 .card-body {
-                border: none !important;
-                background: transparent !important;
-                min-height: 30px !important;
-                padding: 2px 3px !important;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-            }
-            .row.mt-3 .card-body canvas {
-                max-height: 28px !important;
-                max-width: 100% !important;
-            }
-            .row.mt-3 .card-body .text-muted {
-                font-size: 5px !important;
-            }
-
-            /* ============================================================
-               عنوان چاپ و تاریخ - بدون خط اضافه
-               ============================================================ */
-            .print-header {
-                display: flex !important;
-                justify-content: center !important;  /* ← وسط‌چین */
-                align-items: center !important;
-                margin-bottom: 4px !important;
-                border-bottom: none !important;
-                border-bottom: 1px solid #ccc !important;
-            }
-                .print-header > div {
-                text-align: center !important;
-            }
-            .print-header h5 {
-                font-size: 10px !important;
-                margin: 0 !important;
-            }
-            .print-header p {
-                font-size: 7px !important;
-                margin: 0 !important;
-                color: #666 !important;
-            }
-            .print-title {
-                font-size: 11px !important;
-                font-weight: bold !important;
-                text-align: center !important;
-                margin: 0 !important;
-            }
-            .print-date {
-                font-size: 7px !important;
-                color: #666 !important;
-                position: absolute !important;
-                left: 0 !important;
-                margin: 0 !important;
-            }
-
-            /* ============================================================
-               جلوگیری از شکستن صفحات
-               ============================================================ */
-            .print-area {
-                page-break-inside: avoid !important;
-                width: 100% !important;
-                overflow: hidden !important;
-            }
-            .card {
-                break-inside: avoid !important;
-                page-break-inside: avoid !important;
-            }
-        }
-    `,
-        onAfterPrint: () => console.log('چاپ انجام شد'),
-        onPrintError: (error) => {
-            console.error('خطا در چاپ:', error);
-            toast.error('خطا در چاپ');
-        },
-    });
 
     // برگشت به لیست
     const handleBackToList = () => {
@@ -636,9 +397,28 @@ export default function BarnamehHaftegiDetail() {
                 {/* ============================================================
                 ۶️⃣ پرینت - برای همه
                 ============================================================ */}
-                {/*<button className="btn btn-outline-secondary btn-sm" onClick={handlePrint}>
-                    <i className="bi bi-printer me-1"></i> پرینت
-                </button>*/}
+                {
+                    <PrintButton
+                        Component={PrintContent}
+                        data={{
+                            program,
+                            days: hoursList, // یا days اگر در LookupContext دارید
+                            hours: hoursList,
+                            getDayTitle,
+                            getFaaliatName,
+                            getMarkazDisplayName,
+                            markazList,
+                            getTermTitle,
+                            signatures
+                        }}
+                        title={`برنامه هفتگی - ${program?.ostadName || ''}`}
+                        orientation="landscape"
+                        paperSize="A4"
+                        className="btn btn-outline-primary btn-sm"
+                    >
+                        🖨️ پرینت
+                    </PrintButton>
+                }
             </div>
         );
     };
@@ -1008,19 +788,8 @@ export default function BarnamehHaftegiDetail() {
             </div>
 
             {/* محتوای قابل چاپ */}
-            <div ref={printRef} className="print-area">
+            <div className="print-area">
 
-                {/* ============================================================
-                    عنوان چاپ و تاریخ - وسط‌چین، بدون خط جداکننده
-                    ============================================================ */}
-                <div className="d-none d-print-block print-header">
-                    <div className="print-date">
-                        تاریخ چاپ: {new Date().toLocaleDateString('fa-IR')}
-                    </div>
-                    <div className="print-title">
-                        برنامه حضور هفتگی اساتید
-                    </div>
-                </div>
 
                 {/* ============================================================
                     کارت اطلاعات استاد - سه ردیف، سه ستون

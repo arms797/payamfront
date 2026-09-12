@@ -18,7 +18,7 @@ export default function BarnamehHaftegiList() {
     const location = useLocation();
     const { user, hasPermission } = useAuth();
     const { markazList } = useMarkaz();
-    const { termList, currentTerm } = useTerm();  // ← currentTerm اضافه شد
+    const { termList, currentTerm } = useTerm();  
     const { grooheList } = useGrooheAmoozeshi();
     const { reshtehList } = useReshteh();
     const { confirm, ConfirmModal } = useConfirm();
