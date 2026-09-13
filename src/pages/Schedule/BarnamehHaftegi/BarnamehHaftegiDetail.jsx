@@ -35,8 +35,11 @@ export default function BarnamehHaftegiDetail() {
 
     // تشخیص نقش
     const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
-    const isModirGrooh = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmByModir'), [hasPermission]);
+    const isModirGrooh = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmByModirGrooh'), [hasPermission]);
     const isMoaven = useMemo(() => hasPermission('BarnamehHaftegi.ConfirmByMoaven'), [hasPermission]);
+    const isRaeisMarkaz = useMemo(() => {
+        return hasPermission('BarnamehHaftegi.ConfirmByRaeisMarkaz');
+    }, [hasPermission]);
     const isAdmin = useMemo(() => user?.codeRole === 1, [user]);
     const [errorModal, setErrorModal] = useState({
         show: false,
@@ -200,9 +203,7 @@ export default function BarnamehHaftegiDetail() {
             setSubmitting(false);
         }
     };
-    const isRaeisMarkaz = useMemo(() => {
-        return hasPermission('BarnamehHaftegi.ConfirmByRaeis');
-    }, [hasPermission]);
+
     const handleConfirmByRaeisMarkaz = async (approveStatus) => {
         const actionText = approveStatus === 1 ? 'تأیید' : 'رد';
 
@@ -326,6 +327,15 @@ export default function BarnamehHaftegiDetail() {
         // اگر معاون تایید کرده، برنامه نهایی شده است
         const isFinalApproved = isMoavenApproved;
 
+        console.log('nazarOstad', nazarOstad)
+        console.log('nazarModir', nazarModir)
+        console.log('nazarRaeis', nazarRaeis)
+        console.log('nazarMoaven', nazarMoaven)
+        console.log('isOstadApproved', isOstadApproved)
+        console.log('isModirApproved', isModirApproved)
+        console.log('isRaeisApproved', isRaeisApproved)
+        console.log('isMoavenApproved', isMoavenApproved)
+        
         return (
             <div className="d-flex gap-2 flex-wrap no-print">
 

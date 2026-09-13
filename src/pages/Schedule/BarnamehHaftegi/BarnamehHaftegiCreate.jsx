@@ -104,7 +104,7 @@ export default function BarnamehHaftegiCreate() {
         }
     }, [user, markazList]);
 
-    //دریافت اطلاعات استاد با UserId
+    // دریافت آیدی استاد از جدول کاربران برای استفاده از جدول استاد
     useEffect(() => {
         if (!user?.id) return;
 
@@ -164,7 +164,7 @@ export default function BarnamehHaftegiCreate() {
                 if (response.data?.success) {
                     //console.log('📊 داده‌های مراکز مجاز از بک‌اند:', response.data.data);
                     setPermittedMarkazs(response.data.data);
-
+                    //console.log('permitted :',response.data.data)
                     const ids = response.data.data.map(item => item.markazId);
                     setAllowedMarkazIds(ids);
                 } else {
@@ -228,13 +228,13 @@ export default function BarnamehHaftegiCreate() {
         const totalDays = daysWithActivity.size;
         const isComplete = totalSessions >= requiredSessions && totalDays >= 5;
 
-        console.log('📊 آمار:', {
+        /*console.log('📊 آمار:', {
             totalSessions,
             totalDays,
             requiredSessions,
             isComplete,
             daysWithActivity: Array.from(daysWithActivity)
-        });
+        });*/
 
         return { totalSessions, totalDays, requiredSessions, isComplete };
     }, [schedule, requiredSessions]);
@@ -411,6 +411,7 @@ export default function BarnamehHaftegiCreate() {
         const numericMarkazId = dayMarkazId ? parseInt(dayMarkazId) : null;
 
         let baseFaaliats = [];
+
         if (faaliats && faaliats.length > 0 && numericMarkazId) {
             const markaz = markazList?.find(m => m.id === numericMarkazId);
             if (markaz) {
@@ -449,7 +450,7 @@ export default function BarnamehHaftegiCreate() {
                 }
             }
         }
-
+        //console.log('baseFaaliats:', baseFaaliats)
         const allowedFaaliats = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
 
         setActivityModalData({
@@ -469,51 +470,7 @@ export default function BarnamehHaftegiCreate() {
 
         setShowActivityModal(true);
     };
-    /*
-    const openActivityModal = (dayCode, hourCode, currentFaaliatId, currentMarkazId) => {
-        const dayMarkazId = schedule[dayCode]?.markazId;
-        const numericMarkazId = dayMarkazId ? parseInt(dayMarkazId) : null;
 
-        // 🔥 محاسبه لیست پایه فعالیت‌های حضوری (بدون فیلتر استثنا)
-        let baseFaaliats = [];
-        if (faaliats && faaliats.length > 0 && numericMarkazId) {
-            const markaz = markazList?.find(m => m.id === numericMarkazId);
-            if (markaz) {
-                baseFaaliats = faaliats.filter(f =>
-                    f.vazeeat === true &&
-                    (f.noeAnjam === 1 || f.noeAnjam === 3)
-                );
-                const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
-                if (!isMainMarkaz && isElmiOstad) {
-                    baseFaaliats = baseFaaliats.filter(f => allowedMarkazIds.includes(f.id));
-                }
-                if (isMadove) {
-                    baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
-                }
-            }
-        }
-
-        // 🔥 اعمال فیلتر استثناها با استفاده از تابع getAllowedFaaliats
-        const allowedFaaliats = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
-
-        setActivityModalData({
-            dayCode,
-            hourCode,
-            currentFaaliatId: currentFaaliatId || null,
-            currentMarkazId: currentMarkazId || null
-        });
-
-        setActivityForm({
-            mode: 'hozoory',
-            markazId: currentMarkazId || dayMarkazId || '',
-            ostanId: user?.markazOstan || '',
-            faaliatId: currentFaaliatId || '',
-            allowedFaaliats: allowedFaaliats  // ← لیست فیلترشده
-        });
-
-        setShowActivityModal(true);
-    };
-*/
     const handleActivityModalSave = () => {
         const { dayCode, hourCode } = activityModalData;
         const { mode, markazId, faaliatId, allowedFaaliats } = activityForm;

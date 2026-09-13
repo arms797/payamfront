@@ -12,7 +12,8 @@ const PrintContent = ({
     getFaaliatName,
     getMarkazDisplayName,
     markazList,
-    getTermTitle
+    getTermTitle,
+    signatures
 }) => {
     if (!program) return null;
 
@@ -383,8 +384,8 @@ const PrintContent = ({
             </table>
 
             {/* ============================================================
-    امضاها با استفاده از کامپوننت SignatureDisplay
-    ============================================================ */}
+                امضاها با استفاده از کامپوننت SignatureDisplay
+                ============================================================ */}
             <div style={styles.signaturesSection}>
                 {/* ۱. امضا استاد */}
                 <div style={styles.signatureBox}>

@@ -620,6 +620,83 @@ export default function BarnamehHaftegiEdit() {
     // ============================================================
     // تابع updateAllowedFaaliats (اصلاح شده)
     // ============================================================
+
+    const updateAllowedFaaliats = (markazId, isVirtual) => {
+        const numericMarkazId = markazId ? parseInt(markazId) : null;
+        const { dayCode, hourCode } = activityModalData;
+
+        if (!faaliats || faaliats.length === 0 || !dayCode || !hourCode) {
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
+            return;
+        }
+
+        const markaz = markazList?.find(m => m.id === numericMarkazId);
+        if (!markaz) {
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: [] }));
+            return;
+        }
+
+        // پیدا کردن اطلاعات مرکز مجاز از لیست permittedMarkazs
+        const permittedMarkaz = permittedMarkazs.find(p => p.markazId === numericMarkazId);
+
+        // تشخیص نوع مرکز
+        const isMainMarkaz = ostadInfo?.markazId === numericMarkazId;
+        const isOutsideOstan = markaz.codeOstan !== ostadOstanCode;
+
+        // ============================================================
+        // فیلتر اولیه بر اساس نوع انجام (حضوری/مجازی)
+        // ============================================================
+        let baseFaaliats = faaliats.filter(f => f.vazeeat === true);
+
+        if (isVirtual) {
+            baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 2 || f.noeAnjam === 3);
+        } else {
+            baseFaaliats = baseFaaliats.filter(f => f.noeAnjam === 1 || f.noeAnjam === 3);
+        }
+
+        // ============================================================
+        // اگر استاد هیات علمی پیام نور نیست (noeHamkari !== 1)
+        // فقط فعالیت‌های isMadove === true
+        // ============================================================
+        const isNotElmiOstad = ostadInfo?.noeHamkari !== 1;
+
+        if (isNotElmiOstad) {
+            baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+            const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
+            setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
+            return;
+        }
+
+        // ============================================================
+        // قوانین هیات علمی پیام نور (noeHamkari === 1)
+        // ============================================================
+        if (isVirtual) {
+            // هیچ فیلتر اضافی
+        } else if (isMainMarkaz) {
+            // هیچ فیلتر اضافی
+        } else if (isOutsideOstan) {
+            // هیچ فیلتر اضافی
+        } else if (permittedMarkaz) {
+            if (permittedMarkaz.allowedFaaliatIds && permittedMarkaz.allowedFaaliatIds.length > 0) {
+                baseFaaliats = baseFaaliats.filter(f =>
+                    permittedMarkaz.allowedFaaliatIds.includes(f.id)
+                );
+            } else {
+                baseFaaliats = [];
+            }
+        } else {
+            baseFaaliats = [];
+        }
+
+        // قانون IsMadove برای هیات علمی (اگر مدعو باشد)
+        if (isMadove) {
+            baseFaaliats = baseFaaliats.filter(f => f.isMadove === true);
+        }
+
+        const allowed = getAllowedFaaliats(dayCode, hourCode, baseFaaliats);
+        setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
+    };
+    /*
     const updateAllowedFaaliats = (markazId, isVirtual) => {
         const numericMarkazId = markazId ? parseInt(markazId) : null;
         const { dayCode, hourCode } = activityModalData;
@@ -751,7 +828,34 @@ export default function BarnamehHaftegiEdit() {
 
         setActivityForm(prev => ({ ...prev, allowedFaaliats: allowed }));
     };
+    */
 
+    // ============================================================
+    // حذف فعالیت از سلول
+    // ============================================================
+    const clearCell = async (dayCode, hourCode) => {
+        const confirmed = await confirm({
+            title: 'حذف فعالیت',
+            message: 'آیا از حذف این فعالیت مطمئن هستید؟',
+            confirmText: 'بله، حذف شود',
+            confirmVariant: 'danger'
+        });
+        if (!confirmed) return;
+
+        setSchedule(prev => ({
+            ...prev,
+            [dayCode]: {
+                ...prev[dayCode],
+                hours: {
+                    ...prev[dayCode]?.hours,
+                    [hourCode]: {
+                        faaliatId: null,
+                        markazId: null
+                    }
+                }
+            }
+        }));
+    };
     // ============================================================
     // ذخیره ویرایش
     // ============================================================

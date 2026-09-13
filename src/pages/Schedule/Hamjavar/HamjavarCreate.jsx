@@ -25,7 +25,7 @@ export default function HamjavarCreate() {
     // ============================================================
     const [ostadInfo, setOstadInfo] = useState(null);
 
-    
+
     // ============================================================
     // تشخیص نقش معاون
     // ============================================================
@@ -33,7 +33,7 @@ export default function HamjavarCreate() {
         return user?.permissions?.includes('Hamjavar.CreateMoaven') || false;
     }, [user]);
 
-    
+
     // ============================================================
     // State اصلی فرم
     // ============================================================
@@ -90,7 +90,7 @@ export default function HamjavarCreate() {
         faaliatList,        // ← نام دیگر لیست فعالیت‌ها
         loading: lookupLoading  // ← وضعیت بارگذاری کانتکست
     } = useLookup();
-    
+
     // ============================================================
     // 🔥 تعیین استان‌های قابل دسترس
     // ============================================================
@@ -222,18 +222,21 @@ export default function HamjavarCreate() {
             if (!targetUserId || !currentTermCode) return;
 
             try {
-                const response = await api.get('/ElmiTerm/by-user-term', {
+                /*const response = await api.get('/ElmiTerm/by-user-term', {
                     params: { userId: targetUserId, termCode: currentTermCode }
-                });
+                });*/
+                const response = await api.get(`/ElmiTerm/by-user/${targetUserId}`);
 
                 if (response.data?.success) {
                     const data = response.data.data;
+                    //console.log('ElmiTerm', data)
                     setElmiTermData({
                         akharinVazeeat: data.akharinVazeeat || 'مشغول به کار',
                         isEjeari: data.isEjeari ?? false,
                         onvanEjraei: data.onvanEjraei || '',
                         fullTime: data.fullTime ?? true,
-                        tedadSaatMovazafi: data.tedadSaatMovazafi || 40
+                        tedadSaatMovazafi: data.tedadSaatMovazafi || 40,
+                        tedadVahedMovazafi: data.tedadVahedMovazafi || 0
                     });
                     // 🔥 فقط در حالت ایجاد (غیر ویرایش) فرم را پر کن
                     if (!isEditMode) {
@@ -243,7 +246,7 @@ export default function HamjavarCreate() {
                             isEjeari: data.isEjeari ?? false,
                             onvanEjraei: data.onvanEjraei || '',
                             fullTime: data.fullTime ?? true,
-                            vahedMovazaf: '',
+                            vahedMovazaf: data.tedadVahedMovazafi ?? '',
                             tedadSaatMovazafi: data.tedadSaatMovazafi || 40
                         }));
                     }
@@ -753,8 +756,8 @@ export default function HamjavarCreate() {
                                 </div>
 
                                 {/* ============================================================
-    اطلاعات وضعیت ترمی (نمایشی)
-    ============================================================ */}
+                                    اطلاعات وضعیت ترمی (نمایشی)
+                                    ============================================================ */}
                                 <div className="col-md-6">
                                     <h6 className="text-primary border-bottom pb-2 mb-3">
                                         <i className="bi bi-calendar-check me-2"></i>

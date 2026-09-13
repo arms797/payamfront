@@ -18,7 +18,7 @@ export default function BarnamehHaftegiList() {
     const location = useLocation();
     const { user, hasPermission } = useAuth();
     const { markazList } = useMarkaz();
-    const { termList, currentTerm } = useTerm();  
+    const { termList, currentTerm } = useTerm();
     const { grooheList } = useGrooheAmoozeshi();
     const { reshtehList } = useReshteh();
     const { confirm, ConfirmModal } = useConfirm();
@@ -600,7 +600,7 @@ export default function BarnamehHaftegiList() {
                             >
                                 {termList.map(term => (
                                     <option key={term.codeTerm} value={term.codeTerm}>
-                                        {term.onvanTerm}
+                                        <PersianNumber>{term.onvanTerm}</PersianNumber>
                                     </option>
                                 ))}
                             </select>
@@ -817,14 +817,14 @@ export default function BarnamehHaftegiList() {
                                                 <td>{item.reshteh || '-'}</td>
                                                 <td>{getStatusBadge(item.approveStatus)}</td>
                                                 <td >{/*onClick={(e) => e.stopPropagation()}*/}
-                                                <button
-                                                    className="btn btn-sm btn-primary"
+                                                    <button
+                                                        className="btn btn-sm btn-primary"
 
-                                                >
-                                                    <i className="bi bi-eye me-1"></i>
-                                                    مشاهده و تایید
-                                                </button>
-                                            </td>
+                                                    >
+                                                        <i className="bi bi-eye me-1"></i>
+                                                        مشاهده و تایید
+                                                    </button>
+                                                </td>
                                             </tr>
                                         );
                                     })

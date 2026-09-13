@@ -318,9 +318,9 @@ function App() {
               <Route
                 path="profile/change-password"
                 element={
-                  <ProtectedRouteWithPermission requiredPermission="User.Update">
+                  <ProtectedRoute>
                     <ChangePassword />
-                  </ProtectedRouteWithPermission>
+                  </ProtectedRoute>
                 }
               />
 
