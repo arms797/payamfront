@@ -12,6 +12,7 @@ import PersianNumber from '../../../components/common/PersianNumber';
 import { useConfirm } from '../../../hooks/useConfirm';
 import CenterModal from './modals/CenterModal';
 import ActivityModal from './modals/ActivityModal';
+import { useAlert } from '../../../hooks/useAlert';
 
 export default function BarnamehHaftegiCreate() {
     const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function BarnamehHaftegiCreate() {
     const { days, hours, faaliats, getDayTitle, getFaaliatName,
         getFaaliatColor, haftegiExceptionsList, faaliatGroupList } = useLookup();
     const { confirm, ConfirmModal } = useConfirm();
+    const { alert, alertModal } = useAlert();
 
     // ============================================================
     // Stateهای اصلی
@@ -39,6 +41,7 @@ export default function BarnamehHaftegiCreate() {
     const [isElmiOstad, setIsElmiOstad] = useState(false);
     const [isMadove, setIsMadove] = useState(false);
     const [isHeyatElmiGheyrePayamNoor, setIsHeyatElmiGheyrePayamNoor] = useState(false);
+
 
     const location = useLocation();
     // مقدار اولیه ترم: از state اگر وجود داشت، وگرنه ترم جاری
@@ -849,12 +852,21 @@ export default function BarnamehHaftegiCreate() {
                 codeTerm: selectedTerm,
                 details: details
             };
-
-            const endpoint = isConfirm ? '/BarnamehHaftegi/confirm' : '/BarnamehHaftegi/create';
+            const endpoint = isConfirm ? `/BarnamehHaftegi/confirm/ostad/${ostadId}` : '/BarnamehHaftegi/create';
             const response = await api.post(endpoint, payload);
 
             if (response.data?.success) {
                 toast.success(isConfirm ? 'برنامه با موفقیت ثبت و تأیید شد' : 'پیش‌نویس با موفقیت ذخیره شد');
+               /* await alert({
+                    title: 'توجه',
+                    message: `برنامه بصورت پیش نویس ذخیره گردید.
+                            جهت تایید نهایی برنامه می‌بایست در صفحه بعد گزینه تایید برنامه را کلیک نموده
+                            و در صفحه باز شده دکمه تایید را بزنید.
+                            در غیر اینصورت برنامه در حالت پیشنویس باقی میماند.
+                            `,
+                    buttonText: 'باشه',
+                    variant: 'success'
+                });*/
                 navigate('/dashboard/barnameh-haftegi-list');
             }
         } catch (error) {
@@ -1263,6 +1275,8 @@ export default function BarnamehHaftegiCreate() {
                 >
                     {submitting ? 'در حال ذخیره...' : 'ذخیره پیش‌نویس'}
                 </button>
+                {
+                    /*
                 <button
                     className="btn btn-success"
                     onClick={() => handleSubmit(true)}
@@ -1270,6 +1284,9 @@ export default function BarnamehHaftegiCreate() {
                 >
                     {submitting ? 'در حال ذخیره...' : 'ثبت و تأیید'}
                 </button>
+                    */
+                }
+
                 <button
                     className="btn btn-secondary"
                     onClick={() => navigate('/dashboard/barnameh-haftegi-list')}

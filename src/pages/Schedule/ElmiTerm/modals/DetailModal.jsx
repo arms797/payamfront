@@ -17,7 +17,7 @@ export default function DetailModal({
                 <div className="modal-content">
                     <div className="modal-header">
                         <h5 className="modal-title">
-                            جزئیات درخواست - {selectedItem.ostadName}
+                             وضعیت ترمی استاد - {selectedItem.ostadName}
                         </h5>
                         <button type="button" className="btn-close" onClick={onClose}></button>
                     </div>
