@@ -335,7 +335,7 @@ export default function BarnamehHaftegiDetail() {
         console.log('isModirApproved', isModirApproved)
         console.log('isRaeisApproved', isRaeisApproved)
         console.log('isMoavenApproved', isMoavenApproved)
-        
+
         return (
             <div className="d-flex gap-2 flex-wrap no-print">
 
@@ -438,6 +438,7 @@ export default function BarnamehHaftegiDetail() {
         const map = {
             'pishnevis': { label: 'پیش‌نویس', className: 'bg-secondary' },
             'tayeed_ostad': { label: 'تایید استاد', className: 'bg-info' },
+            'tayeed_raeis': { label: 'تایید رییس مرکز', className: 'bg-primary' },
             'tayeed_modir': { label: 'تایید مدیر گروه', className: 'bg-primary' },
             'tayeed_moaven': { label: 'تایید معاون', className: 'bg-success' },
         };
@@ -588,6 +589,8 @@ export default function BarnamehHaftegiDetail() {
                     {program.isComplete ? <span className="badge bg-success">✅ کامل</span> : <span className="badge bg-warning text-dark">⚠️ ناقص</span>}
                     {program.isLocked && <span className="badge bg-danger">🔒 قفل</span>}
                     <span className="text-muted small">استاد: {program.nazarElmi === 1 ? '✅' : program.nazarElmi === 2 ? '❌' : '⏳'}</span>
+                    <span className="text-muted small">رییس مرکز: {(program.nazarRaeisMarkaz === 1 &&
+                        program.nazarModirGrooh === 0) ? '✅' : program.nazarRaeisMarkaz === 2 ? '❌' : '⏳'}</span>
                     <span className="text-muted small">مدیرگروه: {program.nazarModirGrooh === 1 ? '✅' : program.nazarModirGrooh === 2 ? '❌' : '⏳'}</span>
                     <span className="text-muted small">معاون: {program.nazarMoaven === 1 ? '✅' : program.nazarMoaven === 2 ? '❌' : '⏳'}</span>
                 </div>
@@ -595,9 +598,7 @@ export default function BarnamehHaftegiDetail() {
         );
     };
 
-    // ============================================================
-    // کارت‌های امضا (چاپی و نمایشی)
-    // ============================================================
+   
     // ============================================================
     // 2️⃣ کارت‌های امضا
     // ============================================================

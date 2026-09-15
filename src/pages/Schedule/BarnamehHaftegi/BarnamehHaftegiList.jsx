@@ -449,6 +449,7 @@ export default function BarnamehHaftegiList() {
         const map = {
             'pishnevis': { label: 'پیش‌نویس', className: 'bg-secondary text-white' },
             'tayeed_ostad': { label: 'تایید استاد', className: 'bg-info text-white' },
+            'tayeed_raeis': { label: 'تایید رییس مرکز', className: 'bg-primary' },
             'tayeed_modir': { label: 'تایید مدیر گروه', className: 'bg-primary text-white' },
             'tayeed_moaven': { label: 'تایید معاون', className: 'bg-success text-white' },
             'no_program': { label: 'فاقد برنامه', className: 'bg-warning text-dark' }
@@ -617,6 +618,7 @@ export default function BarnamehHaftegiList() {
                                     <option value="">همه</option>
                                     <option value="pishnevis">پیش‌نویس</option>
                                     <option value="tayeed_ostad">تایید استاد</option>
+                                    <option value="tayeed_raeis">تایید رییس مرکز</option>
                                     <option value="tayeed_modir">تایید مدیر گروه</option>
                                     <option value="tayeed_moaven">تایید معاون</option>
                                     <option value="no_program">فاقد برنامه</option>
