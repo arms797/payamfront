@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../api/axiosConfig';
 import { useAuth } from './AuthContext';
 
@@ -10,37 +10,39 @@ export const MarkazProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // ============================================================
+    // 🔥 تابع دریافت مراکز (خارج از useEffect)
+    // ============================================================
+    const fetchMarkaz = useCallback(async () => {
+        try {
+            const response = await api.get('/Markaz/list');
+            if (response.data?.data) {
+                setMarkazList(response.data.data);
+            }
+        } catch (error) {
+            console.error('خطا در دریافت مراکز:', error);
+            setError(error.message);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    // ============================================================
+    // 🔥 بارگذاری اولیه
+    // ============================================================
     useEffect(() => {
-        // ============================================================
-        // اگر کاربر لاگین نکرده، درخواست نده
-        // ============================================================
         if (!isAuthenticated) {
             setLoading(false);
             return;
         }
-
-        const fetchMarkaz = async () => {
-            try {
-                const response = await api.get('/Markaz/list');
-                if (response.data?.data) {
-                    setMarkazList(response.data.data);
-                }
-            } catch (error) {
-                console.error('خطا در دریافت مراکز:', error);
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchMarkaz();
-    }, [isAuthenticated]);
+    }, [isAuthenticated, fetchMarkaz]);
 
     const value = {
         markazList,
         loading,
         error,
-        //refreshMarkaz:fetchMarkaz
+        refreshMarkaz: fetchMarkaz   // ← اضافه شد
     };
 
     return (

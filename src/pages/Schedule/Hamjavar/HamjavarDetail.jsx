@@ -185,6 +185,28 @@ export default function HamjavarDetail() {
         }
     };
 
+    const handleReset = async () => {
+        const confirmed = await confirm({
+            title: 'ریست درخواست',
+            message: `آیا از ریست فرم درخواست تدریس در مراکز دیگر  "${item?.ostadName} ${item?.ostadLastName}"  به وضعیت پیش نویس مطمئن هستید؟`,
+            confirmText: 'بله',
+            confirmVariant: 'danger'
+        });
+        if (!confirmed) return;
+        setSubmitting(true);
+        try {
+            const response = await api.patch(`/Hamjavar/reset/${id}`);
+            if (response.data?.success) {
+                toast.success('درخواست با موفقیت ریست شد');
+                navigate('/dashboard/tadris-hamjavar-list');
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'خطا در ریست درخواست');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     // ============================================================
     // منطق‌های محاسباتی
     // ============================================================
@@ -216,6 +238,12 @@ export default function HamjavarDetail() {
     const canDelete = useMemo(() => {
         return (isOstad && item?.akharinTaghaza === 'PishNevis') || isAdmin;
     }, [isOstad, item, isAdmin]);
+
+    const canReset = useMemo(() => {
+        if (!item) return null;
+        if (isMoaven) return 'moaven';
+        return null;
+    }, [item, isMoaven]);
 
     const getReviewStatus = (role) => {
         if (!item) return null;
@@ -343,9 +371,15 @@ export default function HamjavarDetail() {
                             <i className="bi bi-pencil me-1"></i> ویرایش
                         </button>
                     )}
+                    
                     {reviewRoleType && (
                         <button className="btn btn-primary" onClick={() => openReviewModal(reviewRoleType)}>
                             <i className="bi bi-pencil-square me-1"></i> ثبت نظر {getRoleName(reviewRoleType)}
+                        </button>
+                    )}
+                    {canReset && (
+                        <button className="btn btn-warning" onClick={handleReset}>
+                            <i className="bi bi-pencil-circle me-1"></i> ریست درخواست به پیش نویس
                         </button>
                     )}
                     {canDelete && (

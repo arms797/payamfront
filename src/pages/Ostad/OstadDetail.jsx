@@ -8,6 +8,7 @@ import api from '../../api/axiosConfig';
 import MarkazSelector from '../../components/common/MarkazSelector';
 import PersianNumber from '../../components/common/PersianNumber';
 import { useConfirm } from '../../hooks/useConfirm';
+import ChangeOstadMarkazModal from './ChangeOstadMarkazModal';
 
 export default function OstadDetail() {
     const navigate = useNavigate();
@@ -33,6 +34,11 @@ export default function OstadDetail() {
     // ============================================================
     const [madraks, setMadraks] = useState([]);
     const [loadingMadraks, setLoadingMadraks] = useState(false);
+
+    // ============================================================
+    // Stateهای مودال تغییر مراکز استاد
+    // ============================================================
+    const [showChangeMarkazModal, setShowChangeMarkazModal] = useState(false);
 
     // ============================================================
     // Stateهای مودال ویرایش
@@ -644,7 +650,16 @@ export default function OstadDetail() {
                             onClick={openEditModal}
                         >
                             <i className="bi bi-pencil me-1"></i>
-                            ویرایش
+                            ویرایش مشخصات استاد
+                        </button>
+                    </PermissionWrapper>
+                    <PermissionWrapper permission="Ostad.ChangeMarkaz">
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => setShowChangeMarkazModal(true)}
+                        >
+                            <i className="bi bi-building-gear me-1"></i>
+                            تغییر محل خدمت استاد
                         </button>
                     </PermissionWrapper>
                     <PermissionWrapper permission="RoleAssignment.View">
@@ -908,8 +923,8 @@ export default function OstadDetail() {
                                                             )}
                                                         </td>
                                                         {/* ============================================================
-                            🔥 ستون ایجاد کننده: نام + نقش و مرکز + تاریخ
-                            ============================================================ */}
+                                                            🔥 ستون ایجاد کننده: نام + نقش و مرکز + تاریخ
+                                                            ============================================================ */}
                                                         <td>
                                                             {madrak.createdByUserInfo ? (
                                                                 <div>
@@ -929,8 +944,8 @@ export default function OstadDetail() {
                                                             )}
                                                         </td>
                                                         {/* ============================================================
-                            🔥 ستون تایید کننده: نام + نقش و مرکز + تاریخ
-                            ============================================================ */}
+                                                            🔥 ستون تایید کننده: نام + نقش و مرکز + تاریخ
+                                                            ============================================================ */}
                                                         <td>
                                                             {madrak.isApproved ? (
                                                                 <div>
@@ -945,8 +960,8 @@ export default function OstadDetail() {
                                                             )}
                                                         </td>
                                                         {/* ============================================================
-                            🔥 ستون وضعیت تایید
-                            ============================================================ */}
+                                                            🔥 ستون وضعیت تایید
+                                                            ============================================================ */}
                                                         <td>
                                                             {madrak.isApproved ? (
                                                                 <span className="badge bg-success">
@@ -961,8 +976,8 @@ export default function OstadDetail() {
                                                             )}
                                                         </td>
                                                         {/* ============================================================
-                            🔥 ستون عملیات
-                            ============================================================ */}
+                                                            🔥 ستون عملیات
+                                                            ============================================================ */}
                                                         <td>
                                                             <div className="d-flex gap-1 flex-wrap">
                                                                 <PermissionWrapper permissions={["OstadMadrak.Approve", "OstadMadrak.Unapprove"]} mode='any'>
@@ -1147,11 +1162,12 @@ export default function OstadDetail() {
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <MarkazSelector
-                                                    label="مرکز خدمتی *"
+                                                    label="مرکز خدمتی"
                                                     value={editFormData.markazId}
                                                     onChange={handleEditMarkazChange('markazId')}
                                                     required={true}
                                                     placeholder="انتخاب مرکز خدمتی..."
+                                                    disabled={true}
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
@@ -1161,6 +1177,7 @@ export default function OstadDetail() {
                                                     onChange={handleEditMarkazChange('markazAsliId')}
                                                     required={false}
                                                     placeholder="انتخاب مرکز اصلی..."
+                                                    disabled={true}
                                                 />
                                             </div>
                                         </div>
@@ -1270,8 +1287,8 @@ export default function OstadDetail() {
                 )
             }
             {/* ============================================================
-    مودال افزودن مدرک تحصیلی
-    ============================================================ */}
+                مودال افزودن مدرک تحصیلی
+                ============================================================ */}
             {showAddMadrakModal && (
                 <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
                     <div className="modal-dialog modal-lg">
@@ -1430,6 +1447,22 @@ export default function OstadDetail() {
                     onClick={closeAddMadrakModal}
                 ></div>
             )}
+            {/* ============================================================
+                مودال تغییر مراکز استاد
+                ============================================================ */}
+            <ChangeOstadMarkazModal
+                show={showChangeMarkazModal}
+                onClose={() => setShowChangeMarkazModal(false)}
+                onSuccess={(updatedData) => {
+                    toast.success('مراکز استاد با موفقیت به‌روزرسانی شد');
+                    // اطلاعات استاد رو دوباره از سرور بگیر
+                    fetchOstadDetail();
+                }}
+                ostadId={ostad?.id}
+                ostadName={`${ostad?.naam || ''} ${ostad?.naamKhanevadegi || ''}`}
+                currentMarkazId={ostad?.markazId}
+                currentMarkazAsliId={ostad?.markazAsliId}
+            />
             <ConfirmModal />
         </div >
     );

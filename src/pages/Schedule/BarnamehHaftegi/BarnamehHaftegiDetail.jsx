@@ -326,16 +326,7 @@ export default function BarnamehHaftegiDetail() {
 
         // اگر معاون تایید کرده، برنامه نهایی شده است
         const isFinalApproved = isMoavenApproved;
-
-        console.log('nazarOstad', nazarOstad)
-        console.log('nazarModir', nazarModir)
-        console.log('nazarRaeis', nazarRaeis)
-        console.log('nazarMoaven', nazarMoaven)
-        console.log('isOstadApproved', isOstadApproved)
-        console.log('isModirApproved', isModirApproved)
-        console.log('isRaeisApproved', isRaeisApproved)
-        console.log('isMoavenApproved', isMoavenApproved)
-
+        
         return (
             <div className="d-flex gap-2 flex-wrap no-print">
 

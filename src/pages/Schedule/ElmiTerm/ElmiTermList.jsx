@@ -149,6 +149,14 @@ export default function ElmiTermList() {
     };
 
     // ============================================================
+    // بررسی مجوز برای ریست 
+    // ============================================================
+    const canReset = (item) => {
+        if (!hasPermission('ElmiTerm.ResetToPending')) return false;
+        if (!isManager) return false;
+        return true;
+    };
+    // ============================================================
     // استخراج استان‌های یکتا
     // ============================================================
     const uniqueOstans = useMemo(() => {
@@ -771,7 +779,7 @@ export default function ElmiTermList() {
                                                     )}
                                                 </td>
                                                 <td>
-                                                    <div className="btn-group btn-group-sm">
+                                                    <div className="btn-group btn-group-sm gap-1">
                                                         {/* دکمه مشاهده جزئیات */}
                                                         <button
                                                             className="btn btn-outline-primary"
@@ -833,14 +841,16 @@ export default function ElmiTermList() {
                                                                     )}
                                                                 </>
                                                             ) : (
-                                                                <button
-                                                                    className="btn btn-warning"
-                                                                    onClick={() => handleResetPending(item.id)}
-                                                                    title="بازگشت به حالت در انتظار بررسی"
-                                                                >
-                                                                    <i className="bi bi-arrow-counterclockwise"></i>
-                                                                    <span className="ms-1" style={{ fontSize: '10px' }}>ریست تایید</span>
-                                                                </button>
+                                                                canReset(item) && (
+                                                                    <button
+                                                                        className="btn btn-warning"
+                                                                        onClick={() => handleResetPending(item.id)}
+                                                                        title="بازگشت به حالت در انتظار بررسی"
+                                                                    >
+                                                                        <i className="bi bi-arrow-counterclockwise"></i>
+                                                                        <span className="ms-1" style={{ fontSize: '10px' }}>ریست تایید</span>
+                                                                    </button>
+                                                                )
                                                             )}
                                                         </div>
                                                     </div>

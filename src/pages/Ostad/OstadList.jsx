@@ -7,12 +7,16 @@ import { PermissionWrapper } from '../../components/PermissionWrapper';
 import { toast } from 'react-toastify';
 import api from '../../api/axiosConfig';
 import PersianNumber from '../../components/common/PersianNumber';
+import ChangeMarkazByCodeModal from './ChangeMarkazByCodeModal';
 
 export default function OstadList() {
     const navigate = useNavigate();
     const location = useLocation();
     const { hasPermission, user } = useAuth();
     const { markazList } = useMarkaz();
+
+    const [showChangeByCodeModal, setShowChangeByCodeModal] = useState(false);
+
 
     // ============================================================
     // Stateهای اصلی
@@ -421,16 +425,31 @@ export default function OstadList() {
         <div className="container-fluid">
             {/* هدر */}
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h4>مدیریت اساتید</h4>
-                <PermissionWrapper permission="Ostad.Create">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => navigate('/dashboard/ostad/create')}
-                    >
-                        <i className="bi bi-plus-circle me-2"></i>
-                        استاد جدید
-                    </button>
-                </PermissionWrapper>
+                <h4 className="mb-0">مدیریت اساتید</h4>
+
+                {/* 🔥 گروه دکمه‌ها */}
+                <div className="d-flex gap-2">
+                    <PermissionWrapper permission="Ostad.Create">
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/dashboard/ostad/create')}
+                        >
+                            <i className="bi bi-plus-circle me-2"></i>
+                            استاد جدید
+                        </button>
+                    </PermissionWrapper>
+
+                    <PermissionWrapper permission="Ostad.ChangeMarkazByCodeOstadi">
+                        <button
+                            className="btn btn-danger"
+                            onClick={() => setShowChangeByCodeModal(true)}
+                            title="فقط ادمین سامانه"
+                        >
+                            <i className="bi bi-shield-lock me-1"></i>
+                            تغییر مراکز با کد استادی
+                        </button>
+                    </PermissionWrapper>
+                </div>
             </div>
 
             {/* فیلترها */}
@@ -628,6 +647,15 @@ export default function OstadList() {
                     {renderPagination()}
                 </>
             )}
+            <ChangeMarkazByCodeModal
+                show={showChangeByCodeModal}
+                onClose={() => setShowChangeByCodeModal(false)}
+                onSuccess={(data) => {
+                    toast.success(`مراکز استاد ${data.fullName} تغییر کرد`);
+                    // اگه توی صفحه لیست هستی، لیست رو رفرش کن
+                    fetchOstads();
+                }}
+            />
         </div>
     );
 }

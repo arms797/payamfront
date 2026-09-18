@@ -18,7 +18,9 @@ export default function MarkazSelector({
     label = 'مرکز',
     placeholder = 'انتخاب مرکز...',
     required = false,
-    className = ''
+    className = '',
+    disabled = false,
+    allVazeeyat = true
 }) {
     const { user, currentRoleId } = useAuth();
     const { markazList, loading } = useMarkaz();
@@ -85,8 +87,9 @@ export default function MarkazSelector({
     const accessibleOstans = useMemo(() => {
         if (!markazList || markazList.length === 0) return [];
 
-        let filteredMarkaz = markazList.filter(m => m.vazeeyat !== false);
-
+        let filteredMarkaz = allVazeeyat
+            ? markazList
+            : markazList.filter(m => m.vazeeyat !== false);
         // 1️⃣ ادمین سامانه (CodeRole=1) و ادمین سازمان (CodeRole=2) → همه استان‌ها
         if (codeRole === 1 || codeRole === 2) {
             // همه استان‌ها
@@ -111,9 +114,13 @@ export default function MarkazSelector({
                 }
                 return acc;
             }, []);
+        // 🔥 مرتب‌سازی بر اساس نام استان
+        uniqueOstans.sort((a, b) =>
+            (a.naamOstan || '').localeCompare(b.naamOstan || '', 'fa')
+        );
 
         return uniqueOstans;
-    }, [markazList, codeRole, userOstanCode]);
+    }, [markazList, codeRole, userOstanCode, allVazeeyat]);
 
     // ============================================================
     // لیست مراکز قابل دسترس بر اساس استان انتخاب‌شده و CodeRole
@@ -123,7 +130,7 @@ export default function MarkazSelector({
 
         let filtered = markazList.filter(m =>
             m.codeOstan === selectedOstanCode &&
-            m.vazeeyat !== false
+            (allVazeeyat || m.vazeeyat !== false)
         );
 
         // اگر CodeRole=4 باشد، فقط مرکز خودش را ببیند
@@ -131,8 +138,15 @@ export default function MarkazSelector({
             filtered = filtered.filter(m => m.id === userMarkazId);
         }
 
+        // 🔥 مرتب‌سازی بر اساس نام مرکز
+        filtered.sort((a, b) => {
+            const nameA = getDisplayName(a) || a.naamMarkaz || '';
+            const nameB = getDisplayName(b) || b.naamMarkaz || '';
+            return nameA.localeCompare(nameB, 'fa');
+        });
+
         return filtered;
-    }, [markazList, selectedOstanCode, codeRole, userMarkazId]);
+    }, [markazList, selectedOstanCode, codeRole, userMarkazId, allVazeeyat]);
 
     // ============================================================
     // تنظیم مقدار اولیه (اگر value داده شده باشد)
@@ -180,7 +194,7 @@ export default function MarkazSelector({
 
     return (
         <div className={className}>
-            {label && <label className="form-label">{label} {required && <span className="text-danger">*</span>}</label>}
+            {label && <label className="form-label">{label} {required && <span className="text-danger"></span>}</label>}
 
             {/* ============================================================
                 کومبوی استان
@@ -189,7 +203,11 @@ export default function MarkazSelector({
                 className="form-select mb-2"
                 value={selectedOstanCode}
                 onChange={handleOstanChange}
-                disabled={codeRole === 3 || codeRole === 4}
+                disabled={disabled || codeRole === 3 || codeRole === 4}   // 🔥 اصلاح شد
+                style={{
+                    backgroundColor: (disabled || codeRole === 3 || codeRole === 4) ? '#e9ecef' : 'white',
+                    cursor: (disabled || codeRole === 3 || codeRole === 4) ? 'not-allowed' : 'pointer'
+                }}
             >
                 <option value="">انتخاب استان...</option>
                 {accessibleOstans.map(ostan => (
@@ -207,23 +225,19 @@ export default function MarkazSelector({
                 value={selectedMarkazId}
                 onChange={handleMarkazChange}
                 required={required}
-                disabled={!selectedOstanCode || accessibleMarkazs.length === 0}
+                disabled={disabled || !selectedOstanCode || accessibleMarkazs.length === 0}   // 🔥 اصلاح شد
+                style={{
+                    backgroundColor: disabled ? '#e9ecef' : 'white',
+                    cursor: disabled ? 'not-allowed' : 'pointer'
+                }}
             >
                 <option value="">{placeholder}</option>
                 {accessibleMarkazs.map(markaz => {
                     const displayName = getDisplayName(markaz);
-                    // اگر نام نمایشی خالی بود، از naamMarkaz استفاده کن
                     const finalName = displayName || markaz.naamMarkaz || `مرکز ${markaz.id}`;
-
                     return (
                         <option key={markaz.id} value={markaz.id}>
                             {finalName}
-                            {/* نمایش Level به عنوان Badge کوچک (اختیاری) */}
-                            {/*markaz.level && (
-                                <span className="text-muted ms-1" style={{ fontSize: '10px' }}>
-                                    (L{markaz.level})
-                                </span>
-                            )*/}
                         </option>
                     );
                 })}
@@ -232,16 +246,24 @@ export default function MarkazSelector({
             {/* ============================================================
                 نمایش وضعیت دسترسی
                 ============================================================ */}
-            {codeRole === 3 && (
+            {codeRole === 3 && !disabled && (
                 <small className="text-muted d-block mt-1">
                     <i className="bi bi-info-circle me-1"></i>
                     شما فقط می‌توانید برای استان خود کاربر تعریف کنید
                 </small>
             )}
-            {codeRole === 4 && (
+            {codeRole === 4 && !disabled && (
                 <small className="text-muted d-block mt-1">
                     <i className="bi bi-info-circle me-1"></i>
                     شما فقط می‌توانید برای مرکز خود کاربر تعریف کنید
+                </small>
+            )}
+
+            {/* 🔥 پیام حالت غیرفعال */}
+            {disabled && (
+                <small className="text-muted d-block mt-1">
+                    <i className="bi bi-lock me-1"></i>
+                    این فیلد قابل ویرایش نیست
                 </small>
             )}
         </div>

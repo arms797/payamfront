@@ -39,6 +39,7 @@ import BarnamehHaftegiCreate from './pages/Schedule/BarnamehHaftegi/BarnamehHaft
 import BarnamehHaftegiEdit from './pages/Schedule/BarnamehHaftegi/BarnamehHaftegiEdit';
 
 import ChangePassword from './pages/Profile/ChangePassword';
+import MarkazList from './pages/Markaz/MarkazList';
 
 
 // ============================================================
@@ -140,6 +141,14 @@ function App() {
                 element={
                   <ProtectedRouteWithPermission requiredPermission="Role.View">
                     <RoleList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="markaz"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Markaz.Update">
+                    <MarkazList />
                   </ProtectedRouteWithPermission>
                 }
               />
