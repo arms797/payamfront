@@ -1,6 +1,6 @@
 import React from 'react';
 //import logo from '../../../assets/logo.png';
-import logo from '../../../../public/logo.png';
+import logo from '../../../../public/logo2.svg';
 import SignatureDisplay from '../../../components/common/SignatureDisplay';
 
 

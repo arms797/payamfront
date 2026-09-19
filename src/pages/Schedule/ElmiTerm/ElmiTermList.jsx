@@ -710,7 +710,42 @@ export default function ElmiTermList() {
                     </div>
 
                     <div className="table-responsive">
-                        <table className="table table-hover table-striped">
+                        <table
+                            className="table table-hover table-striped"
+                            style={{
+                                tableLayout: 'fixed',
+                                fontSize: '14px'
+                            }}
+                        >
+                            {/* 🔥 استایل ارتفاع ثابت */}
+                            <style>{`
+                                .table tbody tr {
+                                    height: 50px;
+                                }
+                                .table tbody td {
+                                    vertical-align: middle;
+                                }
+                                .table tbody td .badge {
+                                    white-space: normal;
+                                    word-break: break-word;
+                                }
+                            `}</style>
+
+                            <colgroup>
+                                <col style={{ width: '3%' }} />   {/* # */}
+                                <col style={{ width: '12%' }} />  {/* استاد */}
+                                <col style={{ width: '6%' }} />   {/* کد استادی */}
+                                <col style={{ width: '10%' }} />  {/* مرکز */}
+                                <col style={{ width: '10%' }} />  {/* آخرین وضعیت */}
+                                <col style={{ width: '14%' }} />  {/* سمت اجرایی */}
+                                <col style={{ width: '5%' }} />   {/* ساعات موظف */}
+                                <col style={{ width: '5%' }} />   {/* تعداد واحد */}
+                                <col style={{ width: '7%' }} />   {/* تاثیر در محاسبات */}
+                                <col style={{ width: '7%' }} />   {/* تایید */}
+                                <col style={{ width: '5%' }} />   {/* پیوست */}
+                                <col style={{ width: '16%' }} />  {/* عملیات */}
+                            </colgroup>
+
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -719,7 +754,7 @@ export default function ElmiTermList() {
                                     <th>مرکز</th>
                                     <th>آخرین وضعیت استاد</th>
                                     <th>سمت اجرایی</th>
-                                    <th>تعداد ساعت موظف هفتگی</th>
+                                    <th>ساعات موظف هفتگی</th>
                                     <th>تعداد واحد موظف</th>
                                     <th>تاثیر در محاسبات</th>
                                     <th>تایید مدیریت استان</th>
@@ -727,6 +762,7 @@ export default function ElmiTermList() {
                                     <th>عملیات</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 {items.length === 0 ? (
                                     <tr>
@@ -742,33 +778,108 @@ export default function ElmiTermList() {
 
                                         return (
                                             <tr key={item.id}>
-                                                <td><PersianNumber>
-                                                    {(pagination.page - 1) * pagination.pageSize + index + 1}
-                                                </PersianNumber></td>
+                                                <td className="text-center">
+                                                    <PersianNumber>
+                                                        {(pagination.page - 1) * pagination.pageSize + index + 1}
+                                                    </PersianNumber>
+                                                </td>
+
                                                 <td>
                                                     <strong>{item.ostadName}</strong>
                                                 </td>
-                                                <td><PersianNumber>{item.ostadCode}</PersianNumber></td>
-                                                <td>{item.ostadMarkaz || '-'}</td>
-                                                <td>{item.akharinVazeeat || '-'}</td>
+
+                                                <td className="text-center">
+                                                    <PersianNumber>{item.ostadCode}</PersianNumber>
+                                                </td>
+
+                                                <td>
+                                                    <span
+                                                        title={item.ostadMarkaz || '-'}
+                                                        style={{
+                                                            display: '-webkit-box',
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: 'vertical',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'normal',
+                                                            wordBreak: 'break-word',
+                                                            lineHeight: '1.4',
+                                                            cursor: 'help'
+                                                        }}
+                                                    >
+                                                        {item.ostadMarkaz || '-'}
+                                                    </span>
+                                                </td>
+
+                                                <td>
+                                                    <span
+                                                        title={item.akharinVazeeat || '-'}
+                                                        style={{
+                                                            display: '-webkit-box',
+                                                            WebkitLineClamp: 2,
+                                                            WebkitBoxOrient: 'vertical',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'normal',
+                                                            wordBreak: 'break-word',
+                                                            lineHeight: '1.4',
+                                                            cursor: 'help'
+                                                        }}
+                                                    >
+                                                        {item.akharinVazeeat || '-'}
+                                                    </span>
+                                                </td>
+
                                                 <td>
                                                     {item.isEjeari ? (
-                                                        <span className="badge bg-info">{item.onvanEjraei || 'دارد'}</span>
+                                                        <span
+                                                            //className="badge bg-dark"
+                                                            title={item.onvanEjraei || 'دارد'}
+                                                            style={{
+                                                                display: '-webkit-box',
+                                                                WebkitLineClamp: 2,
+                                                                WebkitBoxOrient: 'vertical',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'normal',
+                                                                wordBreak: 'break-word',
+                                                                padding: '5px 8px',
+                                                                lineHeight: '1.4',
+                                                                textAlign: 'right',
+                                                                fontWeight: 'normal',
+                                                                fontSize: '14px',
+                                                                maxWidth: '100%',
+                                                                cursor: 'help'
+                                                            }}
+                                                        >
+                                                            {item.onvanEjraei || 'دارد'}
+                                                        </span>
                                                     ) : (
                                                         <span className="badge bg-secondary">ندارد</span>
                                                     )}
                                                 </td>
-                                                <td><PersianNumber>{item.tedadSaatMovazafi || '-'}</PersianNumber></td>
-                                                <td><PersianNumber>{item.tedadVahedMovazafi || '-'}</PersianNumber></td>
-                                                <td>
+
+                                                <td className="text-center">
+                                                    <PersianNumber>{item.tedadSaatMovazafi || '-'}</PersianNumber>
+                                                </td>
+
+                                                <td className="text-center">
+                                                    <PersianNumber>{item.tedadVahedMovazafi || '-'}</PersianNumber>
+                                                </td>
+
+                                                <td className="text-center">
                                                     {item.vazeeat ? (
                                                         <span className="badge bg-success">فعال</span>
                                                     ) : (
                                                         <span className="badge bg-danger">غیرفعال</span>
                                                     )}
                                                 </td>
-                                                <td>{getStatusBadge(item.approveStatus)}</td>
-                                                <td>
+
+                                                <td className="text-center">
+                                                    {getStatusBadge(item.approveStatus)}
+                                                </td>
+
+                                                <td className="text-center">
                                                     {item.hasFile ? (
                                                         <DownloadButton
                                                             filePath={item.filePath}
@@ -778,81 +889,76 @@ export default function ElmiTermList() {
                                                         <span className="text-muted">-</span>
                                                     )}
                                                 </td>
+
+                                                {/* 🔥 ستون عملیات */}
                                                 <td>
-                                                    <div className="btn-group btn-group-sm gap-1">
-                                                        {/* دکمه مشاهده جزئیات */}
+                                                    <div className="d-flex flex-wrap gap-1 justify-content-center">
                                                         <button
-                                                            className="btn btn-outline-primary"
+                                                            className="btn btn-sm btn-outline-primary"
                                                             onClick={() => openDetailModal(item.id)}
                                                             title="مشاهده جزئیات"
                                                         >
                                                             <i className="bi bi-eye"></i>
                                                         </button>
 
-                                                        {/* ============================================================
-                                                            دکمه‌های عملیات
-                                                            ============================================================ */}
-                                                        <div className="d-flex flex-wrap gap-1 align-items-center">
-                                                            {item.approveStatus === 0 ? (
-                                                                <>
-                                                                    {isApprovable && (
-                                                                        <PermissionWrapper permission="ElmiTerm.Approve">
-                                                                            <div className="d-flex gap-1">
-                                                                                <button
-                                                                                    className="btn btn-success"
-                                                                                    onClick={() => handleApprove(item, 1)}
-                                                                                    title="تایید"
-                                                                                >
-                                                                                    <i className="bi bi-check-lg"></i>
-                                                                                </button>
-                                                                                <button
-                                                                                    className="btn btn-danger"
-                                                                                    onClick={() => handleApprove(item, 2)}
-                                                                                    title="رد"
-                                                                                >
-                                                                                    <i className="bi bi-x-lg"></i>
-                                                                                </button>
-                                                                            </div>
-                                                                        </PermissionWrapper>
-                                                                    )}
-
-                                                                    {isEditable && (
-                                                                        <PermissionWrapper permission="ElmiTerm.Update">
+                                                        {item.approveStatus === 0 ? (
+                                                            <>
+                                                                {isApprovable && (
+                                                                    <PermissionWrapper permission="ElmiTerm.Approve">
+                                                                        <div className="d-flex gap-1">
                                                                             <button
-                                                                                className="btn btn-warning"
-                                                                                onClick={() => openEditModal(item)}
-                                                                                title="ویرایش"
+                                                                                className="btn btn-sm btn-success"
+                                                                                onClick={() => handleApprove(item, 1)}
+                                                                                title="تایید"
                                                                             >
-                                                                                <i className="bi bi-pencil"></i>
+                                                                                <i className="bi bi-check-lg"></i>
                                                                             </button>
-                                                                        </PermissionWrapper>
-                                                                    )}
-
-                                                                    {isDeletable && (
-                                                                        <PermissionWrapper permission="ElmiTerm.Delete">
                                                                             <button
-                                                                                className="btn btn-danger"
-                                                                                onClick={() => handleDelete(item)}
-                                                                                title="حذف"
+                                                                                className="btn btn-sm btn-danger"
+                                                                                onClick={() => handleApprove(item, 2)}
+                                                                                title="رد"
                                                                             >
-                                                                                <i className="bi bi-trash"></i>
+                                                                                <i className="bi bi-x-lg"></i>
                                                                             </button>
-                                                                        </PermissionWrapper>
-                                                                    )}
-                                                                </>
-                                                            ) : (
-                                                                canReset(item) && (
-                                                                    <button
-                                                                        className="btn btn-warning"
-                                                                        onClick={() => handleResetPending(item.id)}
-                                                                        title="بازگشت به حالت در انتظار بررسی"
-                                                                    >
-                                                                        <i className="bi bi-arrow-counterclockwise"></i>
-                                                                        <span className="ms-1" style={{ fontSize: '10px' }}>ریست تایید</span>
-                                                                    </button>
-                                                                )
-                                                            )}
-                                                        </div>
+                                                                        </div>
+                                                                    </PermissionWrapper>
+                                                                )}
+
+                                                                {isEditable && (
+                                                                    <PermissionWrapper permission="ElmiTerm.Update">
+                                                                        <button
+                                                                            className="btn btn-sm btn-warning"
+                                                                            onClick={() => openEditModal(item)}
+                                                                            title="ویرایش"
+                                                                        >
+                                                                            <i className="bi bi-pencil"></i>
+                                                                        </button>
+                                                                    </PermissionWrapper>
+                                                                )}
+
+                                                                {isDeletable && (
+                                                                    <PermissionWrapper permission="ElmiTerm.Delete">
+                                                                        <button
+                                                                            className="btn btn-sm btn-danger"
+                                                                            onClick={() => handleDelete(item)}
+                                                                            title="حذف"
+                                                                        >
+                                                                            <i className="bi bi-trash"></i>
+                                                                        </button>
+                                                                    </PermissionWrapper>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            canReset(item) && (
+                                                                <button
+                                                                    className="btn btn-sm btn-warning"
+                                                                    onClick={() => handleResetPending(item.id)}
+                                                                    title="بازگشت به حالت در انتظار بررسی"
+                                                                >
+                                                                    <i className="bi bi-arrow-counterclockwise"></i>
+                                                                </button>
+                                                            )
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

@@ -110,6 +110,7 @@ export default function BarnamehHaftegiEdit() {
                         setOstadId(data.ostadId);
                     }
                 }
+
             } catch (error) {
                 console.error('خطا در دریافت ostadId:', error);
             }

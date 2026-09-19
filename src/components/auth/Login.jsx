@@ -46,7 +46,7 @@ export default function Login() {
         // ============================================================
         // 🔥 هدایت به داشبورد
         // ============================================================
-        
+
         if (response.data.data.isElmiOstad && !response.data.data.hasActiveElmiTerm) {
           navigate('/dashboard/elmi-term');
         } else {
@@ -99,8 +99,10 @@ export default function Login() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label className="form-label">نام کاربری</label>
+        <div className="mb-3 d-flex align-items-center gap-2">
+          <label className="form-label mb-0" style={{ minWidth: '100px' }}>
+            نام کاربری
+          </label>
           <input
             type="text"
             className="form-control"
@@ -111,9 +113,11 @@ export default function Login() {
           />
         </div>
 
-        <div className="mb-3">
-          <label className="form-label">رمز عبور</label>
-          <div className="position-relative">
+        <div className="mb-3 d-flex align-items-center gap-2">
+          <label className="form-label mb-0" style={{ minWidth: '100px' }}>
+            رمز عبور
+          </label>
+          <div className="position-relative flex-grow-1">
             <input
               type={showPassword ? 'text' : 'password'}
               className="form-control"
@@ -121,7 +125,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={loading}
-              style={{ paddingRight: '40px' }} // جا برای آیکون
+              style={{ paddingRight: '40px' }}
             />
             <button
               type="button"

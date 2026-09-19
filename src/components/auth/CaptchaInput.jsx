@@ -17,12 +17,8 @@ const CaptchaInput = forwardRef(({ onCaptchaChange, onCaptchaKey }, ref) => {
                 setCaptchaKey(data.captchaKey);
                 setCaptchaImage(data.captchaImageBase64);
                 setUserAnswer('');
-                if (onCaptchaKey) {
-                    onCaptchaKey(data.captchaKey);
-                }
-                if (onCaptchaChange) {
-                    onCaptchaChange('');
-                }
+                if (onCaptchaKey) onCaptchaKey(data.captchaKey);
+                if (onCaptchaChange) onCaptchaChange('');
             } else {
                 setError('خطا در دریافت کد امنیتی');
             }
@@ -34,9 +30,7 @@ const CaptchaInput = forwardRef(({ onCaptchaChange, onCaptchaKey }, ref) => {
         }
     };
 
-    useImperativeHandle(ref, () => ({
-        loadCaptcha
-    }));
+    useImperativeHandle(ref, () => ({ loadCaptcha }));
 
     useEffect(() => {
         loadCaptcha();
@@ -45,81 +39,83 @@ const CaptchaInput = forwardRef(({ onCaptchaChange, onCaptchaKey }, ref) => {
     const handleChange = (e) => {
         const value = e.target.value;
         setUserAnswer(value);
-        if (onCaptchaChange) {
-            onCaptchaChange(value);
-        }
+        if (onCaptchaChange) onCaptchaChange(value);
     };
 
     return (
         <div className="mb-3">
-            <label className="form-label">کد امنیتی</label>
+            {/* 🔥 همه عناصر در یک خط */}
+            <div className="d-flex align-items-center gap-2">
+                <label className="form-label mb-0" style={{ minWidth: '100px' }}>
+                    کد امنیتی
+                </label>
 
-            <div className="d-flex align-items-center">
+                {/* 🔥 تصویر کپچا بزرگ‌تر */}
                 {captchaImage ? (
                     <img
                         src={`data:image/png;base64,${captchaImage}`}
                         alt="کد امنیتی"
-                        className="captcha-image"
+                        onClick={loadCaptcha}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        title="کلیک برای تغییر کد امنیتی"
                         style={{
-                            border: '1px solid #ddd',
+                            border: '1px solid #ced4da',
                             borderRadius: '4px',
-                            padding: '4px',
+                            padding: '2px',
                             background: 'white',
-                            width: '180px',
-                            height: 'auto',
-                            maxHeight: '60px'
+                            height: '48px',        // 🔥 از 38 به 48
+                            width: 'auto',
+                            minWidth: '150px',     // 🔥 حداقل عرض
+                            cursor: 'pointer',
+                            transition: 'opacity 0.2s',
+                            flexShrink: 0
                         }}
                     />
                 ) : (
                     <div
                         className="d-flex align-items-center justify-content-center"
                         style={{
-                            width: '180px',
-                            height: '50px',
+                            height: '48px',
+                            width: '120px',
                             border: '1px solid #ddd',
                             borderRadius: '4px',
                             background: '#f8f9fa',
                             color: '#6c757d',
-                            fontSize: '14px'
+                            fontSize: '12px',
+                            flexShrink: 0
                         }}
                     >
-                        {loading ? 'در حال بارگذاری...' : 'خطا در بارگذاری'}
+                        {loading ? 'در حال بارگذاری...' : 'خطا'}
                     </div>
                 )}
 
-                <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm ms-2"
-                    onClick={loadCaptcha}
+                {/* input کپچا */}
+                <input
+                    type="text"
+                    className="form-control flex-grow-1"
+                    placeholder="کد را وارد کنید"
+                    value={userAnswer}
+                    onChange={handleChange}
+                    maxLength={5}
+                    autoComplete="off"
                     disabled={loading}
-                    title="تغییر کد امنیتی"
-                >
-                    <i className={`bi ${loading ? 'bi-arrow-repeat spin' : 'bi-arrow-clockwise'}`}></i>
-                </button>
+                    style={{ height: '48px', minWidth: '120px' }}     // 🔥 هم‌ارتفاع با تصویر
+                />
             </div>
 
+            {/* خطا */}
             {error && (
-                <div className="text-danger mt-1" style={{ fontSize: '12px' }}>
+                <div className="text-danger mt-1" style={{ fontSize: '12px', marginRight: '110px' }}>
                     <i className="bi bi-exclamation-circle me-1"></i>
                     {error}
                 </div>
             )}
 
-            <input
-                type="text"
-                className="form-control mt-2"
-                placeholder="کد امنیتی را وارد کنید"
-                value={userAnswer}
-                onChange={handleChange}
-                maxLength={5}
-                autoComplete="off"
-                disabled={loading}
-                style={{ maxWidth: '200px' }}
-            />
-
-            <small className="text-muted" style={{ fontSize: '12px' }}>
+            {/* راهنما */}
+            <small className="text-muted d-block mt-1" style={{ fontSize: '12px', marginRight: '110px' }}>
                 <i className="bi bi-info-circle me-1"></i>
-                کد امنیتی را از روی تصویر وارد کنید
+                برای تغییر کد، روی تصویر کلیک کنید
             </small>
         </div>
     );
