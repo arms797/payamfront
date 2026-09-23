@@ -30,6 +30,7 @@ export default function BarnamehHaftegiDetail() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const [signatures, setSignatures] = useState({});
 
@@ -98,6 +99,34 @@ export default function BarnamehHaftegiDetail() {
             errors: []
         });
     };
+
+    // ============================================================
+    // 🔥 حذف برنامه هفتگی
+    // ============================================================
+    const handleDelete = async () => {
+        const confirmed = await confirm({
+            title: 'حذف برنامه',
+            message: 'آیا از حذف این برنامه هفتگی مطمئن هستید؟ این عملیات قابل بازگشت نیست.',
+            confirmText: 'بله، حذف شود',
+            confirmVariant: 'danger'
+        });
+        if (!confirmed) return;
+
+        setDeleting(true);
+        try {
+            const response = await api.delete(`/BarnamehHaftegi/delete/${id}`);
+            if (response.data?.success) {
+                toast.success('برنامه هفتگی با موفقیت حذف شد');
+                navigate('/dashboard/barnameh-haftegi-list');
+            }
+        } catch (error) {
+            const message = error.response?.data?.message || 'خطا در حذف برنامه';
+            toast.error(message);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     // عملیات‌های تأیید
     const handleConfirmByOstad = async () => {
         const confirmed = await confirm({
@@ -326,7 +355,7 @@ export default function BarnamehHaftegiDetail() {
 
         // اگر معاون تایید کرده، برنامه نهایی شده است
         const isFinalApproved = isMoavenApproved;
-        
+
         return (
             <div className="d-flex gap-2 flex-wrap no-print">
 
@@ -338,8 +367,27 @@ export default function BarnamehHaftegiDetail() {
                         <button className="btn btn-warning btn-sm" onClick={() => navigate(`/dashboard/barnameh-haftegi-edit/${id}`)}>
                             <i className="bi bi-pencil me-1"></i> ویرایش
                         </button>
+
                         <button className="btn btn-success btn-sm" onClick={handleConfirmByOstad} disabled={submitting || !program.isComplete}>
                             {submitting ? 'در حال...' : 'تأیید'}
+                        </button>
+                        {/* 🔥 دکمه حذف */}
+                        <button
+                            className="btn btn-danger btn-sm"
+                            onClick={handleDelete}
+                            disabled={deleting || submitting}
+                            title="حذف برنامه"
+                        >
+                            {deleting ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    در حال حذف...
+                                </>
+                            ) : (
+                                <>
+                                    <i className="bi bi-trash me-1"></i> حذف
+                                </>
+                            )}
                         </button>
                     </>
                 )}
@@ -589,7 +637,7 @@ export default function BarnamehHaftegiDetail() {
         );
     };
 
-   
+
     // ============================================================
     // 2️⃣ کارت‌های امضا
     // ============================================================

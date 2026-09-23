@@ -44,13 +44,11 @@ const CaptchaInput = forwardRef(({ onCaptchaChange, onCaptchaKey }, ref) => {
 
     return (
         <div className="mb-3">
-            {/* 🔥 همه عناصر در یک خط */}
-            <div className="d-flex align-items-center gap-2">
-                <label className="form-label mb-0" style={{ minWidth: '100px' }}>
-                    کد امنیتی
-                </label>
+            {/* 🔥 ردیف اول: تصویر کپچا + دکمه رفرش - هم‌تراز با inputهای بالا */}
+            <div className="d-flex align-items-center gap-2 mb-2">
+                {/* فضای خالی معادل لیبل (۱۰۰px) */}
+                <div style={{ minWidth: '100px' }}></div>
 
-                {/* 🔥 تصویر کپچا بزرگ‌تر */}
                 {captchaImage ? (
                     <img
                         src={`data:image/png;base64,${captchaImage}`}
@@ -64,43 +62,58 @@ const CaptchaInput = forwardRef(({ onCaptchaChange, onCaptchaKey }, ref) => {
                             borderRadius: '4px',
                             padding: '2px',
                             background: 'white',
-                            height: '48px',        // 🔥 از 38 به 48
+                            height: '52px',
                             width: 'auto',
-                            minWidth: '150px',     // 🔥 حداقل عرض
+                            minWidth: '160px',
                             cursor: 'pointer',
-                            transition: 'opacity 0.2s',
-                            flexShrink: 0
+                            transition: 'opacity 0.2s'
                         }}
                     />
                 ) : (
                     <div
                         className="d-flex align-items-center justify-content-center"
                         style={{
-                            height: '48px',
-                            width: '120px',
+                            height: '52px',
+                            width: '160px',
                             border: '1px solid #ddd',
                             borderRadius: '4px',
                             background: '#f8f9fa',
                             color: '#6c757d',
-                            fontSize: '12px',
-                            flexShrink: 0
+                            fontSize: '12px'
                         }}
                     >
                         {loading ? 'در حال بارگذاری...' : 'خطا'}
                     </div>
                 )}
 
-                {/* input کپچا */}
+                {/* دکمه رفرش کپچا */}
+                <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={loadCaptcha}
+                    disabled={loading}
+                    title="تغییر کد امنیتی"
+                    style={{ height: '52px', width: '42px' }}
+                >
+                    <i className={`bi ${loading ? 'bi-arrow-repeat spin' : 'bi-arrow-clockwise'}`}></i>
+                </button>
+            </div>
+
+            {/* 🔥 ردیف دوم: لیبل + کادر ورود کپچا */}
+            <div className="d-flex align-items-center gap-2">
+                <label className="form-label mb-0" style={{ minWidth: '100px' }}>
+                    کد امنیتی
+                </label>
                 <input
                     type="text"
                     className="form-control flex-grow-1"
-                    placeholder="کد را وارد کنید"
+                    placeholder="کد امنیتی را وارد کنید"
                     value={userAnswer}
                     onChange={handleChange}
                     maxLength={5}
                     autoComplete="off"
                     disabled={loading}
-                    style={{ height: '48px', minWidth: '120px' }}     // 🔥 هم‌ارتفاع با تصویر
+                    style={{ height: '48px' }}
                 />
             </div>
 
@@ -111,12 +124,6 @@ const CaptchaInput = forwardRef(({ onCaptchaChange, onCaptchaKey }, ref) => {
                     {error}
                 </div>
             )}
-
-            {/* راهنما */}
-            <small className="text-muted d-block mt-1" style={{ fontSize: '12px', marginRight: '110px' }}>
-                <i className="bi bi-info-circle me-1"></i>
-                برای تغییر کد، روی تصویر کلیک کنید
-            </small>
         </div>
     );
 });
