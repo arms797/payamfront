@@ -16,6 +16,7 @@
     "react": "^19.2.6",
     "react-bootstrap": "^2.10.10",
     "react-dom": "^19.2.6",
+    "react-persian-range-picker": "^1.1.1",
     "react-router-dom": "^7.18.0",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "react-to-print": "^3.3.0",

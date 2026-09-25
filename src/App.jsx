@@ -40,6 +40,7 @@ import BarnamehHaftegiEdit from './pages/Schedule/BarnamehHaftegi/BarnamehHafteg
 
 import ChangePassword from './pages/Profile/ChangePassword';
 import MarkazList from './pages/Markaz/MarkazList';
+import TermList from './pages/Term/TermList';
 
 
 // ============================================================
@@ -149,6 +150,14 @@ function App() {
                 element={
                   <ProtectedRouteWithPermission requiredPermission="Markaz.Update">
                     <MarkazList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="term"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Term.Update">
+                    <TermList />
                   </ProtectedRouteWithPermission>
                 }
               />
