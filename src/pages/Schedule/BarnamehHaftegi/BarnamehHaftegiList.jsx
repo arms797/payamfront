@@ -769,7 +769,7 @@ export default function BarnamehHaftegiList() {
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>نام و نام خانوادگی</th>
+                                    <th className='sticky-col'>نام و نام خانوادگی</th>
                                     <th>کد استادی</th>
                                     <th>مرکز</th>
                                     <th>نوع همکاری</th>
@@ -803,7 +803,7 @@ export default function BarnamehHaftegiList() {
                                                         {(pagination.page - 1) * pagination.pageSize + index + 1}
                                                     </PersianNumber>
                                                 </td>
-                                                <td>
+                                                <td className='sticky-col'>
                                                     <strong>{item.ostadName}</strong>
                                                 </td>
                                                 <td>

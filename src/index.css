@@ -448,6 +448,28 @@ body {
     background: transparent;
 }
 
+/* ============================================================
+   Sticky ستون‌ها در جدول‌ها
+   ============================================================ */
+.sticky-col {
+    position: sticky;
+    right: 0;
+    background-color: #fff;
+    z-index: 2;
+}
+
+.table thead .sticky-col {
+    background-color: #f8f9fa;
+    z-index: 3;
+}
+
+.table-striped tbody tr:nth-of-type(odd) .sticky-col {
+    background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover .sticky-col {
+    background-color: #e9ecef;
+}
 
 /* ============================================================
    استایل‌های مخصوص چاپ (با قابلیت انتخاب Orientation)

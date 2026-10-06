@@ -373,6 +373,7 @@ export default function OstadDetail() {
 
         setTogglingTempStatus(true);
         try {
+            //toast.info(userInfo.id)
             const response = await api.patch(`/User/toggle-status/${userInfo.id}`, {
                 vazeeyatMovaghat: newStatus
             });

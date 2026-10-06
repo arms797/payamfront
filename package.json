@@ -18,9 +18,11 @@
     "react-dom": "^19.2.6",
     "react-persian-range-picker": "^1.1.1",
     "react-router-dom": "^7.18.0",
+    "react-select": "^5.10.2",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "react-to-print": "^3.3.0",
     "react-toastify": "^11.1.0",
+    "react-window": "^2.3.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

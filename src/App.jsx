@@ -42,6 +42,9 @@ import ChangePassword from './pages/Profile/ChangePassword';
 import MarkazList from './pages/Markaz/MarkazList';
 import TermList from './pages/Term/TermList';
 
+import GrooheAmoozeshiList from './pages/Edu/GrooheAmoozeshi/GrooheAmoozeshiList';
+import ReshtehList from './pages/Edu/Reshteh/ReshtehList';
+import DarsList from './pages/Edu/Dars/DarsList';
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -332,13 +335,36 @@ function App() {
                   </ProtectedRouteWithPermission>
                 }
               />
-
               <Route
                 path="profile/change-password"
                 element={
                   <ProtectedRoute>
                     <ChangePassword />
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="groohe-amoozeshi"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="GrooheAmoozeshi.List">
+                    <GrooheAmoozeshiList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="reshteh"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Reshteh.List">
+                    <ReshtehList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="dars"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="Dars.List">
+                    <DarsList />
+                  </ProtectedRouteWithPermission>
                 }
               />
 

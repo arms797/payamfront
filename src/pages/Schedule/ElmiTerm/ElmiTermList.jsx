@@ -710,50 +710,15 @@ export default function ElmiTermList() {
                     </div>
 
                     <div className="table-responsive">
-                        <table
-                            className="table table-hover table-striped"
-                            style={{
-                                tableLayout: 'fixed',
-                                fontSize: '14px'
-                            }}
-                        >
-                            {/* 🔥 استایل ارتفاع ثابت */}
-                            <style>{`
-                                .table tbody tr {
-                                    height: 50px;
-                                }
-                                .table tbody td {
-                                    vertical-align: middle;
-                                }
-                                .table tbody td .badge {
-                                    white-space: normal;
-                                    word-break: break-word;
-                                }
-                            `}</style>
-
-                            <colgroup>
-                                <col style={{ width: '3%' }} />   {/* # */}
-                                <col style={{ width: '12%' }} />  {/* استاد */}
-                                <col style={{ width: '6%' }} />   {/* کد استادی */}
-                                <col style={{ width: '10%' }} />  {/* مرکز */}
-                                <col style={{ width: '10%' }} />  {/* آخرین وضعیت */}
-                                <col style={{ width: '14%' }} />  {/* سمت اجرایی */}
-                                <col style={{ width: '5%' }} />   {/* ساعات موظف */}
-                                <col style={{ width: '5%' }} />   {/* تعداد واحد */}
-                                <col style={{ width: '7%' }} />   {/* تاثیر در محاسبات */}
-                                <col style={{ width: '7%' }} />   {/* تایید */}
-                                <col style={{ width: '5%' }} />   {/* پیوست */}
-                                <col style={{ width: '16%' }} />  {/* عملیات */}
-                            </colgroup>
-
+                        <table className="table table-hover table-striped">
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th>استاد</th>
+                                    <th >#</th>
+                                    <th className="sticky-col">استاد</th>
                                     <th>کد استادی</th>
-                                    <th>مرکز</th>
+                                    <th style={{ minWidth: '120px' }}>مرکز</th>
                                     <th>آخرین وضعیت استاد</th>
-                                    <th>سمت اجرایی</th>
+                                    <th style={{ minWidth: '150px' }}>سمت اجرایی</th>
                                     <th>ساعات موظف هفتگی</th>
                                     <th>تعداد واحد موظف</th>
                                     <th>تاثیر در محاسبات</th>
@@ -778,13 +743,14 @@ export default function ElmiTermList() {
 
                                         return (
                                             <tr key={item.id}>
+                                                {/* 🔥 ستون # - مخفی در نمایش، موجود در DOM */}
                                                 <td className="text-center">
                                                     <PersianNumber>
                                                         {(pagination.page - 1) * pagination.pageSize + index + 1}
                                                     </PersianNumber>
                                                 </td>
 
-                                                <td>
+                                                <td className="sticky-col">
                                                     <strong>{item.ostadName}</strong>
                                                 </td>
 
@@ -792,7 +758,7 @@ export default function ElmiTermList() {
                                                     <PersianNumber>{item.ostadCode}</PersianNumber>
                                                 </td>
 
-                                                <td>
+                                                <td style={{ minWidth: '120px' }}>
                                                     <span
                                                         title={item.ostadMarkaz || '-'}
                                                         style={{
@@ -830,10 +796,9 @@ export default function ElmiTermList() {
                                                     </span>
                                                 </td>
 
-                                                <td>
+                                                <td style={{ minWidth: '150px' }}>
                                                     {item.isEjeari ? (
                                                         <span
-                                                            //className="badge bg-dark"
                                                             title={item.onvanEjraei || 'دارد'}
                                                             style={{
                                                                 display: '-webkit-box',

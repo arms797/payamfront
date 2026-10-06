@@ -490,7 +490,7 @@ export default function HamjavarList() {
                                 <tr>
                                     <th>#</th>
                                     <th>ترم</th>
-                                    <th>نام استاد</th>
+                                    <th className='sticky-col'>نام استاد</th>
                                     <th>کد استادی</th>
                                     <th>مرکز فعلی</th>
                                     <th><small>تعداد واحد موظف</small></th>
@@ -517,7 +517,7 @@ export default function HamjavarList() {
                                             <td><PersianNumber>{(pagination.page - 1) * pagination.pageSize + index + 1}</PersianNumber></td>
                                             <td><PersianNumber>{item.termCode}</PersianNumber></td>
 
-                                            <td><strong>{item.ostadName}</strong></td>
+                                            <td className='sticky-col'><strong>{item.ostadName}</strong></td>
                                             <td><PersianNumber>{item.ostadCode}</PersianNumber></td>
                                             <td>{item.ostadMarkaz || '-'}</td>
                                             <td><PersianNumber>{item.vahedMovazaf}</PersianNumber></td>
