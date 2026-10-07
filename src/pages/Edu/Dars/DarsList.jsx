@@ -9,7 +9,8 @@ import PersianNumber from '../../../components/common/PersianNumber';
 import { useConfirm } from '../../../hooks/useConfirm';
 import CascadingFilter from '../../../components/common/CascadingFilter';
 import DarsFormModal from './DarsFormModal';
-
+import MultiSelectWrapper from '../../../components/common/MultiSelectWrapper';
+import DarsBulkUploadModal from './DarsBulkUploadModal';
 // ============================================================
 // 🔥 بازیابی state از URL
 // ============================================================
@@ -102,6 +103,7 @@ export default function DarsList() {
     // مودال
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
 
     // ============================================================
     // گزینه‌های واحد
@@ -251,20 +253,36 @@ export default function DarsList() {
                 {/* هدر */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h4 className="mb-0">مدیریت درس‌ها</h4>
-                        <small className="text-muted">لیست دروس دانشگاه</small>
+                        <h5 className="mb-0">مدیریت درس‌ها</h5>
                     </div>
-                    <PermissionWrapper permission="Dars.Create">
-                        <button className="btn btn-primary" onClick={openCreateModal}>
-                            <i className="bi bi-plus-circle me-2"></i>
-                            درس جدید
-                        </button>
-                    </PermissionWrapper>
+                    <div className="d-flex gap-2">
+                        {/* 🔥 دکمه آپلود اکسل */}
+                        <PermissionWrapper permission="Dars.BulkUpload">
+                            <button
+                                className="btn btn-outline-success btn-sm"
+                                onClick={() => setShowBulkUploadModal(true)}
+                            >
+                                <i className="bi bi-file-earmark-excel me-1"></i>
+                                آپلود اکسل
+                            </button>
+                        </PermissionWrapper>
+
+                        {/* دکمه درس جدید */}
+                        <PermissionWrapper permission="Dars.Create">
+                            <button className="btn btn-primary btn-sm" onClick={openCreateModal}>
+                                <i className="bi bi-plus-circle me-1"></i>
+                                درس جدید
+                            </button>
+                        </PermissionWrapper>
+                    </div>
                 </div>
 
-                {/* فیلتر ۱: آبشاری */}
+                {/* 🔥 فیلترها: همه در یک کارت */}
                 <div className="card mb-3">
-                    <div className="card-body">
+                    <div className="card-body py-2">
+                        {/* ============================================================ */}
+                        {/* ردیف ۱: فیلتر آبشاری */}
+                        {/* ============================================================ */}
                         <CascadingFilter
                             grooheList={grooheList}
                             reshtehList={reshtehList}
@@ -276,14 +294,13 @@ export default function DarsList() {
                             onDaneshkadeChange={(v) => { setFilterDaneshkades(v); setPage(1); }}
                             onGrooheChange={(v) => { setFilterGroohes(v); setPage(1); }}
                             onReshtehChange={(v) => { setFilterReshtehs(v); setPage(1); }}
+                            hideIndicator={true}
                         />
-                    </div>
-                </div>
 
-                {/* فیلتر ۲: سایر فیلترها */}
-                <div className="card mb-4">
-                    <div className="card-body">
-                        <div className="row g-2 align-items-end">
+                        {/* ============================================================ */}
+                        {/* ردیف ۲: سایر فیلترها */}
+                        {/* ============================================================ */}
+                        <div className="row g-2 align-items-end mt-2 pt-2 border-top">
                             {/* جستجو */}
                             <div className="col-md-3">
                                 <label className="form-label small mb-1">جستجو</label>
@@ -297,53 +314,58 @@ export default function DarsList() {
                             </div>
 
                             {/* واحد درس */}
-                            <div className="col-md-3">
-                                <label className="form-label small mb-1">واحد درس</label>
+                            <div className="col-md-2">
+                                <label className="form-label small mb-1">نوع واحد درس</label>
                                 <MultiSelectWrapper
                                     options={vahedOptions}
                                     value={filterVahedTypes}
                                     onChange={(v) => { setFilterVahedTypes(v); setPage(1); }}
-                                    placeholder="انتخاب واحد..."
+                                    placeholder="نوع واحد..."
+                                    hideIndicator={true}   // 🔥 فقط فلش حذف میشه
+
                                 />
                             </div>
 
                             {/* ترم اخذ */}
-                            <div className="col-md-3">
+                            <div className="col-md-2">
                                 <label className="form-label small mb-1">ترم اخذ</label>
                                 <MultiSelectWrapper
                                     options={termOptions}
                                     value={filterTermAkhzs}
                                     onChange={(v) => { setFilterTermAkhzs(v); setPage(1); }}
                                     placeholder="انتخاب ترم..."
+                                    hideIndicator={true}
                                 />
                             </div>
 
                             {/* نوع درس */}
-                            <div className="col-md-3">
+                            <div className="col-md-2">
                                 <label className="form-label small mb-1">نوع درس</label>
                                 <MultiSelectWrapper
                                     options={noeDarsList.map(n => ({ value: n, label: n }))}
                                     value={filterNoeDars}
                                     onChange={(v) => { setFilterNoeDars(v); setPage(1); }}
-                                    placeholder="انتخاب نوع..."
+                                    placeholder=" نوع درس..."
+                                    hideIndicator={true}
                                 />
                             </div>
 
                             {/* منبع */}
-                            <div className="col-md-10">
+                            <div className="col-md-2">
                                 <label className="form-label small mb-1">منبع درس</label>
                                 <input
                                     type="text"
                                     className="form-control form-control-sm"
-                                    placeholder="شماره منبع یا عنوان منبع..."
+                                    placeholder="شماره یا عنوان..."
                                     value={manbaSearch}
                                     onChange={(e) => setManbaSearch(e.target.value)}
                                 />
                             </div>
 
-                            <div className="col-md-2 text-end">
+                            {/* مجموع */}
+                            <div className="col-md-1 text-end">
                                 <span className="badge bg-primary">
-                                    مجموع: <PersianNumber>{pagination.totalCount}</PersianNumber>
+                                    <PersianNumber>{pagination.totalCount}</PersianNumber>
                                 </span>
                             </div>
                         </div>
@@ -525,6 +547,29 @@ export default function DarsList() {
                 onClose={() => { setShowFormModal(false); setEditingItem(null); }}
                 onSuccess={handleFormSuccess}
                 item={editingItem}
+            />
+
+            <DarsBulkUploadModal
+                show={showBulkUploadModal}
+                onClose={() => setShowBulkUploadModal(false)}
+                onSuccess={() => {
+                    // 🔥 حفظ state فعلی
+                    const params = new URLSearchParams();
+                    if (search) params.set('search', search);
+                    if (filterMaghtas.length) params.set('maghtas', filterMaghtas.join(','));
+                    if (filterDaneshkades.length) params.set('daneshkades', filterDaneshkades.join(','));
+                    if (filterGroohes.length) params.set('groohes', filterGroohes.join(','));
+                    if (filterReshtehs.length) params.set('reshtehs', filterReshtehs.join(','));
+                    if (filterVahedTypes.length) params.set('vahedTypes', filterVahedTypes.join(','));
+                    if (filterTermAkhzs.length) params.set('termAkhzs', filterTermAkhzs.join(','));
+                    if (filterNoeDars.length) params.set('noeDarsList', filterNoeDars.join(','));
+                    if (manbaSearch) params.set('manbaSearch', manbaSearch);
+                    if (page > 1) params.set('page', page);
+                    if (pageSize !== 20) params.set('pageSize', pageSize);
+
+                    const newUrl = `${window.location.pathname}?${params.toString()}`;
+                    window.location.href = newUrl;
+                }}
             />
 
             <ConfirmModal />

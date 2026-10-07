@@ -346,7 +346,7 @@ function App() {
               <Route
                 path="groohe-amoozeshi"
                 element={
-                  <ProtectedRouteWithPermission requiredPermission="GrooheAmoozeshi.List">
+                  <ProtectedRouteWithPermission requiredPermission="GrooheAmoozeshi.View">
                     <GrooheAmoozeshiList />
                   </ProtectedRouteWithPermission>
                 }
@@ -354,7 +354,7 @@ function App() {
               <Route
                 path="reshteh"
                 element={
-                  <ProtectedRouteWithPermission requiredPermission="Reshteh.List">
+                  <ProtectedRouteWithPermission requiredPermission="Reshteh.View">
                     <ReshtehList />
                   </ProtectedRouteWithPermission>
                 }
@@ -362,7 +362,7 @@ function App() {
               <Route
                 path="dars"
                 element={
-                  <ProtectedRouteWithPermission requiredPermission="Dars.List">
+                  <ProtectedRouteWithPermission requiredPermission="Dars.View">
                     <DarsList />
                   </ProtectedRouteWithPermission>
                 }

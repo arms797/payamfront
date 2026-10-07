@@ -3,6 +3,11 @@ import Select from 'react-select';
 import VirtualizedSelect from './VirtualizedSelect';
 import { useCascadingFilters } from '../../hooks/useCascadingFilters';
 
+// ============================================================
+// 🔥 کامپوننت خالی برای حذف indicatorها
+// ============================================================
+const EmptyComponent = () => null;
+
 export default function CascadingFilter({
     grooheList,
     reshtehList,
@@ -17,7 +22,11 @@ export default function CascadingFilter({
     showMaghta = true,
     showDaneshkade = true,
     showGroohe = true,
-    showReshteh = true
+    showReshteh = true,
+    // 🔥 پارامترهای جدید
+    hideIndicator = false,
+    hideClear = false,
+    maxHeight = 50
 }) {
     // ============================================================
     // استفاده از هوک
@@ -32,10 +41,9 @@ export default function CascadingFilter({
         );
 
     // ============================================================
-    // 🔥 پاک کردن انتخاب‌های نامعتبر (وقتی گزینه‌ها محدود میشن)
+    // پاک کردن انتخاب‌های نامعتبر
     // ============================================================
     useEffect(() => {
-        // دانشکده‌های نامعتبر
         const validDaneshkades = selectedDaneshkades.filter(code =>
             daneshkadeOptions.some(o => o.value === code)
         );
@@ -45,7 +53,6 @@ export default function CascadingFilter({
     }, [daneshkadeOptions]);
 
     useEffect(() => {
-        // گروه‌های نامعتبر
         const validGroohes = selectedGroohes.filter(id =>
             grooheOptions.some(o => o.value === parseInt(id))
         );
@@ -55,7 +62,6 @@ export default function CascadingFilter({
     }, [grooheOptions]);
 
     useEffect(() => {
-        // رشته‌های نامعتبر
         const validReshtehs = selectedReshtehs.filter(id =>
             reshtehOptions.some(o => o.value === parseInt(id))
         );
@@ -65,14 +71,32 @@ export default function CascadingFilter({
     }, [reshtehOptions]);
 
     // ============================================================
-    // استایل‌های مشترک
+    // 🔥 ساخت components بر اساس پارامترها
+    // ============================================================
+    const components = {};
+    if (hideIndicator) {
+        components.DropdownIndicator = EmptyComponent;
+        components.IndicatorSeparator = EmptyComponent;
+    }
+    if (hideClear) {
+        components.ClearIndicator = EmptyComponent;
+    }
+
+    // ============================================================
+    // 🔥 استایل‌های مشترک
     // ============================================================
     const selectStyles = {
-        control: (base) => ({
+        control: (base, state) => ({
             ...base,
             minHeight: '38px',
             fontSize: '13px',
-            direction: 'rtl'
+            direction: 'rtl',
+            borderColor: state.isFocused ? '#86b7fe' : '#dee2e6',
+            boxShadow: state.isFocused ? '0 0 0 0.2rem rgba(13, 110, 253, 0.15)' : 'none',
+            height: 'auto',
+            '&:hover': {
+                borderColor: '#86b7fe'
+            }
         }),
         menu: (base) => ({
             ...base,
@@ -93,23 +117,50 @@ export default function CascadingFilter({
         multiValue: (base) => ({
             ...base,
             direction: 'rtl',
-            fontSize: '12px'
+            fontSize: '11px',
+            backgroundColor: '#e7f1ff',
+            borderRadius: '4px',
+            margin: '1px'
         }),
         multiValueLabel: (base) => ({
             ...base,
-            direction: 'rtl'
+            direction: 'rtl',
+            color: '#0d6efd',
+            padding: '2px 6px',
+            fontSize: '11px',
+            fontWeight: '500'
         }),
-        // 🔥 محدود کردن عرض فیلد
+        multiValueRemove: (base) => ({
+            ...base,
+            color: '#0d6efd',
+            '&:hover': {
+                backgroundColor: '#0d6efd',
+                color: 'white'
+            }
+        }),
         valueContainer: (base) => ({
             ...base,
-            flexWrap: 'nowrap',
-            overflow: 'hidden',
-            maxHeight: '38px'
+            flexWrap: 'wrap',
+            gap: '2px',
+            padding: '4px 8px',
+            maxHeight: `${maxHeight}px`,   // 🔥 از پارامتر
+            overflowY: 'auto'
+        }),
+        placeholder: (base) => ({
+            ...base,
+            color: '#6c757d',
+            fontSize: '13px'
+        }),
+        input: (base) => ({
+            ...base,
+            fontSize: '13px',
+            margin: 0,
+            padding: 0
         })
     };
 
     // ============================================================
-    // تعداد فیلترهای فعال (برای محاسبه عرض)
+    // تعداد فیلترهای فعال
     // ============================================================
     const visibleCount = [showMaghta, showDaneshkade, showGroohe, showReshteh].filter(Boolean).length;
     const colSize = visibleCount > 0 ? Math.floor(12 / visibleCount) : 12;
@@ -136,6 +187,7 @@ export default function CascadingFilter({
                         noOptionsMessage={() => 'موردی یافت نشد'}
                         classNamePrefix="react-select"
                         styles={selectStyles}
+                        components={components}
                     />
                 </div>
             )}
@@ -157,6 +209,7 @@ export default function CascadingFilter({
                         noOptionsMessage={() => 'موردی یافت نشد'}
                         classNamePrefix="react-select"
                         styles={selectStyles}
+                        components={components}
                     />
                 </div>
             )}
@@ -178,11 +231,12 @@ export default function CascadingFilter({
                         noOptionsMessage={() => 'موردی یافت نشد'}
                         classNamePrefix="react-select"
                         styles={selectStyles}
+                        components={components}
                     />
                 </div>
             )}
 
-            {/* رشته */}
+            {/* رشته — با VirtualizedSelect */}
             {showReshteh && (
                 <div className={`col-md-${colSize}`}>
                     <label className="form-label small mb-1">رشته</label>
@@ -199,6 +253,7 @@ export default function CascadingFilter({
                         noOptionsMessage={() => 'موردی یافت نشد'}
                         classNamePrefix="react-select"
                         styles={selectStyles}
+                        components={components}
                     />
                 </div>
             )}
