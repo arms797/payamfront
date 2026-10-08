@@ -12,11 +12,10 @@ const PrintContent = ({
     getFaaliatName,
     getMarkazDisplayName,
     markazList,
-    getTermTitle,
-    signatures
+    getTermTitle
+    // ✅ signatures حذف شد
 }) => {
     if (!program) return null;
-
 
     // ============================================================
     // توابع کمکی
@@ -77,7 +76,6 @@ const PrintContent = ({
         header: {
             textAlign: 'center',
             marginBottom: '15px',
-            //borderBottom: '2px solid #333',
             paddingBottom: '10px'
         },
         headerLogo: {
@@ -100,7 +98,6 @@ const PrintContent = ({
             marginBottom: '12px',
             padding: '8px 10px',
             backgroundColor: '#f9f9f9',
-            //border: '0px solid #ddd',
             borderRadius: '4px'
         },
         infoRow: {
@@ -124,7 +121,7 @@ const PrintContent = ({
             color: '#000'
         },
         table: {
-            width: '100%',//'clac(100% - 4px)'
+            width: '100%',
             borderCollapse: 'collapse',
             fontSize: '10px',
             marginTop: '10px',
@@ -174,7 +171,6 @@ const PrintContent = ({
         signaturesSection: {
             marginTop: '25px',
             paddingTop: '15px',
-            //borderTop: '1px dashed #999',
             display: 'flex',
             justifyContent: 'space-between',
             fontSize: '11px'
@@ -201,7 +197,6 @@ const PrintContent = ({
         },
         signatureLine: {
             marginTop: '25px',
-            //borderTop: '1px solid #333',
             width: '80%',
             margin: '25px auto 0'
         },
@@ -210,7 +205,6 @@ const PrintContent = ({
             textAlign: 'center',
             fontSize: '9px',
             color: '#666',
-            //borderTop: '1px solid #ccc',
             paddingTop: '8px'
         }
     };
@@ -384,18 +378,18 @@ const PrintContent = ({
             </table>
 
             {/* ============================================================
-                امضاها با استفاده از کامپوننت SignatureDisplay
+                امضاها - مستقیم از program خونده می‌شن
                 ============================================================ */}
             <div style={styles.signaturesSection}>
                 {/* ۱. امضا استاد */}
                 <div style={styles.signatureBox}>
                     <div style={styles.signatureTitle}>امضا استاد</div>
-                    {program.nazarElmi === 1 && signatures[program.ostadUserId]?.signature ? (
+                    {program.nazarElmi === 1 && program.signatureOstad?.data ? (
                         <SignatureDisplay
-                            signatureData={signatures[program.ostadUserId]?.signature}
+                            signatureData={program.signatureOstad.data}
                             textTop={program.ostadName}
-                            textBottom={`کد: ${toPersian(program.ostadCode)}`}
-                            position={signatures[program.ostadUserId]?.position || 'BC'}
+                            //textBottom={`کد: ${toPersian(program.ostadCode)}`}
+                            position={program.signatureOstad.position || 'BC'}
                             width={160}
                             height={55}
                             textFontSize={9}
@@ -413,22 +407,22 @@ const PrintContent = ({
                             {program.nazarElmi === 1 || ' '}
                         </div>
                     )}
-                    {program.tarikhElmi && (
+                    {/*program.tarikhElmi && (
                         <div style={styles.signatureDate}>
                             تاریخ: {formatDate(program.tarikhElmi)}
                         </div>
-                    )}
+                    )*/}
                 </div>
 
                 {/* ۲. امضا مدیر گروه */}
                 <div style={styles.signatureBox}>
                     <div style={styles.signatureTitle}>امضا مدیر گروه</div>
-                    {program.nazarModirGrooh === 1 && signatures[program.userIdModirGrooh]?.signature ? (
+                    {program.nazarModirGrooh === 1 && program.signatureModirGrooh?.data ? (
                         <SignatureDisplay
-                            signatureData={signatures[program.userIdModirGrooh]?.signature}
+                            signatureData={program.signatureModirGrooh.data}
                             textTop="مدیر گروه"
                             textBottom={program.roleMarkazModirGrooh || ''}
-                            position={signatures[program.userIdModirGrooh]?.position || 'BC'}
+                            position={program.signatureModirGrooh.position || 'BC'}
                             width={160}
                             height={55}
                             textFontSize={9}
@@ -446,22 +440,22 @@ const PrintContent = ({
                             {program.nazarModirGrooh === 1 || ' '}
                         </div>
                     )}
-                    {program.tarikhModirGrooh && (
+                    {/*program.tarikhModirGrooh && (
                         <div style={styles.signatureDate}>
                             تاریخ: {formatDate(program.tarikhModirGrooh)}
                         </div>
-                    )}
+                    */}
                 </div>
 
                 {/* ۳. امضا رئیس مرکز */}
                 <div style={styles.signatureBox}>
                     <div style={styles.signatureTitle}>امضا رئیس مرکز</div>
-                    {program.nazarRaeisMarkaz === 1 && signatures[program.userIdRaeisMarkaz]?.signature ? (
+                    {program.nazarRaeisMarkaz === 1 && program.signatureRaeisMarkaz?.data ? (
                         <SignatureDisplay
-                            signatureData={signatures[program.userIdRaeisMarkaz]?.signature}
+                            signatureData={program.signatureRaeisMarkaz.data}
                             textTop="رئیس مرکز"
                             textBottom={program.roleMarkazRaeisMarkaz || ''}
-                            position={signatures[program.userIdRaeisMarkaz]?.position || 'BC'}
+                            position={program.signatureRaeisMarkaz.position || 'BC'}
                             width={160}
                             height={55}
                             textFontSize={9}
@@ -479,22 +473,22 @@ const PrintContent = ({
                             {program.nazarRaeisMarkaz === 1 || ' '}
                         </div>
                     )}
-                    {program.tarikhRaeisMarkaz && (
+                    {/*program.tarikhRaeisMarkaz && (
                         <div style={styles.signatureDate}>
                             تاریخ: {formatDate(program.tarikhRaeisMarkaz)}
                         </div>
-                    )}
+                    )*/}
                 </div>
 
                 {/* ۴. امضا معاون آموزشی */}
                 <div style={styles.signatureBox}>
                     <div style={styles.signatureTitle}>امضا معاون آموزشی</div>
-                    {program.nazarMoaven === 1 && signatures[program.userIdMoaven]?.signature ? (
+                    {program.nazarMoaven === 1 && program.signatureMoaven?.data ? (
                         <SignatureDisplay
-                            signatureData={signatures[program.userIdMoaven]?.signature}
+                            signatureData={program.signatureMoaven.data}
                             textTop="معاون آموزشی"
                             textBottom={program.roleMarkazMoaven || ''}
-                            position={signatures[program.userIdMoaven]?.position || 'BC'}
+                            position={program.signatureMoaven.position || 'BC'}
                             width={160}
                             height={55}
                             textFontSize={9}
@@ -512,15 +506,13 @@ const PrintContent = ({
                             {program.nazarMoaven === 1 || ' '}
                         </div>
                     )}
-                    {program.tarikhMoaven && (
+                    {/*program.tarikhMoaven && (
                         <div style={styles.signatureDate}>
                             تاریخ: {formatDate(program.tarikhMoaven)}
                         </div>
-                    )}
+                    )*/}
                 </div>
             </div>
-
-            {/* فوتر */}
 
         </div>
     );

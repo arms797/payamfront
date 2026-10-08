@@ -32,7 +32,7 @@ export default function BarnamehHaftegiDetail() {
     const [error, setError] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
-    const [signatures, setSignatures] = useState({});
+    //const [signatures, setSignatures] = useState({});
 
     // تشخیص نقش
     const isOstad = useMemo(() => user?.currentRoleName === 'استاد', [user]);
@@ -287,54 +287,6 @@ export default function BarnamehHaftegiDetail() {
         }
     };
 
-    // تابع دریافت امضاها
-    const fetchSignatures = useCallback(async () => {
-        if (!program) return;
-
-        // جمع‌آوری UserIdهای مربوط به هر نقش
-        const userIds = [];
-
-        // استاد (UserId از برنامه)
-        if (program.ostadUserId) {
-            userIds.push(program.ostadUserId);
-        }
-
-        // مدیر گروه
-        if (program.userIdModirGrooh) {
-            userIds.push(program.userIdModirGrooh);
-        }
-
-        // رئیس مرکز
-        if (program.userIdRaeisMarkaz) {
-            userIds.push(program.userIdRaeisMarkaz);
-        }
-
-        // معاون
-        if (program.userIdMoaven) {
-            userIds.push(program.userIdMoaven);
-        }
-
-        // اگر هیچ UserId وجود نداشت، برگرد
-        if (userIds.length === 0) return;
-
-        try {
-            const response = await api.post('/Signature/get-multiple', { userIds });
-            if (response.data?.success) {
-                setSignatures(response.data.data || {});
-            }
-        } catch (error) {
-            console.error('خطا در دریافت امضاها:', error);
-        }
-    }, [program]);
-
-    // بعد از دریافت برنامه، امضاها را بگیر
-    useEffect(() => {
-        if (program) {
-            fetchSignatures();
-        }
-    }, [program, fetchSignatures]);
-
-
     // نمایش دکمه‌های عملیاتی
     const renderActionButtons = () => {
         if (!program) return null;
@@ -458,7 +410,7 @@ export default function BarnamehHaftegiDetail() {
                             getMarkazDisplayName,
                             markazList,
                             getTermTitle,
-                            signatures
+                            //signatures
                         }}
                         title={`برنامه هفتگی - ${program?.ostadName || ''}`}
                         orientation="landscape"
@@ -649,17 +601,16 @@ export default function BarnamehHaftegiDetail() {
         const hasRaeis = program.nazarRaeisMarkaz === 1;
         const hasMoaven = program.nazarMoaven === 1;
 
-        // دریافت امضای هر کاربر
-        const ostadSignature = signatures[program.ostadUserId]?.signature || null;
-        const modirSignature = signatures[program.userIdModirGrooh]?.signature || null;
-        const raeisSignature = signatures[program.userIdRaeisMarkaz]?.signature || null;
-        const moavenSignature = signatures[program.userIdMoaven]?.signature || null;
+        // 🔥 امضاها مستقیم از program خونده می‌شن
+        const ostadSignature = program.signatureOstad?.data || null;
+        const modirSignature = program.signatureModirGrooh?.data || null;
+        const raeisSignature = program.signatureRaeisMarkaz?.data || null;
+        const moavenSignature = program.signatureMoaven?.data || null;
 
-        // موقعیت امضاها
-        const ostadPosition = signatures[program.ostadUserId]?.position || 'BC';
-        const modirPosition = signatures[program.userIdModirGrooh]?.position || 'BC';
-        const raeisPosition = signatures[program.userIdRaeisMarkaz]?.position || 'BC';
-        const moavenPosition = signatures[program.userIdMoaven]?.position || 'BC';
+        const ostadPosition = program.signatureOstad?.position || 'BC';
+        const modirPosition = program.signatureModirGrooh?.position || 'BC';
+        const raeisPosition = program.signatureRaeisMarkaz?.position || 'BC';
+        const moavenPosition = program.signatureMoaven?.position || 'BC';
 
         const sigStyle = {
             minHeight: '70px',
@@ -683,7 +634,7 @@ export default function BarnamehHaftegiDetail() {
                                     <SignatureDisplay
                                         signatureData={ostadSignature}
                                         textTop={program.ostadName}
-                                        textBottom={`کد: ${program.ostadCode || ''}`}
+                                        //textBottom={`کد: ${program.ostadCode || ''}`}
                                         position={ostadPosition}
                                         width={180}
                                         height={60}
