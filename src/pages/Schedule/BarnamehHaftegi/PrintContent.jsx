@@ -387,11 +387,11 @@ const PrintContent = ({
                     {program.nazarElmi === 1 && program.signatureOstad?.data ? (
                         <SignatureDisplay
                             signatureData={program.signatureOstad.data}
-                            textTop={program.ostadName}
+                            textTop={`${program.ostadName || ''} ${program.ostadLastName || ''}`.trim()}
                             //textBottom={`کد: ${toPersian(program.ostadCode)}`}
                             position={program.signatureOstad.position || 'BC'}
-                            width={160}
-                            height={55}
+                            //width={180}
+                            height={110}
                             textFontSize={9}
                         />
                     ) : (
@@ -420,11 +420,11 @@ const PrintContent = ({
                     {program.nazarModirGrooh === 1 && program.signatureModirGrooh?.data ? (
                         <SignatureDisplay
                             signatureData={program.signatureModirGrooh.data}
-                            textTop="مدیر گروه"
+                            textTop={program.modirGroohNaam}
                             textBottom={program.roleMarkazModirGrooh || ''}
                             position={program.signatureModirGrooh.position || 'BC'}
-                            width={160}
-                            height={55}
+                            //width={180}
+                            height={110}
                             textFontSize={9}
                         />
                     ) : (
@@ -453,11 +453,11 @@ const PrintContent = ({
                     {program.nazarRaeisMarkaz === 1 && program.signatureRaeisMarkaz?.data ? (
                         <SignatureDisplay
                             signatureData={program.signatureRaeisMarkaz.data}
-                            textTop="رئیس مرکز"
+                            textTop={program.raeisMarkazNaam}
                             textBottom={program.roleMarkazRaeisMarkaz || ''}
                             position={program.signatureRaeisMarkaz.position || 'BC'}
-                            width={160}
-                            height={55}
+                            // width={180}
+                            height={110}
                             textFontSize={9}
                         />
                     ) : (
@@ -482,15 +482,15 @@ const PrintContent = ({
 
                 {/* ۴. امضا معاون آموزشی */}
                 <div style={styles.signatureBox}>
-                    <div style={styles.signatureTitle}>امضا معاون آموزشی</div>
+                    <div style={styles.signatureTitle}>امضا معاون آموزشی استان</div>
                     {program.nazarMoaven === 1 && program.signatureMoaven?.data ? (
                         <SignatureDisplay
                             signatureData={program.signatureMoaven.data}
-                            textTop="معاون آموزشی"
+                            textTop={program.moavenNaam}
                             textBottom={program.roleMarkazMoaven || ''}
                             position={program.signatureMoaven.position || 'BC'}
-                            width={160}
-                            height={55}
+                            //width={180}
+                            height={110}
                             textFontSize={9}
                         />
                     ) : (

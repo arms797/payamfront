@@ -412,7 +412,7 @@ export default function BarnamehHaftegiDetail() {
                             getTermTitle,
                             //signatures
                         }}
-                        title={`برنامه هفتگی - ${program?.ostadName || ''}`}
+                        title={`برنامه هفتگی - ${program.ostadName || ''} ${program.ostadLastName || ''}`.trim()}
                         orientation="landscape"
                         paperSize="A4"
                         className="btn btn-outline-primary btn-sm"
@@ -633,11 +633,11 @@ export default function BarnamehHaftegiDetail() {
                                 <>
                                     <SignatureDisplay
                                         signatureData={ostadSignature}
-                                        textTop={program.ostadName}
+                                        textTop={`${program.ostadName || ''} ${program.ostadLastName || ''}`.trim()}
                                         //textBottom={`کد: ${program.ostadCode || ''}`}
                                         position={ostadPosition}
-                                        width={180}
-                                        height={60}
+                                        //width={180}
+                                        height={120}
                                         textFontSize={10}
                                     />
                                     <small className="text-muted" style={{ fontSize: '8px' }}>
@@ -664,11 +664,11 @@ export default function BarnamehHaftegiDetail() {
                                 <>
                                     <SignatureDisplay
                                         signatureData={modirSignature}
-                                        textTop="مدیر گروه"
+                                        textTop={program.modirGroohNaam}
                                         textBottom={program.roleMarkazModirGrooh || ''}
                                         position={modirPosition}
-                                        width={180}
-                                        height={60}
+                                       // width={180}
+                                        height={120}
                                         textFontSize={10}
                                     />
                                     <small className="text-muted" style={{ fontSize: '8px' }}>
@@ -695,11 +695,11 @@ export default function BarnamehHaftegiDetail() {
                                 <>
                                     <SignatureDisplay
                                         signatureData={raeisSignature}
-                                        textTop="رئیس مرکز"
+                                        textTop={program.raeisMarkazNaam}
                                         textBottom={program.roleMarkazRaeisMarkaz || ''}
                                         position={raeisPosition}
-                                        width={180}
-                                        height={60}
+                                       // width={180}
+                                        height={120}
                                         textFontSize={10}
                                     />
                                     <small className="text-muted" style={{ fontSize: '8px' }}>
@@ -719,18 +719,18 @@ export default function BarnamehHaftegiDetail() {
                 <div className="col-3">
                     <div className="card h-100 border-0">
                         <div className="card-header py-1 bg-light text-center">
-                            <small className="fw-bold">امضا معاون آموزشی</small>
+                            <small className="fw-bold">امضا معاون آموزشی استان</small>
                         </div>
                         <div className="card-body" style={sigStyle}>
                             {hasMoaven && moavenSignature ? (
                                 <>
                                     <SignatureDisplay
                                         signatureData={moavenSignature}
-                                        textTop="معاون آموزشی"
+                                        textTop={program.moavenNaam}
                                         textBottom={program.roleMarkazMoaven || ''}
                                         position={moavenPosition}
-                                        width={180}
-                                        height={60}
+                                        //width={180}
+                                        height={120}
                                         textFontSize={10}
                                     />
                                     <small className="text-muted" style={{ fontSize: '8px' }}>

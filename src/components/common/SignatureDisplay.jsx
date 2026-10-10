@@ -1,5 +1,5 @@
 // src/components/common/SignatureDisplay.jsx
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 const SignatureDisplay = ({
     signatureData,
@@ -12,9 +12,11 @@ const SignatureDisplay = ({
     textFontSize = 16,
     textColor = '#1a1a1a',
     textOpacity = 0.9,
-    className = ''
+    className = '',
+    autoWidth = true
 }) => {
     const canvasRef = useRef(null);
+    const [computedWidth, setComputedWidth] = useState(width);
 
     const POSITIONS = {
         'TL': { h: 'left', v: 'top' },
@@ -70,41 +72,49 @@ const SignatureDisplay = ({
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
 
-        const scale = 2;
-        const displayWidth = width;
-        const displayHeight = height;
-        const canvasWidth = displayWidth * scale;
-        const canvasHeight = displayHeight * scale;
-
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
-        canvas.style.width = displayWidth + 'px';
-        canvas.style.height = displayHeight + 'px';
-
-        ctx.scale(scale, scale);
-        ctx.clearRect(0, 0, displayWidth, displayHeight);
-
         const img = new Image();
         img.onload = () => {
-            ctx.clearRect(0, 0, displayWidth, displayHeight);
-
+            // ============================================================
+            // 🔥 محاسبه عرض خودکار بر اساس ارتفاع
+            // ============================================================
             const imgRatio = img.width / img.height;
-            let drawWidth = displayWidth;
-            let drawHeight = displayHeight;
+            const displayHeight = height;
+            const displayWidth = autoWidth
+                ? height * imgRatio
+                : width;
 
-            if (imgRatio > 1) {
-                drawHeight = displayWidth / imgRatio;
-            } else {
-                drawWidth = displayHeight * imgRatio;
+            if (autoWidth) {
+                setComputedWidth(displayWidth);
             }
 
-            const offsetX = (displayWidth - drawWidth) / 2;
-            const offsetY = (displayHeight - drawHeight) / 2;
+            // ============================================================
+            // تنظیم ابعاد canvas
+            // ============================================================
+            const scale = 2;
+            canvas.width = displayWidth * scale;
+            canvas.height = displayHeight * scale;
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
 
+            ctx.scale(scale, scale);
+            ctx.clearRect(0, 0, displayWidth, displayHeight);
+
+            // ============================================================
+            // 🔥 پس‌زمینه سفید
+            // ============================================================
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, displayWidth, displayHeight);
+
+            // ============================================================
+            // 🔥 رسم تصویر: پر کردن کل canvas (بدون فضای خالی)
+            // ============================================================
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            ctx.drawImage(img, 0, 0, displayWidth, displayHeight);
 
+            // ============================================================
+            // ادامه منطق رسم متن
+            // ============================================================
             let topText = textTop;
             let bottomText = textBottom;
 
@@ -120,12 +130,8 @@ const SignatureDisplay = ({
 
             if (!topText && !bottomText) return;
 
-            // ============================================================
-            // 🔥 محاسبه اندازه فونت مناسب برای هر خط (به‌صورت جداگانه)
-            // ============================================================
-            const maxWidth = displayWidth - 30; // حاشیه ۱۵ پیکسل از هر طرف
+            const maxWidth = displayWidth - 30;
 
-            // تابع برای محاسبه فونت مناسب یک خط
             const getOptimalFontSize = (text, maxW, fontSize) => {
                 let size = fontSize;
                 ctx.font = `bold ${size}px Vazir, sans-serif`;
@@ -139,19 +145,14 @@ const SignatureDisplay = ({
                 return size;
             };
 
-            // اندازه فونت بهینه برای خط بالا
             let finalFontSizeTop = getOptimalFontSize(topText, maxWidth, textFontSize);
             let finalFontSizeBottom = getOptimalFontSize(bottomText, maxWidth, textFontSize);
 
-            // اگر یکی از خط‌ها خالی نبود، از کوچک‌ترین اندازه استفاده کن تا هارمونی حفظ شود
             let finalFontSize = Math.min(finalFontSizeTop, finalFontSizeBottom);
             if (!topText) finalFontSize = finalFontSizeBottom;
             if (!bottomText) finalFontSize = finalFontSizeTop;
             if (!topText && !bottomText) return;
 
-            // ============================================================
-            // 🔥 رسم متن‌ها با اندازه فونت بهینه
-            // ============================================================
             ctx.save();
             ctx.font = `bold ${finalFontSize}px Vazir, sans-serif`;
             ctx.textAlign = 'center';
@@ -160,7 +161,6 @@ const SignatureDisplay = ({
             const lineHeight = finalFontSize * 1.2;
             const totalTextHeight = lineHeight * 2 + 4;
 
-            // محاسبه پهنای خط‌ها با فونت نهایی
             const topWidth = topText ? ctx.measureText(topText).width : 0;
             const bottomWidth = bottomText ? ctx.measureText(bottomText).width : 0;
             const maxTextWidth = Math.max(topWidth, bottomWidth);
@@ -176,8 +176,6 @@ const SignatureDisplay = ({
 
             ctx.globalAlpha = textOpacity;
             ctx.fillStyle = textColor;
-            ctx.shadowColor = 'rgba(255,255,255,0.9)';
-            ctx.shadowBlur = 4;
 
             if (topText) {
                 const yTop = pos.y - lineHeight / 2 - 2;
@@ -189,12 +187,11 @@ const SignatureDisplay = ({
                 ctx.fillText(bottomText, pos.x, yBottom);
             }
 
-            ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
             ctx.restore();
         };
         img.src = signatureData;
-    }, [signatureData, textTop, textBottom, displayText, position, width, height, textFontSize, textColor, textOpacity]);
+    }, [signatureData, textTop, textBottom, displayText, position, width, height, textFontSize, textColor, textOpacity, autoWidth]);
 
     if (!signatureData) {
         return (
@@ -210,12 +207,11 @@ const SignatureDisplay = ({
             ref={canvasRef}
             className={className}
             style={{
-                width: width + 'px',
+                width: computedWidth + 'px',
                 height: height + 'px',
                 maxWidth: '100%',
                 display: 'inline-block',
-                background: 'transparent',
-                mixBlendMode: 'multiply'
+                background: 'white'
             }}
         />
     );
