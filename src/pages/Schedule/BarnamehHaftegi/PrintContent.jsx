@@ -243,7 +243,7 @@ const PrintContent = ({
                 <div style={styles.infoRow}>
                     <div style={styles.infoItem}>
                         <span style={styles.infoLabel}>کد استادی:</span>
-                        <span style={styles.infoValue}>{toPersian(program.ostadCode)}</span>
+                        <span style={styles.infoValue}>{/*toPersian(program.ostadCode)*/}---</span>
                     </div>
                     <div style={styles.infoItem}>
                         <span style={styles.infoLabel}>نام و نام خانوادگی:</span>
@@ -253,7 +253,7 @@ const PrintContent = ({
                     </div>
                     <div style={styles.infoItem}>
                         <span style={styles.infoLabel}>شماره تماس:</span>
-                        <span style={styles.infoValue}>{toPersian(program.mobile || '-')}</span>
+                        <span style={styles.infoValue}>{/*toPersian(program.mobile)*/}---</span>
                     </div>
                     <div style={styles.infoItem}>
                         <span style={styles.infoLabel}>محل خدمت:</span>
