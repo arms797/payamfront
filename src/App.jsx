@@ -45,6 +45,7 @@ import TermList from './pages/Term/TermList';
 import GrooheAmoozeshiList from './pages/Edu/GrooheAmoozeshi/GrooheAmoozeshiList';
 import ReshtehList from './pages/Edu/Reshteh/ReshtehList';
 import DarsList from './pages/Edu/Dars/DarsList';
+import SakhtemanKelassList from './pages/Edu/SakhtemanKelass/SakhtemanKelassList';
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -364,6 +365,14 @@ function App() {
                 element={
                   <ProtectedRouteWithPermission requiredPermission="Dars.View">
                     <DarsList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+              <Route
+                path="sakhteman"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="SakhtemanKelass.View">
+                    <SakhtemanKelassList />
                   </ProtectedRouteWithPermission>
                 }
               />
