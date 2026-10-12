@@ -89,7 +89,7 @@ export default function SakhtemanKelassViewModal({ show, onClose, item }) {
                                             ) : (
                                                 <span className="badge bg-danger">غیرفعال</span>
                                             ))}
-                                            {renderRow('تلفن مسئول', <PersianNumber>{item.telephon || '-'}</PersianNumber>)}
+
                                         </tbody>
                                     </table>
                                 </div>

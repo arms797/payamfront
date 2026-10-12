@@ -44,8 +44,9 @@ const getPaginationRange = (currentPage, totalPages) => {
 
     return rangeWithDots;
 };
+
 // ============================================================
-// 🔥 تابع کمکی برای نمایش نام مرکز بر اساس Level
+// تابع کمکی نمایش نام مرکز
 // ============================================================
 const getMarkazDisplayName = (markaz) => {
     if (!markaz) return '';
@@ -53,6 +54,11 @@ const getMarkazDisplayName = (markaz) => {
     if (markaz.level === 3) return `ستاد استان ${markaz.naamOstan || ''}`.trim();
     return markaz.naamMarkaz || '';
 };
+
+// ============================================================
+// 🔥 Debounce Delay (ms)
+// ============================================================
+const DEBOUNCE_DELAY = 700;
 
 export default function SakhtemanKelassList() {
     const { roles, currentRoleId, user } = useAuth();
@@ -69,12 +75,13 @@ export default function SakhtemanKelassList() {
 
     const codeRole = useMemo(() => activeRole?.codeRole || 4, [activeRole]);
     const userMarkazId = useMemo(() => user?.markazId || null, [user]);
-    // 🔥 استخراج کد استان از روی markazId کاربر (چون user.markazOstan توی توکن نیست)
+
     const userOstanCode = useMemo(() => {
         if (!user?.markazId || !markazList || markazList.length === 0) return null;
         const userMarkaz = markazList.find(m => m.id === user.markazId);
         return userMarkaz?.codeOstan || null;
     }, [user?.markazId, markazList]);
+
     // ============================================================
     // Stateهای اصلی
     // ============================================================
@@ -88,7 +95,7 @@ export default function SakhtemanKelassList() {
     });
 
     // ============================================================
-    // Stateهای فیلتر
+    // Stateهای فیلتر (این‌ها همان‌طور که کاربر تایپ/انتخاب می‌کند تغییر می‌کنند)
     // ============================================================
     const [searchNaamSakhteman, setSearchNaamSakhteman] = useState('');
     const [searchNaamClass, setSearchNaamClass] = useState('');
@@ -97,12 +104,20 @@ export default function SakhtemanKelassList() {
     const [filterAmoozeshi, setFilterAmoozeshi] = useState('');
     const [filterVazeeyat, setFilterVazeeyat] = useState('');
     const [filterProjector, setFilterProjector] = useState('');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // ============================================================
-    // Ref برای debounce
+    // 🔥 Ref برای debounce واحد
     // ============================================================
-    const searchSakhtemanTimerRef = useRef(null);
-    const searchClassTimerRef = useRef(null);
+    const debounceTimerRef = useRef(null);
+
+    // ============================================================
+    // 🔥 Ref برای جلوگیری از فراخوانی اولیه (skip initial)
+    // ============================================================
+    const isFirstRenderRef = useRef(true);
 
     // ============================================================
     // مودال‌ها
@@ -120,27 +135,21 @@ export default function SakhtemanKelassList() {
         if (!markazList || markazList.length === 0) return;
         if (!userOstanCode) return;
 
-        // CodeRole 3 یا 4 → استان پیش‌فرض = استان کاربر
         if (codeRole === 3 || codeRole === 4) {
             setSelectedOstan(userOstanCode);
-        }
-        // CodeRole 1 یا 2 → هیچ استانی انتخاب نشده (همه)
-        else {
+        } else {
             setSelectedOstan('');
         }
 
-        // CodeRole 4 → مرکز پیش‌فرض = مرکز کاربر
         if (codeRole === 4 && userMarkazId) {
             setSelectedMarkaz(userMarkazId.toString());
-        }
-        // CodeRole 1, 2, 3 → مرکز پیش‌فرض خالی
-        else {
+        } else {
             setSelectedMarkaz('');
         }
     }, [codeRole, userOstanCode, userMarkazId, markazList]);
 
     // ============================================================
-    // لیست استان‌های یکتا (مرتب الفبایی)
+    // لیست استان‌های یکتا
     // ============================================================
     const uniqueOstans = useMemo(() => {
         if (!markazList) return [];
@@ -169,7 +178,7 @@ export default function SakhtemanKelassList() {
     }, [markazList, selectedOstan]);
 
     // ============================================================
-    // دریافت لیست ساختمان/کلاس
+    // 🔥 دریافت لیست ساختمان/کلاس
     // ============================================================
     const fetchItems = useCallback(async () => {
         setLoading(true);
@@ -215,45 +224,73 @@ export default function SakhtemanKelassList() {
     ]);
 
     // ============================================================
-    // Debounce برای جستجوی نام ساختمان
+    // 🔥 Debounce مرکزی: هر تغییری در فیلترها → 700ms صبر کن
     // ============================================================
     useEffect(() => {
-        if (searchSakhtemanTimerRef.current) clearTimeout(searchSakhtemanTimerRef.current);
-        searchSakhtemanTimerRef.current = setTimeout(() => {
-            setPagination(prev => prev.page !== 1 ? { ...prev, page: 1 } : prev);
-        }, 700);
-        return () => clearTimeout(searchSakhtemanTimerRef.current);
-    }, [searchNaamSakhteman]);
+        // اگه اولین رندر است، رد شو (تا با مقدار پیش‌فرض fetch کنه)
+        if (isFirstRenderRef.current) {
+            isFirstRenderRef.current = false;
+            fetchItems();
+            return;
+        }
+
+        // پاک کردن تایمر قبلی
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        // تنظیم تایمر جدید
+        debounceTimerRef.current = setTimeout(() => {
+            // 🔥 قبل از fetch، اگه page != 1 بود، به 1 برگردون
+            if (page !== 1) {
+                setPage(1);
+                // fetch با page=1 صدا زده میشه
+                fetchItems({ page: 1 });
+            } else {
+                fetchItems();
+            }
+        }, DEBOUNCE_DELAY);
+
+        // کلین‌آپ
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, [
+        searchNaamSakhteman,
+        searchNaamClass,
+        selectedOstan,
+        selectedMarkaz,
+        filterAmoozeshi,
+        filterVazeeyat,
+        filterProjector
+    ]);
 
     // ============================================================
-    // Debounce برای جستجوی نام کلاس
+    // 🔥 تغییر صفحه: بدون debounce (کاربر مستقیم روی شماره صفحه کلیک می‌کند)
     // ============================================================
     useEffect(() => {
-        if (searchClassTimerRef.current) clearTimeout(searchClassTimerRef.current);
-        searchClassTimerRef.current = setTimeout(() => {
-            setPagination(prev => prev.page !== 1 ? { ...prev, page: 1 } : prev);
-        }, 700);
-        return () => clearTimeout(searchClassTimerRef.current);
-    }, [searchNaamClass]);
-
-    // ============================================================
-    // Fetch نهایی
-    // ============================================================
-    useEffect(() => {
-        fetchItems();
-    }, [fetchItems]);
+        // این effect فقط برای تغییر page و pageSize است
+        // وقتی page/pageSize تغییر کند، بلافاصله fetch می‌کنیم
+        // اما از روی debounce فیلترها نمی‌افتیم چون dependency نداره
+        if (!isFirstRenderRef.current) {
+            fetchItems();
+        }
+    }, [page, pageSize]);
 
     // ============================================================
     // تغییر صفحه
     // ============================================================
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= pagination.totalPages) {
-            setPagination(prev => ({ ...prev, page: newPage }));
+            setPage(newPage);
         }
     };
 
     const handlePageSizeChange = (e) => {
-        setPagination(prev => ({ ...prev, pageSize: parseInt(e.target.value), page: 1 }));
+        setPageSize(parseInt(e.target.value));
+        setPage(1);
     };
 
     // ============================================================
@@ -291,7 +328,7 @@ export default function SakhtemanKelassList() {
             const response = await api.delete(`/SakhtemanKelass/delete/${item.id}`);
             if (response.data?.success) {
                 toast.success('با موفقیت حذف شد');
-                fetchItems();
+                fetchItems();  // ← بدون reload
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف');
@@ -317,12 +354,23 @@ export default function SakhtemanKelassList() {
         setShowViewModal(true);
     };
 
+    // ============================================================
+    // موفقیت فرم (بدون reload)
+    // ============================================================
     const handleFormSuccess = () => {
         setShowFormModal(false);
         setEditingItem(null);
-        fetchItems();
+        setRefreshTrigger(prev => prev + 1);  // ← trigger تغییر
     };
-
+    // این effect بعد از بسته شدن مودال، لیست رو رفرش می‌کنه
+    useEffect(() => {
+        if (refreshTrigger > 0) {
+            fetchItems();
+        }
+    }, [refreshTrigger]);
+    // ============================================================
+    // موفقیت Bulk Upload
+    // ============================================================
     const handleBulkUploadSuccess = () => {
         setShowBulkUploadModal(false);
         fetchItems();
@@ -401,7 +449,6 @@ export default function SakhtemanKelassList() {
                                     onChange={(e) => {
                                         setSelectedOstan(e.target.value);
                                         setSelectedMarkaz('');
-                                        setPagination(prev => ({ ...prev, page: 1 }));
                                     }}
                                 >
                                     <option value="">همه استان‌ها</option>
@@ -416,12 +463,8 @@ export default function SakhtemanKelassList() {
                                 <select
                                     className="form-select form-select-sm"
                                     value={selectedMarkaz}
-                                    onChange={(e) => {
-                                        setSelectedMarkaz(e.target.value);
-                                        setPagination(prev => ({ ...prev, page: 1 }));
-                                    }}
+                                    onChange={(e) => setSelectedMarkaz(e.target.value)}
                                     disabled={!selectedOstan}
-                                    title={!selectedOstan ? 'ابتدا یک استان انتخاب کنید' : ''}
                                 >
                                     <option value="">همه مراکز</option>
                                     {filteredMarkazes.map(m => (
@@ -431,14 +474,11 @@ export default function SakhtemanKelassList() {
                             </div>
 
                             <div className="col-md-1">
-                                <label className="form-label small mb-1">نوع</label>
+                                <label className="form-label small mb-1">نحوه‌استفاده</label>
                                 <select
                                     className="form-select form-select-sm"
                                     value={filterAmoozeshi}
-                                    onChange={(e) => {
-                                        setFilterAmoozeshi(e.target.value);
-                                        setPagination(prev => ({ ...prev, page: 1 }));
-                                    }}
+                                    onChange={(e) => setFilterAmoozeshi(e.target.value)}
                                 >
                                     <option value="">همه</option>
                                     <option value="true">آموزشی</option>
@@ -451,10 +491,7 @@ export default function SakhtemanKelassList() {
                                 <select
                                     className="form-select form-select-sm"
                                     value={filterVazeeyat}
-                                    onChange={(e) => {
-                                        setFilterVazeeyat(e.target.value);
-                                        setPagination(prev => ({ ...prev, page: 1 }));
-                                    }}
+                                    onChange={(e) => setFilterVazeeyat(e.target.value)}
                                 >
                                     <option value="">همه</option>
                                     <option value="true">فعال</option>
@@ -467,10 +504,7 @@ export default function SakhtemanKelassList() {
                                 <select
                                     className="form-select form-select-sm"
                                     value={filterProjector}
-                                    onChange={(e) => {
-                                        setFilterProjector(e.target.value);
-                                        setPagination(prev => ({ ...prev, page: 1 }));
-                                    }}
+                                    onChange={(e) => setFilterProjector(e.target.value)}
                                 >
                                     <option value="">همه</option>
                                     <option value="true">دارد</option>
@@ -503,10 +537,10 @@ export default function SakhtemanKelassList() {
                                         <tr>
                                             <th style={{ width: '50px' }}>#</th>
                                             <th>مرکز</th>
-                                            <th>ساختمان</th>                                            
+                                            <th>ساختمان</th>
                                             <th>نام کلاس</th>
-                                            <th className="text-center">نوع</th>
-                                            <th className="text-center">پروژکتور</th>
+                                            <th className="text-center">نحوه‌استفاده</th>
+                                            <th className="text-center">ویدئوپروژکتور</th>
                                             <th className="text-center">وایت‌برد</th>
                                             <th className="text-center">وضعیت</th>
                                             <th className="text-center" style={{ width: '140px' }}>عملیات</th>
@@ -522,7 +556,6 @@ export default function SakhtemanKelassList() {
                                                 </td>
                                                 <td>{item.markazName || '-'}</td>
                                                 <td><strong>{item.naamSakhteman || '-'}</strong></td>
-                                                
                                                 <td>{item.naamClass || '-'}</td>
                                                 <td className="text-center">
                                                     {item.amoozeshi === true && (
@@ -533,7 +566,6 @@ export default function SakhtemanKelassList() {
                                                     )}
                                                     {item.amoozeshi === null && '-'}
                                                 </td>
-                                                
                                                 <td className="text-center">
                                                     {item.projector ? (
                                                         <i className="bi bi-check-circle-fill text-success"></i>
@@ -545,18 +577,28 @@ export default function SakhtemanKelassList() {
                                                     <PersianNumber>{item.tedadWhiteboard || 0}</PersianNumber>
                                                 </td>
                                                 <td className="text-center">
-                                                    <div className="form-check form-switch d-flex justify-content-center">
-                                                        <input
-                                                            className="form-check-input"
-                                                            type="checkbox"
-                                                            checked={item.vazeeyat}
-                                                            onChange={(e) => handleToggle(item, e)}
-                                                            title={item.vazeeyat ? 'غیرفعال کردن' : 'فعال کردن'}
-                                                        />
-                                                    </div>
+                                                    {item.vazeeyat ? (
+                                                        <span className="badge bg-success">
+                                                            <i className="bi bi-check-circle me-1"></i>
+                                                            فعال
+                                                        </span>
+                                                    ) : (
+                                                        <span className="badge bg-danger">
+                                                            <i className="bi bi-x-circle me-1"></i>
+                                                            غیرفعال
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="text-center">
                                                     <div className="d-flex gap-1 justify-content-center">
+
+                                                        <button
+                                                            className="btn btn-sm btn-info"
+                                                            onClick={(e) => openViewModal(item, e)}
+                                                            title="مشاهده"
+                                                        >
+                                                            <i className="bi bi-eye"></i>
+                                                        </button>
                                                         <PermissionWrapper permission="SakhtemanKelass.Update">
                                                             <button
                                                                 className="btn btn-sm btn-warning"
@@ -566,13 +608,6 @@ export default function SakhtemanKelassList() {
                                                                 <i className="bi bi-pencil"></i>
                                                             </button>
                                                         </PermissionWrapper>
-                                                        <button
-                                                            className="btn btn-sm btn-info"
-                                                            onClick={(e) => openViewModal(item, e)}
-                                                            title="مشاهده"
-                                                        >
-                                                            <i className="bi bi-eye"></i>
-                                                        </button>
                                                         <PermissionWrapper permission="SakhtemanKelass.Delete">
                                                             <button
                                                                 className="btn btn-sm btn-danger"
