@@ -92,10 +92,25 @@ export default function DarsList() {
     const [page, setPage] = useState(initialState.page);
     const [pageSize, setPageSize] = useState(initialState.pageSize);
 
+    // 🔥 Debounced State — فقط این به fetchItems وصل می‌شه
+    const [debouncedFilters, setDebouncedFilters] = useState({
+        search: initialState.search,
+        maghtas: initialState.maghtas,
+        daneshkades: initialState.daneshkades,
+        groohes: initialState.groohes,
+        reshtehs: initialState.reshtehs,
+        vahedTypes: initialState.vahedTypes,
+        termAkhzs: initialState.termAkhzs,
+        noeDarsList: initialState.noeDarsList,
+        manbaSearch: initialState.manbaSearch,
+        page: initialState.page,
+        pageSize: initialState.pageSize
+    });
     // داده‌ها
     const [items, setItems] = useState([]);
     const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
+
 
     // لیست نوع درس
     const [noeDarsList, setNoeDarsList] = useState([]);
@@ -132,17 +147,17 @@ export default function DarsList() {
         setLoading(true);
         try {
             const params = new URLSearchParams();
-            if (search) params.append('search', search);
-            filterMaghtas.forEach(v => params.append('maghtas', v));
-            filterDaneshkades.forEach(v => params.append('daneshkades', v));
-            filterGroohes.forEach(v => params.append('grooheAmoozeshiIds', v));
-            filterReshtehs.forEach(v => params.append('reshtehIds', v));
-            filterVahedTypes.forEach(v => params.append('vahedTypes', v));
-            filterTermAkhzs.forEach(v => params.append('termAkhzs', v));
-            filterNoeDars.forEach(v => params.append('noeDarsList', v));
-            if (manbaSearch) params.append('manbaSearch', manbaSearch);
-            params.append('page', page);
-            params.append('pageSize', pageSize);
+            if (debouncedFilters.search) params.append('search', debouncedFilters.search);
+            debouncedFilters.maghtas.forEach(v => params.append('maghtas', v));
+            debouncedFilters.daneshkades.forEach(v => params.append('daneshkades', v));
+            debouncedFilters.groohes.forEach(v => params.append('grooheAmoozeshiIds', v));
+            debouncedFilters.reshtehs.forEach(v => params.append('reshtehIds', v));
+            debouncedFilters.vahedTypes.forEach(v => params.append('vahedTypes', v));
+            debouncedFilters.termAkhzs.forEach(v => params.append('termAkhzs', v));
+            debouncedFilters.noeDarsList.forEach(v => params.append('noeDarsList', v));
+            if (debouncedFilters.manbaSearch) params.append('manbaSearch', debouncedFilters.manbaSearch);
+            params.append('page', debouncedFilters.page);
+            params.append('pageSize', debouncedFilters.pageSize);
 
             const response = await api.get(`/Dars/list?${params.toString()}`);
             if (response.data?.success) {
@@ -166,8 +181,42 @@ export default function DarsList() {
             console.error('خطا در دریافت نوع درس‌ها:', error);
         }
     };
-
+    // ============================================================
+    // 🔥 Debounce Effect — 700ms صبر کن، بعد debouncedFilters رو آپدیت کن
+    // ============================================================
     useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedFilters({
+                search,
+                maghtas: filterMaghtas,
+                daneshkades: filterDaneshkades,
+                groohes: filterGroohes,
+                reshtehs: filterReshtehs,
+                vahedTypes: filterVahedTypes,
+                termAkhzs: filterTermAkhzs,
+                noeDarsList: filterNoeDars,
+                manbaSearch,
+                page,
+                pageSize
+            });
+        }, 700);
+
+        return () => clearTimeout(timer);
+    }, [
+        search, filterMaghtas, filterDaneshkades, filterGroohes,
+        filterReshtehs, filterVahedTypes, filterTermAkhzs,
+        filterNoeDars, manbaSearch, page, pageSize
+    ]);
+
+    // ============================================================
+    // 🔥 Fetch Effect — فقط وقتی debouncedFilters تغییر کرد، درخواست بزن
+    // ============================================================
+    useEffect(() => {
+        fetchItems();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedFilters]);
+
+    /*useEffect(() => {
         fetchItems();
     }, [
         search, filterMaghtas, filterDaneshkades, filterGroohes,
@@ -178,19 +227,19 @@ export default function DarsList() {
     useEffect(() => {
         fetchNoeDars();
     }, []);
-
+*/
     // ============================================================
     // درخواست با تأخیر (debounce) برای manbaSearch
     // ============================================================
-    useEffect(() => {
+    /*useEffect(() => {
         const timer = setTimeout(() => {
             if (manbaSearch !== initialState.manbaSearch) {
                 setPage(1);
             }
-        }, 500);
+        }, 700);
         return () => clearTimeout(timer);
     }, [manbaSearch]);
-
+*/
     // ============================================================
     // عملیات
     // ============================================================
@@ -431,19 +480,31 @@ export default function DarsList() {
                                                     <td>{item.noeDars || '-'}</td>
                                                     <td>
                                                         {item.manbaList && item.manbaList.length > 0 ? (
-                                                            <div>
-                                                                {item.manbaList.map((m, idx) => (
-                                                                    <div
-                                                                        key={m.id}
-                                                                        style={{
-                                                                            color: idx === 0 ? 'inherit' : '#0d6efd',
-                                                                            fontSize: '12px',
-                                                                            fontWeight: idx === 0 ? 'normal' : 'bold'
-                                                                        }}
-                                                                    >
-                                                                        {m.shomareManba || '-'} | {m.codePeyvast || '-'}
-                                                                    </div>
-                                                                ))}
+                                                            <div className="d-flex flex-column gap-1">
+                                                                {item.manbaList.map((m, idx) => {
+                                                                    // رنگ‌بندی: منبع اول مشکی، دوم آبی، سوم به بعد قرمز
+                                                                    const color =
+                                                                        idx === 0 ? 'inherit' :
+                                                                            idx === 1 ? '#0d6efd' :
+                                                                                '#dc3545';
+
+                                                                    return (
+                                                                        <div
+                                                                            key={m.id}
+                                                                            className="d-flex align-items-center text-nowrap"
+                                                                            style={{
+                                                                                color,
+                                                                                fontSize: '12px',
+                                                                                fontWeight: idx === 0 ? 'normal' : 'bold',
+                                                                                whiteSpace: 'nowrap'
+                                                                            }}
+                                                                        >
+                                                                            <span>{m.shomareManba || '-'}</span>
+                                                                            <span className="mx-1 text-muted">|</span>
+                                                                            <span>{m.codePeyvast || '-'}</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         ) : (
                                                             <span className="text-muted">-</span>
