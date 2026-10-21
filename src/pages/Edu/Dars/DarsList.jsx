@@ -11,6 +11,7 @@ import CascadingFilter from '../../../components/common/CascadingFilter';
 import DarsFormModal from './DarsFormModal';
 import MultiSelectWrapper from '../../../components/common/MultiSelectWrapper';
 import DarsBulkUploadModal from './DarsBulkUploadModal';
+import DarsDetailModal from './DarsDetailModal';
 // ============================================================
 // 🔥 بازیابی state از URL
 // ============================================================
@@ -119,6 +120,8 @@ export default function DarsList() {
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [viewingItemId, setViewingItemId] = useState(null);
 
     // ============================================================
     // گزینه‌های واحد
@@ -181,6 +184,9 @@ export default function DarsList() {
             console.error('خطا در دریافت نوع درس‌ها:', error);
         }
     };
+    useEffect(() => {
+        fetchNoeDars();
+    }, []);
     // ============================================================
     // 🔥 Debounce Effect — 700ms صبر کن، بعد debouncedFilters رو آپدیت کن
     // ============================================================
@@ -216,30 +222,7 @@ export default function DarsList() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedFilters]);
 
-    /*useEffect(() => {
-        fetchItems();
-    }, [
-        search, filterMaghtas, filterDaneshkades, filterGroohes,
-        filterReshtehs, filterVahedTypes, filterTermAkhzs,
-        filterNoeDars, manbaSearch, page, pageSize
-    ]);
 
-    useEffect(() => {
-        fetchNoeDars();
-    }, []);
-*/
-    // ============================================================
-    // درخواست با تأخیر (debounce) برای manbaSearch
-    // ============================================================
-    /*useEffect(() => {
-        const timer = setTimeout(() => {
-            if (manbaSearch !== initialState.manbaSearch) {
-                setPage(1);
-            }
-        }, 700);
-        return () => clearTimeout(timer);
-    }, [manbaSearch]);
-*/
     // ============================================================
     // عملیات
     // ============================================================
@@ -251,6 +234,10 @@ export default function DarsList() {
     const openEditModal = (item) => {
         setEditingItem(item);
         setShowFormModal(true);
+    };
+    const openDetailModal = (item) => {
+        setViewingItemId(item.id);
+        setShowDetailModal(true);
     };
 
     const handleDelete = async (item) => {
@@ -512,6 +499,15 @@ export default function DarsList() {
                                                     </td>
                                                     <td className="text-center">
                                                         <div className="d-flex gap-1 justify-content-center">
+
+                                                            <button
+                                                                className="btn btn-sm btn-info"
+                                                                onClick={() => openDetailModal(item)}
+                                                                title="مشاهده"
+                                                            >
+                                                                <i className="bi bi-eye"></i>
+                                                            </button>
+
                                                             <PermissionWrapper permission="Dars.Update">
                                                                 <button
                                                                     className="btn btn-sm btn-warning"
@@ -631,6 +627,14 @@ export default function DarsList() {
                     const newUrl = `${window.location.pathname}?${params.toString()}`;
                     window.location.href = newUrl;
                 }}
+            />
+            <DarsDetailModal
+                show={showDetailModal}
+                onClose={() => {
+                    setShowDetailModal(false);
+                    setViewingItemId(null);
+                }}
+                darsId={viewingItemId}
             />
 
             <ConfirmModal />
