@@ -162,10 +162,28 @@ export default function DarsList() {
             params.append('page', debouncedFilters.page);
             params.append('pageSize', debouncedFilters.pageSize);
 
-            const response = await api.get(`/Dars/list?${params.toString()}`);
+            /*const response = await api.get(`/Dars/list?${params.toString()}`);
             if (response.data?.success) {
                 setItems(response.data.data || []);
                 setPagination(response.data.pagination || { totalCount: 0, totalPages: 0 });
+            }*/
+            const response = await api.get(`/Dars/list?${params.toString()}`);
+            if (response.data?.success) {
+                const { data: rows, pagination: pag } = response.data;
+                const items = rows || [];
+                const paginationData = pag || { totalCount: 0, totalPages: 0 };
+
+                setItems(items);
+                setPagination(paginationData);
+
+                // 🔥 شبکه ایمنی: اگه صفحه‌ی جاری از محدوده بیرون زده، برگرد به صفحه ۱
+                if (
+                    items.length === 0 &&
+                    paginationData.totalCount > 0 &&
+                    paginationData.page > 1
+                ) {
+                    setPage(1);
+                }
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در دریافت لیست درس‌ها');
@@ -176,17 +194,43 @@ export default function DarsList() {
 
     const fetchNoeDars = async () => {
         try {
-            const response = await api.get('/Dars/noedars-list');
+            const params = new URLSearchParams();
+            debouncedFilters.maghtas.forEach(v => params.append('maghtas', v));
+            debouncedFilters.daneshkades.forEach(v => params.append('daneshkades', v));
+            debouncedFilters.groohes.forEach(v => params.append('grooheAmoozeshiIds', v));
+            debouncedFilters.reshtehs.forEach(v => params.append('reshtehIds', v));
+
+            const url = params.toString()
+                ? `/Dars/noedars-list?${params.toString()}`
+                : '/Dars/noedars-list';
+
+            const response = await api.get(url);
             if (response.data?.success) {
-                setNoeDarsList(response.data.data || []);
+                const newList = response.data.data || [];
+                setNoeDarsList(newList);
+
+                // 🔥 پاک کردن انتخاب‌های نامعتبر (فقط وقتی فیلتر فعاله)
+                const hasChainFilter =
+                    debouncedFilters.maghtas.length > 0 ||
+                    debouncedFilters.daneshkades.length > 0 ||
+                    debouncedFilters.groohes.length > 0 ||
+                    debouncedFilters.reshtehs.length > 0;
+
+                if (hasChainFilter) {
+                    setFilterNoeDars(prev => {
+                        if (prev.length === 0) return prev;
+                        const validTypes = new Set(newList.map(x => x.type));
+                        const filtered = prev.filter(t => validTypes.has(t));
+                        // اگه هیچی حذف نشد، همون reference رو برگردون (React re-render نمی‌کنه)
+                        return filtered.length === prev.length ? prev : filtered;
+                    });
+                }
             }
         } catch (error) {
             console.error('خطا در دریافت نوع درس‌ها:', error);
         }
     };
-    useEffect(() => {
-        fetchNoeDars();
-    }, []);
+
     // ============================================================
     // 🔥 Debounce Effect — 700ms صبر کن، بعد debouncedFilters رو آپدیت کن
     // ============================================================
@@ -222,6 +266,15 @@ export default function DarsList() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedFilters]);
 
+    useEffect(() => {
+        fetchNoeDars();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        debouncedFilters.maghtas,
+        debouncedFilters.daneshkades,
+        debouncedFilters.groohes,
+        debouncedFilters.reshtehs
+    ]);
 
     // ============================================================
     // عملیات
@@ -378,10 +431,13 @@ export default function DarsList() {
                             <div className="col-md-2">
                                 <label className="form-label small mb-1">نوع درس</label>
                                 <MultiSelectWrapper
-                                    options={noeDarsList.map(n => ({ value: n, label: n }))}
+                                    options={noeDarsList.map(n => ({
+                                        value: n.type,
+                                        label: `${n.type} (${n.count})`
+                                    }))}
                                     value={filterNoeDars}
                                     onChange={(v) => { setFilterNoeDars(v); setPage(1); }}
-                                    placeholder=" نوع درس..."
+                                    placeholder="نوع درس..."
                                     hideIndicator={true}
                                 />
                             </div>
@@ -394,8 +450,7 @@ export default function DarsList() {
                                     className="form-control form-control-sm"
                                     placeholder="شماره یا عنوان..."
                                     value={manbaSearch}
-                                    onChange={(e) => setManbaSearch(e.target.value)}
-                                />
+                                    onChange={(e) => { setManbaSearch(e.target.value); setPage(1); }} />
                             </div>
 
                             {/* مجموع */}
