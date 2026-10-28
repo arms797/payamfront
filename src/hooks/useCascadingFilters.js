@@ -95,42 +95,71 @@ export const useCascadingFilters = (
     // ============================================================
     // ۴. لیست رشته‌ها (محدود به مقطع + دانشکده + گروه)
     // ============================================================
-    const reshtehOptions = useMemo(() => {
-        if (!reshtehList || !grooheList) return [];
+    // ============================================================
+// ۴. لیست رشته‌ها (محدود به مقطع + دانشکده + گروه)
+// سورت: کد رشته (صعودی) → ترم ورود (نزولی) → ترم اعمال (نزولی) → کد مقطع (صعودی)
+// ============================================================
+const reshtehOptions = useMemo(() => {
+    if (!reshtehList || !grooheList) return [];
 
-        let filtered = [...reshtehList];
+    let filtered = [...reshtehList];
 
-        // فیلتر مقطع
-        if (selectedMaghtas.length > 0) {
-            filtered = filtered.filter(r =>
-                selectedMaghtas.includes(String(r.codeMaghta))
-            );
-        }
+    // فیلتر مقطع
+    if (selectedMaghtas.length > 0) {
+        filtered = filtered.filter(r =>
+            selectedMaghtas.includes(String(r.codeMaghta))
+        );
+    }
 
-        // فیلتر دانشکده (از طریق گروه)
-        if (selectedDaneshkades.length > 0) {
-            const grooheIdsOfDaneshkades = grooheList
-                .filter(g => selectedDaneshkades.includes(g.codeDaneshkade))
-                .map(g => g.id);
+    // فیلتر دانشکده (از طریق گروه)
+    if (selectedDaneshkades.length > 0) {
+        const grooheIdsOfDaneshkades = grooheList
+            .filter(g => selectedDaneshkades.includes(g.codeDaneshkade))
+            .map(g => g.id);
 
-            filtered = filtered.filter(r =>
-                grooheIdsOfDaneshkades.includes(r.grooheAmoozeshiId)
-            );
-        }
+        filtered = filtered.filter(r =>
+            grooheIdsOfDaneshkades.includes(r.grooheAmoozeshiId)
+        );
+    }
 
-        // فیلتر گروه
-        if (selectedGroohes.length > 0) {
-            const selectedGrooheIds = selectedGroohes.map(id => parseInt(id));
-            filtered = filtered.filter(r =>
-                selectedGrooheIds.includes(r.grooheAmoozeshiId)
-            );
-        }
+    // فیلتر گروه
+    if (selectedGroohes.length > 0) {
+        const selectedGrooheIds = selectedGroohes.map(id => parseInt(id));
+        filtered = filtered.filter(r =>
+            selectedGrooheIds.includes(r.grooheAmoozeshiId)
+        );
+    }
 
-        return filtered.map(r => ({
+    // 🔥 سورت چندسطحی
+    return filtered
+        .map(r => ({
             value: r.id,
-            label: `${r.codeReshte} - ${r.onvanReshte}`
-        })).sort((a, b) => a.label.localeCompare(b.label, 'fa'));
-    }, [reshtehList, grooheList, selectedMaghtas, selectedDaneshkades, selectedGroohes]);
+            label: `${r.codeReshte} - ${r.onvanReshte}`,
+            _codeReshte: r.codeReshte || '',
+            _termVorood: r.termVorood || '',
+            _termEamal: r.termEamal || '',
+            _codeMaghta: r.codeMaghta || ''
+        }))
+        .sort((a, b) => {
+            // ۱. کد رشته (صعودی)
+            const cr = a._codeReshte.localeCompare(b._codeReshte);
+            if (cr !== 0) return cr;
+
+            // ۲. ترم ورود (نزولی)
+            const tvA = parseInt(a._termVorood, 10) || 0;
+            const tvB = parseInt(b._termVorood, 10) || 0;
+            if (tvA !== tvB) return tvB - tvA;
+
+            // ۳. ترم اعمال (نزولی)
+            const teA = parseInt(a._termEamal, 10) || 0;
+            const teB = parseInt(b._termEamal, 10) || 0;
+            if (teA !== teB) return teB - teA;
+
+            // ۴. کد مقطع (صعودی)
+            return a._codeMaghta.localeCompare(b._codeMaghta);
+        })
+        .map(({ _codeReshte, _termVorood, _termEamal, _codeMaghta, ...rest }) => rest);
+}, [reshtehList, grooheList, selectedMaghtas, selectedDaneshkades, selectedGroohes]);
 
     // ============================================================
     // ۵. خروجی

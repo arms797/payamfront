@@ -1,3 +1,215 @@
+import axios from 'axios';
+
+import {
+  getAccessToken,
+  getRefreshToken,
+  getUserData,
+  setUserData,
+  clearUserData,
+} from '../utils/storage';
+
+const API_BASE_URL = '/api';
+const REFRESH_URL = '/Auth/refresh';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
+// نمونه جداگانه برای تمدید توکن؛
+// این درخواست وارد اینترسپتور پاسخ api نمی‌شود.
+const refreshClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+const setAuthorizationHeader = (config, token) => {
+  config.headers = config.headers || {};
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    delete config.headers.Authorization;
+  }
+
+  return config;
+};
+
+const clearAuthorizationHeader = () => {
+  delete api.defaults.headers.common.Authorization;
+};
+
+const notifyTokenExpired = () => {
+  clearUserData();
+  clearAuthorizationHeader();
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('token-expired'));
+  }
+};
+
+// ---------------------------------------------
+// Request interceptor
+// ---------------------------------------------
+api.interceptors.request.use(
+  (config) => {
+    const token = getAccessToken();
+
+    // از توکن فعلی استفاده کن، نه توکنی که قبلاً
+    // به‌صورت پیش‌فرض روی Axios باقی مانده است.
+    if (token) {
+      setAuthorizationHeader(config, token);
+
+      api.defaults.headers.common.Authorization =
+        `Bearer ${token}`;
+    } else {
+      setAuthorizationHeader(config, null);
+      clearAuthorizationHeader();
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ---------------------------------------------
+// Response interceptor
+// ---------------------------------------------
+api.interceptors.response.use(
+  (response) => response,
+
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    // فقط خطای 401 نیازمند بررسی تمدید توکن است.
+    if (error.response?.status !== 401) {
+      return Promise.reject(error);
+    }
+
+    // بعضی درخواست‌ها، مانند خروج، نباید باعث
+    // تلاش خودکار برای تمدید توکن شوند.
+    if (originalRequest.skipAuthRefresh) {
+      return Promise.reject(error);
+    }
+
+    // درخواست نباید بیش از یک بار دوباره ارسال شود.
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+
+    // اگر تمدید دیگری در جریان است، منتظر نتیجه بمان.
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then((newToken) => {
+          setAuthorizationHeader(originalRequest, newToken);
+          return api(originalRequest);
+        })
+        .catch((queueError) => Promise.reject(queueError));
+    }
+
+    isRefreshing = true;
+
+    try {
+      const refreshToken = getRefreshToken();
+      const currentAccessToken = getAccessToken();
+
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await refreshClient.post(REFRESH_URL, {
+        accessToken: currentAccessToken,
+        refreshToken,
+      });
+
+      const responseData = response.data?.data;
+
+      if (!responseData?.accessToken) {
+        throw new Error('Refresh response has no access token');
+      }
+
+      // اگر سرور بعضی فیلدهای کاربر را در پاسخ تمدید
+      // برنگرداند، اطلاعات قبلی را حفظ کن.
+      const updatedUserData = {
+        ...(getUserData() || {}),
+        ...responseData,
+        accessToken: responseData.accessToken,
+        refreshToken:
+          responseData.refreshToken || refreshToken,
+      };
+
+      // تمدید فقط زمانی موفق محسوب می‌شود که ذخیره‌سازی
+      // اطلاعات جدید هم موفق شده باشد.
+      const saved = setUserData(updatedUserData);
+
+      if (!saved) {
+        throw new Error('Could not save refreshed user data');
+      }
+
+      const newAccessToken = updatedUserData.accessToken;
+
+      api.defaults.headers.common.Authorization =
+        `Bearer ${newAccessToken}`;
+
+      // درخواست‌های منتظر را با توکن جدید آزاد کن.
+      processQueue(null, newAccessToken);
+
+      // وضعیت AuthContext را نیز به‌روز کن.
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('token-refreshed', {
+            detail: updatedUserData,
+          })
+        );
+      }
+
+      setAuthorizationHeader(originalRequest, newAccessToken);
+
+      return api(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+
+      notifyTokenExpired();
+
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
+  }
+);
+
+export default api;
+
+/*
 // src/api/axiosConfig.js
 
 import axios from 'axios';
@@ -129,3 +341,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+*/

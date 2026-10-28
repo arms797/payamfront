@@ -760,7 +760,9 @@ export default function DarsFormModal({ show, onClose, onSuccess, item }) {
                                             >
                                                 <option value="">انتخاب...</option>
                                                 {noeDarsList.map((n, i) => (
-                                                    <option key={i} value={n}>{n}</option>
+                                                    <option key={i} value={n.type || n}>
+                                                        {n.type || n}
+                                                    </option>
                                                 ))}
                                             </select>
                                         </div>

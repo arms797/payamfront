@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-toastify';
 import api from '../../../api/axiosConfig';
+import { useReshteh } from '../../../context/ReshtehContext';
 
 export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooheList }) {
     const isEditMode = !!item;
@@ -20,6 +21,8 @@ export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooh
     const [selectedDaneshkade, setSelectedDaneshkade] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
+
+    const { refrshReshteh } = useReshteh();
 
     // ============================================================
     // لیست مقطع‌ها
@@ -170,6 +173,7 @@ export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooh
 
             if (response.data?.success) {
                 toast.success(isEditMode ? 'رشته با موفقیت ویرایش شد' : 'رشته با موفقیت ایجاد شد');
+                refrshReshteh();
                 setSubmitting(false);
                 onSuccess();
             } else {

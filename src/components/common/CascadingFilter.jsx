@@ -8,6 +8,18 @@ import { useCascadingFilters } from '../../hooks/useCascadingFilters';
 // ============================================================
 const EmptyComponent = () => null;
 
+// ============================================================
+// 🔥 Chip با Tooltip — فقط برای MultiValueLabel
+// ============================================================
+const MultiValueLabelWithTooltip = (props) => {
+    const title = typeof props.data?.label === 'string' ? props.data.label : undefined;
+    return (
+        <div title={title} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {props.children}
+        </div>
+    );
+};
+
 export default function CascadingFilter({
     grooheList,
     reshtehList,
@@ -23,7 +35,6 @@ export default function CascadingFilter({
     showDaneshkade = true,
     showGroohe = true,
     showReshteh = true,
-    // 🔥 پارامترهای جدید
     hideIndicator = false,
     hideClear = false,
     maxHeight = 50
@@ -71,9 +82,11 @@ export default function CascadingFilter({
     }, [reshtehOptions]);
 
     // ============================================================
-    // 🔥 ساخت components بر اساس پارامترها
+    // 🔥 components — فقط Chip Tooltip
     // ============================================================
-    const components = {};
+    const components = {
+        MultiValueLabel: MultiValueLabelWithTooltip
+    };
     if (hideIndicator) {
         components.DropdownIndicator = EmptyComponent;
         components.IndicatorSeparator = EmptyComponent;
@@ -120,7 +133,8 @@ export default function CascadingFilter({
             fontSize: '11px',
             backgroundColor: '#e7f1ff',
             borderRadius: '4px',
-            margin: '1px'
+            margin: '1px',
+            maxWidth: '100%'
         }),
         multiValueLabel: (base) => ({
             ...base,
@@ -128,7 +142,10 @@ export default function CascadingFilter({
             color: '#0d6efd',
             padding: '2px 6px',
             fontSize: '11px',
-            fontWeight: '500'
+            fontWeight: '500',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
         }),
         multiValueRemove: (base) => ({
             ...base,
@@ -143,7 +160,7 @@ export default function CascadingFilter({
             flexWrap: 'wrap',
             gap: '2px',
             padding: '4px 8px',
-            maxHeight: `${maxHeight}px`,   // 🔥 از پارامتر
+            maxHeight: `${maxHeight}px`,
             overflowY: 'auto'
         }),
         placeholder: (base) => ({
@@ -159,20 +176,14 @@ export default function CascadingFilter({
         })
     };
 
-    // ============================================================
-    // تعداد فیلترهای فعال
-    // ============================================================
-    const visibleCount = [showMaghta, showDaneshkade, showGroohe, showReshteh].filter(Boolean).length;
-    const colSize = visibleCount > 0 ? Math.floor(12 / visibleCount) : 12;
+    //const visibleCount = [showMaghta, showDaneshkade, showGroohe, showReshteh].filter(Boolean).length;
+    //const colSize = visibleCount > 0 ? Math.floor(12 / visibleCount) : 12;
 
-    // ============================================================
-    // رندر
-    // ============================================================
     return (
         <div className="row g-2">
             {/* مقطع */}
             {showMaghta && (
-                <div className={`col-md-${colSize}`}>
+                <div className="col-md-2">
                     <label className="form-label small mb-1">مقطع</label>
                     <Select
                         isMulti
@@ -194,7 +205,7 @@ export default function CascadingFilter({
 
             {/* دانشکده */}
             {showDaneshkade && (
-                <div className={`col-md-${colSize}`}>
+                <div className="col-md-2">
                     <label className="form-label small mb-1">دانشکده</label>
                     <Select
                         isMulti
@@ -216,7 +227,7 @@ export default function CascadingFilter({
 
             {/* گروه آموزشی */}
             {showGroohe && (
-                <div className={`col-md-${colSize}`}>
+                <div className="col-md-3">
                     <label className="form-label small mb-1">گروه آموزشی</label>
                     <Select
                         isMulti
@@ -238,7 +249,7 @@ export default function CascadingFilter({
 
             {/* رشته — با VirtualizedSelect */}
             {showReshteh && (
-                <div className={`col-md-${colSize}`}>
+                <div className="col-md-5">
                     <label className="form-label small mb-1">رشته</label>
                     <VirtualizedSelect
                         isMulti

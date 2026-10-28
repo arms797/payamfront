@@ -1,3 +1,99 @@
+const STORAGE_KEYS = {
+  accessToken: 'accessToken',
+  refreshToken: 'refreshToken',
+  user: 'user',
+};
+
+export const setUserData = (data) => {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  try {
+    localStorage.setItem(
+      STORAGE_KEYS.accessToken,
+      data.accessToken ?? ''
+    );
+
+    localStorage.setItem(
+      STORAGE_KEYS.refreshToken,
+      data.refreshToken ?? ''
+    );
+
+    const user = {
+      id: data.id,
+      username: data.username,
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      roles: data.roles,
+      currentRoleId: data.currentRoleId,
+      currentRoleName: data.currentRoleName,
+      markazId: data.markazId,
+      menus: data.menus,
+      permissions: data.permissions,
+      noeHamkari: data.noeHamkari ?? 0,
+      expiresIn: data.expiresIn,
+    };
+
+    localStorage.setItem(
+      STORAGE_KEYS.user,
+      JSON.stringify(user)
+    );
+
+    return true;
+  } catch (error) {
+    console.error('setUserData error:', error);
+    return false;
+  }
+};
+
+export const getAccessToken = () => {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.accessToken);
+  } catch (error) {
+    console.error('getAccessToken error:', error);
+    return null;
+  }
+};
+
+export const getRefreshToken = () => {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.refreshToken);
+  } catch (error) {
+    console.error('getRefreshToken error:', error);
+    return null;
+  }
+};
+
+export const getUserData = () => {
+  try {
+    const user = localStorage.getItem(STORAGE_KEYS.user);
+    return user ? JSON.parse(user) : null;
+  } catch (error) {
+    console.error('getUserData error:', error);
+    return null;
+  }
+};
+
+export const clearUserData = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.accessToken);
+    localStorage.removeItem(STORAGE_KEYS.refreshToken);
+    localStorage.removeItem(STORAGE_KEYS.user);
+
+    return true;
+  } catch (error) {
+    console.error('clearUserData error:', error);
+    return false;
+  }
+};
+
+export const isAuthenticated = () => {
+  return Boolean(getAccessToken());
+};
+
+/*
 // ============================================================
 // ذخیره اطلاعات کاربر در localStorage
 // ============================================================
@@ -65,3 +161,4 @@ export const clearUserData = () => {
 export const isAuthenticated = () => {
   return !!getAccessToken();
 };
+*/

@@ -1,3 +1,379 @@
+import React, {
+    createContext,
+    useContext,
+    useState,
+    useEffect,
+    useMemo,
+} from 'react';
+
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axiosConfig';
+
+import {
+    getAccessToken,
+    getRefreshToken,
+    getUserData,
+    clearUserData,
+    setUserData,
+} from '../utils/storage';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [accessToken, setAccessToken] = useState(null);
+    const [refreshToken, setRefreshToken] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+    const [roles, setRoles] = useState([]);
+    const [menus, setMenus] = useState([]);
+    const [permissions, setPermissions] = useState([]);
+    const [currentRoleId, setCurrentRoleId] = useState(null);
+    const [currentMarkazId, setCurrentMarkazId] = useState(null);
+
+    const navigate = useNavigate();
+
+    // ---------------------------------------------
+    // بارگذاری اطلاعات کاربر در شروع برنامه
+    // ---------------------------------------------
+    useEffect(() => {
+        const loadUser = () => {
+            try {
+                const token = getAccessToken();
+                const refresh = getRefreshToken();
+                const userData = getUserData();
+
+                if (token && refresh && userData) {
+                    setAccessToken(token);
+                    setRefreshToken(refresh);
+                    setUser(userData);
+
+                    setRoles(userData.roles || []);
+                    setMenus(userData.menus || []);
+                    setPermissions(userData.permissions || []);
+
+                    setCurrentRoleId(userData.currentRoleId ?? null);
+                    setCurrentMarkazId(userData.markazId ?? null);
+
+                    setIsAuthenticated(true);
+
+                    api.defaults.headers.common.Authorization =
+                        `Bearer ${token}`;
+                } else {
+                    setIsAuthenticated(false);
+
+                    delete api.defaults.headers.common.Authorization;
+                }
+            } catch (error) {
+                console.error('loadUser error:', error);
+
+                setIsAuthenticated(false);
+                delete api.defaults.headers.common.Authorization;
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadUser();
+    }, []);
+
+    // ---------------------------------------------
+    // هماهنگ‌سازی Context پس از تمدید موفق توکن
+    // ---------------------------------------------
+    useEffect(() => {
+        const handleTokenRefreshed = (event) => {
+            const data = event.detail;
+
+            if (!data?.accessToken) {
+                return;
+            }
+
+            setAccessToken(data.accessToken);
+            setRefreshToken(data.refreshToken || getRefreshToken());
+            setUser(data);
+
+            setRoles(data.roles || []);
+            setMenus(data.menus || []);
+            setPermissions(data.permissions || []);
+
+            setCurrentRoleId(data.currentRoleId ?? null);
+            setCurrentMarkazId(data.markazId ?? null);
+
+            setIsAuthenticated(true);
+        };
+
+        window.addEventListener(
+            'token-refreshed',
+            handleTokenRefreshed
+        );
+
+        return () => {
+            window.removeEventListener(
+                'token-refreshed',
+                handleTokenRefreshed
+            );
+        };
+    }, []);
+
+    // ---------------------------------------------
+    // پاک‌سازی Context در صورت انقضای نشست
+    // ---------------------------------------------
+    useEffect(() => {
+        const handleTokenExpired = () => {
+            clearUserData();
+
+            setUser(null);
+            setAccessToken(null);
+            setRefreshToken(null);
+
+            setRoles([]);
+            setMenus([]);
+            setPermissions([]);
+
+            setCurrentRoleId(null);
+            setCurrentMarkazId(null);
+
+            setIsAuthenticated(false);
+
+            delete api.defaults.headers.common.Authorization;
+
+            navigate('/');
+        };
+
+        window.addEventListener(
+            'token-expired',
+            handleTokenExpired
+        );
+
+        return () => {
+            window.removeEventListener(
+                'token-expired',
+                handleTokenExpired
+            );
+        };
+    }, [navigate]);
+
+    // ---------------------------------------------
+    // ورود
+    // ---------------------------------------------
+    const login = (data) => {
+        setUserData(data);
+
+        setUser(data);
+        setAccessToken(data.accessToken);
+        setRefreshToken(data.refreshToken);
+
+        setRoles(data.roles || []);
+        setMenus(data.menus || []);
+        setPermissions(data.permissions || []);
+
+        setCurrentRoleId(data.currentRoleId ?? null);
+        setCurrentMarkazId(data.markazId ?? null);
+
+        setIsAuthenticated(true);
+
+        if (data.accessToken) {
+            api.defaults.headers.common.Authorization =
+                `Bearer ${data.accessToken}`;
+        } else {
+            delete api.defaults.headers.common.Authorization;
+        }
+    };
+
+    // ---------------------------------------------
+    // خروج
+    // ---------------------------------------------
+    const logout = async () => {
+        try {
+            await api.post('/Auth/logout', null, {
+                skipAuthRefresh: true,
+            });
+        } catch (error) {
+            // حتی اگر درخواست خروج به سرور ناموفق بود،
+            // اطلاعات محلی در finally پاک می‌شود.
+            console.error('خطا در خروج:', error);
+        } finally {
+            clearUserData();
+
+            setUser(null);
+            setAccessToken(null);
+            setRefreshToken(null);
+
+            setRoles([]);
+            setMenus([]);
+            setPermissions([]);
+
+            setCurrentRoleId(null);
+            setCurrentMarkazId(null);
+
+            setIsAuthenticated(false);
+
+            delete api.defaults.headers.common.Authorization;
+
+            navigate('/');
+        }
+    };
+
+    // ---------------------------------------------
+    // به‌روزرسانی اطلاعات کاربر
+    // ---------------------------------------------
+    const updateUser = (newData) => {
+        setUserData(newData);
+
+        setUser(newData);
+        setAccessToken(newData.accessToken);
+        setRefreshToken(newData.refreshToken);
+
+        setRoles(newData.roles || []);
+        setMenus(newData.menus || []);
+        setPermissions(newData.permissions || []);
+
+        setCurrentRoleId(newData.currentRoleId ?? null);
+        setCurrentMarkazId(newData.markazId ?? null);
+
+        setIsAuthenticated(true);
+
+        if (newData.accessToken) {
+            api.defaults.headers.common.Authorization =
+                `Bearer ${newData.accessToken}`;
+        } else {
+            delete api.defaults.headers.common.Authorization;
+        }
+    };
+
+    // ---------------------------------------------
+    // بررسی مجوزها
+    // ---------------------------------------------
+    const hasPermission = (permissionName) => {
+        if (!permissionName) return true;
+
+        return permissions.includes(permissionName);
+    };
+
+    const hasAnyPermission = (permissionList) => {
+        if (!permissionList || permissionList.length === 0) {
+            return true;
+        }
+
+        return permissionList.some((permission) =>
+            permissions.includes(permission)
+        );
+    };
+
+    const hasAllPermissions = (permissionList) => {
+        if (!permissionList || permissionList.length === 0) {
+            return true;
+        }
+
+        return permissionList.every((permission) =>
+            permissions.includes(permission)
+        );
+    };
+
+    // ---------------------------------------------
+    // نوع کاربر
+    // ---------------------------------------------
+    const userType = useMemo(() => {
+        if (!user) return 'guest';
+
+        if (user.currentRoleName === 'استاد') {
+            if (Number(user.noeHamkari) === 1) {
+                return 'ostadElmi';
+            }
+
+            return 'ostadMadov';
+        }
+
+        return 'ostadNo';
+    }, [user]);
+
+    const isOstad = useMemo(
+        () => user?.currentRoleName === 'استاد',
+        [user]
+    );
+
+    const isOstadElmi = useMemo(() => {
+        if (!user || user.currentRoleName !== 'استاد') {
+            return false;
+        }
+
+        if (
+            user.noeHamkari === undefined ||
+            user.noeHamkari === null
+        ) {
+            return false;
+        }
+
+        return Number(user.noeHamkari) === 1;
+    }, [user]);
+
+    const isOstadMadov = useMemo(() => {
+        if (!user || user.currentRoleName !== 'استاد') {
+            return false;
+        }
+
+        if (
+            user.noeHamkari === undefined ||
+            user.noeHamkari === null
+        ) {
+            return false;
+        }
+
+        return Number(user.noeHamkari) !== 1;
+    }, [user]);
+
+    // ---------------------------------------------
+    // مقدار Context
+    // ---------------------------------------------
+    const value = {
+        user,
+        accessToken,
+        refreshToken,
+        loading,
+        isAuthenticated,
+
+        roles,
+        menus,
+        permissions,
+
+        currentRoleId,
+        currentMarkazId,
+
+        login,
+        logout,
+        updateUser,
+
+        hasPermission,
+        hasAnyPermission,
+        hasAllPermissions,
+
+        userType,
+        isOstad,
+        isOstadElmi,
+        isOstadMadov,
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
+};
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+
+    if (!context) {
+        throw new Error(
+            'useAuth must be used within an AuthProvider'
+        );
+    }
+
+    return context;
+};
+
+/*
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
@@ -227,3 +603,4 @@ export const useAuth = () => {
     }
     return context;
 };
+*/

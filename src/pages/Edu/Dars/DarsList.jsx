@@ -474,23 +474,26 @@ export default function DarsList() {
                             </div>
                         ) : items.length > 0 ? (
                             <div className="table-responsive">
-                                <table className="table table-hover table-striped mb-0 align-middle">
+                                <table className="table table-hover table-striped mb-0 align-middle"
+                                    style={{fontSize:'14px'}}
+                                >
                                     <thead className="table-light">
                                         <tr>
                                             <th style={{ width: '50px' }}>#</th>
                                             <th>کد درس</th>
                                             <th>عنوان درس</th>
+                                            <th className="text-center">کد مقطع</th>
                                             <th className="text-center">کد رشته</th>
                                             <th>عنوان رشته</th>
-                                            <th className="text-center">واحد تئوری</th>
-                                            <th className="text-center">واحد عملی</th>
-                                            <th className="text-center">ترم اخذ</th>
+                                            <th className="text-center" style={{fontSize:'12px'}}>واحد تئوری</th>
+                                            <th className="text-center" style={{fontSize:'12px'}}>واحد عملی</th>
+                                            <th className="text-center" style={{fontSize:'12px'}}>ترم اخذ</th>
                                             <th>نوع درس</th>
                                             <th className="text-center">منابع</th>
                                             <th className="text-center" style={{ width: '130px' }}>عملیات</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody >
                                         {items.map((item, index) => {
                                             const reshteh = reshtehList.find(r => r.id === item.reshtehId);
                                             return (
@@ -505,16 +508,19 @@ export default function DarsList() {
                                                     </td>
                                                     <td><strong>{item.naamDars || '-'}</strong></td>
                                                     <td className="text-center">
+                                                        <PersianNumber>{reshteh?.codeMaghta || '-'}</PersianNumber>
+                                                    </td>
+                                                    <td className="text-center">
                                                         <PersianNumber>{reshteh?.codeReshte || '-'}</PersianNumber>
                                                     </td>
-                                                    <td>{reshteh?.onvanReshte || '-'}</td>
-                                                    <td className="text-center">
+                                                    <td >{reshteh?.onvanReshte || '-'}</td>
+                                                    <td className="text-center" style={{fontSize:'12px'}}>
                                                         <PersianNumber>{item.vahedTeori || 0}</PersianNumber>
                                                     </td>
-                                                    <td className="text-center">
+                                                    <td className="text-center" style={{fontSize:'12px'}}>
                                                         <PersianNumber>{item.vahedAmali || 0}</PersianNumber>
                                                     </td>
-                                                    <td className="text-center">
+                                                    <td className="text-center" style={{fontSize:'12px'}}>
                                                         {item.termAkhz !== null && item.termAkhz !== undefined
                                                             ? <PersianNumber>{item.termAkhz}</PersianNumber>
                                                             : <span className="text-muted">-</span>}

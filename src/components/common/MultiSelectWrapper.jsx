@@ -6,22 +6,36 @@ import Select from 'react-select';
 // ============================================================
 const EmptyComponent = () => null;
 
+// ============================================================
+// 🔥 Chip با Tooltip — فقط برای MultiValueLabel
+// ============================================================
+const MultiValueLabelWithTooltip = (props) => {
+    const title = typeof props.data?.label === 'string' ? props.data.label : undefined;
+    return (
+        <div title={title} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {props.children}
+        </div>
+    );
+};
+
 export default function MultiSelectWrapper({
     options,
     value = [],
     onChange,
     placeholder = 'انتخاب...',
     isDisabled = false,
-    hideIndicator = false,    // 🔥 حذف فلش
-    hideClear = false,        // 🔥 حذف ضربدر
-    maxHeight = 50            // 🔥 حداکثر ارتفاع (پیش‌فرض 50px)
+    hideIndicator = false,
+    hideClear = false,
+    maxHeight = 50
 }) {
     const selectedOptions = options.filter(o => value.includes(o.value));
 
     // ============================================================
-    // 🔥 ساخت components بر اساس پارامترها
+    // 🔥 components — فقط Chip Tooltip
     // ============================================================
-    const components = {};
+    const components = {
+        MultiValueLabel: MultiValueLabelWithTooltip
+    };
     if (hideIndicator) {
         components.DropdownIndicator = EmptyComponent;
         components.IndicatorSeparator = EmptyComponent;
@@ -65,14 +79,18 @@ export default function MultiSelectWrapper({
             fontSize: '11px',
             backgroundColor: '#e7f1ff',
             borderRadius: '4px',
-            margin: '1px'
+            margin: '1px',
+            maxWidth: '100%'
         }),
         multiValueLabel: (base) => ({
             ...base,
             direction: 'rtl',
             color: '#0d6efd',
             padding: '2px 6px',
-            fontSize: '11px'
+            fontSize: '11px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
         }),
         multiValueRemove: (base) => ({
             ...base,
@@ -87,7 +105,7 @@ export default function MultiSelectWrapper({
             flexWrap: 'wrap',
             gap: '2px',
             padding: '4px 8px',
-            maxHeight: `${maxHeight}px`,   // 🔥 از پارامتر
+            maxHeight: `${maxHeight}px`,
             overflowY: 'auto'
         }),
         placeholder: (base) => ({

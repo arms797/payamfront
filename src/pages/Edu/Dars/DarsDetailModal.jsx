@@ -141,9 +141,13 @@ export default function DarsDetailModal({ show, onClose, darsId }) {
                                             <label className="text-muted small d-block">رشته</label>
                                             <strong>{dars.reshtehName || '-'}</strong>
                                         </div>
-                                        <div className="col-md-5">
+                                        <div className="col-md-3">
                                             <label className="text-muted small d-block">گروه آموزشی</label>
                                             <strong>{dars.grooheName || '-'}</strong>
+                                        </div>
+                                        <div className="col-md-2">
+                                            <label className="text-muted small d-block">مقطع</label>
+                                            <strong>{dars.maghta || '-'}</strong>
                                         </div>
                                     </div>
 

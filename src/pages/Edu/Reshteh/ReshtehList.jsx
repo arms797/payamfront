@@ -7,6 +7,7 @@ import PersianNumber from '../../../components/common/PersianNumber';
 import { useConfirm } from '../../../hooks/useConfirm';
 import ReshtehFormModal from './ReshtehFormModal';
 import ReshtehBulkUploadModal from './ReshtehBulkUploadModal';
+import { useReshteh } from '../../../context/ReshtehContext';
 
 
 // ============================================================
@@ -80,6 +81,8 @@ export default function ReshtehList() {
     const [editingItem, setEditingItem] = useState(null);
 
     const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+
+    const { refreshReshteh } = useReshteh();
 
     // ============================================================
     // دریافت لیست
@@ -232,6 +235,7 @@ export default function ReshtehList() {
             if (response.data?.success) {
                 toast.success('رشته با موفقیت حذف شد');
                 fetchItems();
+                await refreshReshteh();
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف رشته');

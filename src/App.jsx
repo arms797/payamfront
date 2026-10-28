@@ -46,6 +46,7 @@ import GrooheAmoozeshiList from './pages/Edu/GrooheAmoozeshi/GrooheAmoozeshiList
 import ReshtehList from './pages/Edu/Reshteh/ReshtehList';
 import DarsList from './pages/Edu/Dars/DarsList';
 import SakhtemanKelassList from './pages/Edu/SakhtemanKelass/SakhtemanKelassList';
+import MarkazReshtehList from './pages/Edu/MarkazReshteh/MarkazReshtehList';
 
 // ============================================================
 // کامپوننت محافظت از مسیرها (فقط لاگین)
@@ -376,6 +377,15 @@ function App() {
                   </ProtectedRouteWithPermission>
                 }
               />
+              <Route
+                path="markazReshteh"
+                element={
+                  <ProtectedRouteWithPermission requiredPermission="MarkazReshteh.View">
+                    <MarkazReshtehList />
+                  </ProtectedRouteWithPermission>
+                }
+              />
+
 
               {/* پایان قسمت داشبورد */}
             </Route>
