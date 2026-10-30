@@ -120,6 +120,46 @@ export const AuthProvider = ({ children }) => {
     // پاک‌سازی Context در صورت انقضای نشست
     // ---------------------------------------------
     useEffect(() => {
+        const loadUser = async () => {
+            try {
+                const token = getAccessToken();
+                const refresh = getRefreshToken();
+                const userData = getUserData();
+
+                if (token && refresh && userData) {
+                    setAccessToken(token);
+                    setRefreshToken(refresh);
+                    setUser(userData);
+                    setRoles(userData.roles || []);
+                    setMenus(userData.menus || []);
+                    setPermissions(userData.permissions || []);
+                    setCurrentRoleId(userData.currentRoleId ?? null);
+                    setCurrentMarkazId(userData.markazId ?? null);
+                    setIsAuthenticated(true);
+                    api.defaults.headers.common.Authorization = `Bearer ${token}`;
+
+                    // اعتبارسنجی سبک (endpoint را با بک‌اند هماهنگ کنید)
+                    try {
+                        await api.get('/Auth/me', { skipAuthRefresh: false });
+                    } catch {
+                        // اگر 401 شود، interceptor خودش refresh یا logout را مدیریت می‌کند
+                    }
+                } else {
+                    setIsAuthenticated(false);
+                    delete api.defaults.headers.common.Authorization;
+                }
+            } catch (error) {
+                console.error('loadUser error:', error);
+                setIsAuthenticated(false);
+                delete api.defaults.headers.common.Authorization;
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadUser();
+    }, []);
+    /*useEffect(() => {
         const handleTokenExpired = () => {
             clearUserData();
 
@@ -152,7 +192,7 @@ export const AuthProvider = ({ children }) => {
                 handleTokenExpired
             );
         };
-    }, [navigate]);
+    }, [navigate]);*/
 
     // ---------------------------------------------
     // ورود

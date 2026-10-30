@@ -69,6 +69,7 @@ export default function ReshtehList() {
     const [items, setItems] = useState([]);
     const [grooheList, setGrooheList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false); // حالت جدید
     const [search, setSearch] = useState(initialState.search);
     const [filterDaneshkade, setFilterDaneshkade] = useState(initialState.filterDaneshkade);
     const [filterGroohe, setFilterGroohe] = useState(initialState.filterGroohe);
@@ -87,8 +88,13 @@ export default function ReshtehList() {
     // ============================================================
     // دریافت لیست
     // ============================================================
-    const fetchItems = async () => {
-        setLoading(true);
+    const fetchItems = async (isInitial = false) => {
+        if (isInitial) {
+            setLoading(true);
+        } else {
+            setRefreshing(true);
+        }
+
         try {
             const response = await api.get('/Reshteh/list');
             if (response.data?.success) {
@@ -98,6 +104,7 @@ export default function ReshtehList() {
             toast.error(error.response?.data?.message || 'خطا در دریافت لیست رشته‌ها');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
@@ -113,7 +120,7 @@ export default function ReshtehList() {
     };
 
     useEffect(() => {
-        fetchItems();
+        fetchItems(true);
         fetchGroohes();
     }, []);
 
@@ -245,17 +252,12 @@ export default function ReshtehList() {
     // ============================================================
     // موفقیت فرم — ذخیره state در URL
     // ============================================================
-    const handleFormSuccess = () => {
-        const params = new URLSearchParams();
-        if (search) params.set('search', search);
-        if (filterDaneshkade) params.set('filterDaneshkade', filterDaneshkade);
-        if (filterGroohe) params.set('filterGroohe', filterGroohe);
-        if (filterVazeeat) params.set('filterVazeeat', filterVazeeat);
-        if (page > 1) params.set('page', page);
-        if (pageSize !== 20) params.set('pageSize', pageSize);
-
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.location.href = newUrl;
+    const handleFormSuccess = async () => {
+        // فقط لیست را رفرش کن (بدون دست زدن به showFormModal)
+        await fetchItems(false);
+        if (typeof refreshReshteh === 'function') {
+            await refreshReshteh();
+        }
     };
 
     // ============================================================

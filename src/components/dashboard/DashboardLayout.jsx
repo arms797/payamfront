@@ -80,6 +80,17 @@ function DashboardContent() {
         }
     }, [roles, currentRoleId, currentMarkazId]);
 
+    useEffect(() => {
+        const isMobile = window.matchMedia('(max-width: 991.98px)').matches;
+
+        if (isOpen && isMobile) {
+            document.body.classList.add('sidebar-open');
+        } else {
+            document.body.classList.remove('sidebar-open');
+        }
+
+        return () => document.body.classList.remove('sidebar-open');
+    }, [isOpen]);
     // ============================================================
     // 🔥 پیدا کردن نام مرکز
     // ============================================================
@@ -198,9 +209,7 @@ function DashboardContent() {
             <header className="dashboard-header-top">
                 <div className="d-flex align-items-center justify-content-between">
                     <div className="d-flex align-items-center gap-2">
-                        <button className="hamburger-btn" onClick={() => setIsOpen(!isOpen)}>
-                            <i className={`bi ${isOpen ? 'bi-x-lg' : 'bi-list'} fs-3`}></i>
-                        </button>
+
                         <h5 className="mb-0">سامانه پیام</h5>
                     </div>
 
@@ -259,9 +268,29 @@ function DashboardContent() {
                 </div>
             </header>
 
+            {/* دکمه باز کردن منو — فقط وقتی بسته است */}
+            {!isOpen && (
+                <button
+                    type="button"
+                    className="sidebar-toggle-fab"
+                    onClick={() => setIsOpen(true)}
+                    aria-label="باز کردن منو"
+                >
+                    <i className="bi bi-list fs-4"></i>
+                </button>
+            )}
+
             <div className="dashboard-body-wrapper">
+                {/* لایه تیره پشت منو */}
+                {isOpen && (
+                    <div
+                        className="dashboard-sidebar-backdrop"
+                        onClick={() => setIsOpen(false)}
+                    />
+                )}
+
                 <div className={`dashboard-sidebar ${isOpen ? 'open' : ''}`}>
-                    <Sidebar />  {/* دیگر نیازی به onNavigate نیست */}
+                    <Sidebar onClose={() => setIsOpen(false)} />
                 </div>
 
                 <div className={`dashboard-content ${isOpen ? 'shifted' : ''}`}>

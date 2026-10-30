@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../../api/axiosConfig';
-import { useAuth } from '../../../context/AuthContext';
 import { PermissionWrapper } from '../../../components/PermissionWrapper';
 import PersianNumber from '../../../components/common/PersianNumber';
 import { useConfirm } from '../../../hooks/useConfirm';
@@ -28,49 +27,47 @@ const getInitialState = () => {
 };
 
 export default function GrooheAmoozeshiList() {
-    const { hasPermission } = useAuth();
     const { confirm, ConfirmModal } = useConfirm();
 
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
     const initialState = getInitialState();
     const [search, setSearch] = useState(initialState.search);
     const [filterDaneshkade, setFilterDaneshkade] = useState(initialState.filterDaneshkade);
-    const [filterVazeeat, setFilterVazeeat] = useState('');
+    const [filterVazeeat, setFilterVazeeat] = useState(initialState.filterVazeeat || '');
     const [page, setPage] = useState(initialState.page);
     const [pageSize, setPageSize] = useState(initialState.pageSize);
-    const [listVersion, setListVersion] = useState(0);
     // مودال
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
 
 
-
-    useEffect(() => {
-        sessionStorage.removeItem('grooheList_state');
-    }, []);
-
     // ============================================================
     // دریافت لیست
     // ============================================================
-    const fetchItems = async () => {
-        setLoading(true);
+    const fetchItems = async (isInitial = false) => {
+        if (isInitial) {
+            setLoading(true);
+        } else {
+            setRefreshing(true);
+        }
         try {
             const response = await api.get('/GrooheAmoozeshi/list');
             if (response.data?.success) {
                 setItems(response.data.data || []);
             }
-            //console.log('All grooh :',response.data.data)
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در دریافت لیست گروه‌های آموزشی');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
     useEffect(() => {
-        fetchItems();
+        fetchItems(true);
     }, []);
 
     // ============================================================
@@ -174,7 +171,7 @@ export default function GrooheAmoozeshiList() {
             const response = await api.delete(`/GrooheAmoozeshi/delete/${item.id}`);
             if (response.data?.success) {
                 toast.success('گروه آموزشی با موفقیت حذف شد');
-                fetchItems();
+                fetchItems(false);
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف گروه آموزشی');
@@ -184,7 +181,10 @@ export default function GrooheAmoozeshiList() {
     // ============================================================
     // موفقیت فرم
     // ============================================================
-    const handleFormSuccess = () => {
+    const handleFormSuccess = async () => {
+        await fetchItems(false);
+
+        // 🔥 آپدیت URL بدون reload
         const params = new URLSearchParams();
         if (search) params.set('search', search);
         if (filterDaneshkade) params.set('filterDaneshkade', filterDaneshkade);
@@ -192,27 +192,7 @@ export default function GrooheAmoozeshiList() {
         if (page > 1) params.set('page', page);
         if (pageSize !== 20) params.set('pageSize', pageSize);
 
-        const newUrl = `${window.location.pathname}?${params.toString()}`;
-        window.location.href = newUrl;
-        /*
-                sessionStorage.setItem('grooheList_state', JSON.stringify({
-                    search,
-                    filterDaneshkade,
-                    page,
-                    pageSize
-                }));
-                // ۱. اول مودال رو ببند
-                setShowFormModal(false);
-                setEditingItem(null);
-        
-                // ۲. بعد از ۳۰۰ms لیست رو رفرش کن
-                //fetchItems();
-                //setListVersion(v => v + 1);
-                // 🔥 رفرش کامل صفحه
-                setTimeout(() => {
-                    window.location.reload();
-                }, 100);
-                */
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
     };
 
     // ============================================================
@@ -230,7 +210,7 @@ export default function GrooheAmoozeshiList() {
 
     return (
         <>
-            <div className="container-fluid" key={listVersion}>
+            <div className="container-fluid">
                 {/* هدر */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <div>

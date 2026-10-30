@@ -436,7 +436,10 @@ export default function DarsFormModal({ show, onClose, onSuccess, item }) {
             if (response.data?.success) {
                 toast.success(isEditMode ? 'درس با موفقیت ویرایش شد' : 'درس با موفقیت ایجاد شد');
                 setSubmitting(false);
-                onSuccess();
+                onClose();
+                setTimeout(() => {
+                    onSuccess();
+                }, 50);
             } else {
                 toast.error(response.data?.message || 'خطا در ذخیره تغییرات');
                 setSubmitting(false);
@@ -1050,12 +1053,12 @@ export default function DarsFormModal({ show, onClose, onSuccess, item }) {
                                     {submitting ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            در حال ذخیره...
+                                            <span>در حال ذخیره...</span>
                                         </>
                                     ) : (
                                         <>
                                             <i className="bi bi-check-lg me-1"></i>
-                                            {isEditMode ? 'ذخیره تغییرات' : 'ایجاد درس'}
+                                            <span>{isEditMode ? 'ذخیره تغییرات' : 'ایجاد درس'}</span>
                                         </>
                                     )}
                                 </button>

@@ -25,6 +25,8 @@
 :root {
   --bg: #f5f5f5;
   --sans: 'Vazir', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --dashboard-header-height: 56px;
+  --dashboard-sidebar-width: 280px;
 }
 
 body {
@@ -88,9 +90,7 @@ body {
 }
 
 /* ============================================================
-   ============================================================
-   DASHBOARD STYLES
-   ============================================================
+   DASHBOARD
    ============================================================ */
 
 .dashboard-container {
@@ -100,17 +100,11 @@ body {
   background: #f8f9fa;
 }
 
-/* ============================================================
-   هدر
-   ============================================================ */
-
-/* ============================================================
-   هدر - اضافه شدن استایل‌های جدید
-   ============================================================ */
-
+/* هدر */
 .dashboard-header-top {
   background: white;
   padding: 12px 20px;
+  min-height: var(--dashboard-header-height);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   border-bottom: 1px solid #e9ecef;
   position: sticky;
@@ -129,6 +123,7 @@ body {
   padding: 4px 8px;
   font-size: 24px;
   color: #2c3e50;
+  cursor: pointer;
 }
 
 .hamburger-btn:hover {
@@ -136,7 +131,7 @@ body {
   border-radius: 4px;
 }
 
-/* استایل dropdown نقش‌ها */
+/* dropdown نقش‌ها (bootstrap) */
 .dropdown-menu .dropdown-item.active {
   background-color: #e9f0ff;
   color: #0d6efd;
@@ -147,27 +142,26 @@ body {
   color: white;
 }
 
-/* ============================================================
-   سایدبار (همبرگری - در همه اندازه‌ها)
-   ============================================================ */
-
+/* بدنه داشبورد */
 .dashboard-body-wrapper {
   display: flex;
   flex: 1;
   position: relative;
 }
 
+/* سایدبار پیش‌فرض (دسکتاپ): تمام ارتفاع از بالای صفحه */
 .dashboard-sidebar {
   position: fixed;
-  top: 60px;
-  right: -280px;
-  width: 280px;
-  height: calc(100vh - 60px);
-  background: white;
+  top: 0;                                      /* از خود بالای صفحه */
+  right: calc(-1 * var(--dashboard-sidebar-width));
+  width: var(--dashboard-sidebar-width);
+  height: 100vh;
+  height: 100dvh;
+  background: #fff;
   border-left: 1px solid #e9ecef;
   padding: 16px 0;
   transition: right 0.3s ease;
-  z-index: 1050;
+  z-index: 1040;                               /* بالاتر از هدر */
   box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
   overflow-y: auto;
 }
@@ -249,31 +243,22 @@ body {
   border-radius: 10px;
 }
 
-/* ============================================================
-   ❌ سایه پشت سایدبار حذف شد
-   ============================================================ */
-
-/* ============================================================
-   محتوای اصلی
-   ============================================================ */
-
+/* محتوای اصلی */
 .dashboard-content {
   flex: 1;
   padding: 20px;
   background: #f8f9fa;
   transition: margin-right 0.3s ease;
   width: 100%;
+  min-width: 0;
 }
 
-/* وقتی سایدبار باز است، محتوا کنار برود */
+/* وقتی سایدبار باز است، محتوا کنار می‌رود و زیر آن نمی‌ماند */
 .dashboard-content.shifted {
-  margin-right: 280px;
+  margin-right: var(--dashboard-sidebar-width);
 }
 
-/* ============================================================
-   ویجت خوش‌آمدگویی
-   ============================================================ */
-
+/* ویجت خوش‌آمدگویی */
 .dashboard-welcome {
   background: white;
   padding: 20px 24px;
@@ -288,10 +273,7 @@ body {
   color: #1a2a6c;
 }
 
-/* ============================================================
-   کارت‌های آماری
-   ============================================================ */
-
+/* کارت‌های آماری */
 .dashboard-card {
   background: white;
   border-radius: 12px;
@@ -342,13 +324,45 @@ body {
    واکنش‌گرایی
    ============================================================ */
 
+/* ============================================================
+   فقط موبایل / تبلت
+   ============================================================ */
+@media (max-width: 991.98px) {
+  .dashboard-sidebar {
+    width: min(280px, 85vw);
+    right: calc(-1 * min(280px, 85vw));
+    top: 0;
+    height: 100dvh;
+    z-index: 1040;
+  }
+
+  .dashboard-sidebar.open {
+    right: 0;
+  }
+
+  /* در موبایل محتوا را هل نده؛ منو روی آن می‌آید */
+  .dashboard-content.shifted {
+    margin-right: 0;
+  }
+
+  /* لایه تیره فقط موبایل */
+  .dashboard-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1035; /* زیر سایدبار، بالای محتوا و هدر */
+  }
+
+  /* قفل اسکرول فقط موبایل */
+  body.sidebar-open {
+    overflow: hidden;
+  }
+}
+
 @media (max-width: 575.98px) {
   .dashboard-header-top h5 {
     font-size: 16px;
-  }
-
-  .dashboard-welcome h2 {
-    font-size: 18px;
   }
 
   .dashboard-card {
@@ -358,297 +372,273 @@ body {
   .dashboard-card-body h3 {
     font-size: 20px;
   }
-
-  .dashboard-content.shifted {
-    margin-right: 280px;
-  }
 }
 
+/* backdrop فقط وقتی لازم است */
+.dashboard-sidebar-backdrop {
+  display: none;
+}
+
+/* دکمه باز کردن منو */
+.sidebar-toggle-fab {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 1050;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  color: #2c3e50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sidebar-toggle-fab:hover {
+  background: #f1f4f9;
+  color: #0d6efd;
+}
 /* ============================================================
    Dropdown سفارشی
    ============================================================ */
 
 .dropdown-custom {
-    position: relative;
-    display: inline-block;
+  position: relative;
+  display: inline-block;
 }
 
 .dropdown-custom-toggle {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .dropdown-custom-toggle.show {
-    background-color: #e9f0ff;
-    border-color: #0d6efd;
+  background-color: #e9f0ff;
+  border-color: #0d6efd;
 }
 
 .dropdown-custom-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    min-width: 200px;
-    padding: 8px 0;
-    margin-top: 4px;
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    z-index: 1050;
-    max-height: 300px;
-    overflow-y: auto;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 200px;
+  padding: 8px 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1050;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .dropdown-custom-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 8px 16px;
-    border: none;
-    background: none;
-    text-align: right;
-    color: #2c3e50;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: right;
+  color: #2c3e50;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
 .dropdown-custom-item:hover {
-    background-color: #f1f4f9;
+  background-color: #f1f4f9;
 }
 
 .dropdown-custom-item.active {
-    background-color: #e9f0ff;
-    color: #0d6efd;
-    font-weight: 500;
+  background-color: #e9f0ff;
+  color: #0d6efd;
+  font-weight: 500;
 }
 
 .dropdown-custom-item:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .dropdown-custom-item .bi-check2 {
-    font-size: 14px;
+  font-size: 14px;
 }
 
-/* اسکرول برای منوی بلند */
 .dropdown-custom-menu::-webkit-scrollbar {
-    width: 4px;
+  width: 4px;
 }
 
 .dropdown-custom-menu::-webkit-scrollbar-thumb {
-    background: #c1c7cd;
-    border-radius: 10px;
+  background: #c1c7cd;
+  border-radius: 10px;
 }
 
 .dropdown-custom-menu::-webkit-scrollbar-track {
-    background: transparent;
+  background: transparent;
 }
 
 /* ============================================================
    Sticky ستون‌ها در جدول‌ها
    ============================================================ */
+
 .sticky-col {
-    position: sticky;
-    right: 0;
-    background-color: #fff;
-    z-index: 2;
+  position: sticky;
+  right: 0;
+  background-color: #fff;
+  z-index: 2;
 }
 
 .table thead .sticky-col {
-    background-color: #f8f9fa;
-    z-index: 3;
+  background-color: #f8f9fa;
+  z-index: 3;
 }
 
 .table-striped tbody tr:nth-of-type(odd) .sticky-col {
-    background-color: #f8f9fa;
+  background-color: #f8f9fa;
 }
 
 .table-hover tbody tr:hover .sticky-col {
-    background-color: #e9ecef;
+  background-color: #e9ecef;
 }
 
 /* ============================================================
-   استایل‌های مخصوص چاپ (با قابلیت انتخاب Orientation)
+   چاپ
    ============================================================ */
 
 @media print {
-    /* ============================================================
-       1️⃣ تنظیمات صفحه (فقط حاشیه، بدون تعیین Orientation)
-       ============================================================ */
-    @page {
-        margin: 12mm 10mm 12mm 10mm;  /* بالا، راست، پایین، چپ */
-        /* ❌ size: A4; را حذف کردیم تا کاربر بتواند Orientation انتخاب کند */
-    }
+  @page {
+    margin: 12mm 10mm 12mm 10mm;
+  }
 
-    /* ============================================================
-       2️⃣ کاهش فونت در حالت Portrait برای جلوگیری از شکستن ردیف‌ها
-       ============================================================ */
-    body {
-        font-size: 11px !important;
-        line-height: 1.3 !important;
-    }
+  body {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    background: white !important;
+    color: #000000 !important;
+  }
 
-    .table {
-        font-size: 10px !important;
-    }
+  .table {
+    font-size: 10px !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
 
-    .table th,
-    .table td {
-        padding: 4px 6px !important;
-        font-size: 10px !important;
-    }
+  .table th,
+  .table td {
+    padding: 4px 6px !important;
+    font-size: 10px !important;
+    border: 1px solid #dddddd !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
 
-    .card {
-        font-size: 11px !important;
-    }
+  .card {
+    font-size: 11px !important;
+    border: 1px solid #dddddd !important;
+    box-shadow: none !important;
+    margin-bottom: 10px !important;
+  }
 
-    .card-header {
-        font-size: 12px !important;
-        padding: 6px 12px !important;
-    }
+  .card-header {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+    border-bottom: 1px solid #dddddd !important;
+    font-weight: bold !important;
+  }
 
-    .card-body {
-        padding: 10px !important;
-    }
+  .card-body {
+    padding: 10px !important;
+  }
 
-    h3 {
-        font-size: 16px !important;
-    }
+  h3 {
+    font-size: 16px !important;
+  }
 
-    h6 {
-        font-size: 12px !important;
-    }
+  h6 {
+    font-size: 12px !important;
+  }
 
-    .badge {
-        font-size: 9px !important;
-        padding: 2px 6px !important;
-    }
+  .badge {
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+  }
 
-    /* ============================================================
-       3️⃣ جلوگیری از شکستن ردیف‌ها در جدول
-       ============================================================ */
-    .table-responsive {
-        overflow: visible !important;
-    }
+  .table-responsive {
+    overflow: visible !important;
+  }
 
-    .table {
-        width: 100% !important;
-        table-layout: fixed !important;
-    }
+  .card-header,
+  .bg-primary,
+  .bg-success,
+  .bg-danger,
+  .bg-info,
+  .bg-warning,
+  .bg-secondary,
+  .bg-light,
+  .bg-dark,
+  .alert,
+  .badge,
+  .btn {
+    background-color: #f8f9fa !important;
+    color: #000000 !important;
+    border-color: #cccccc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 
-    .table td,
-    .table th {
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
+  .text-primary,
+  .text-success,
+  .text-danger,
+  .text-warning,
+  .text-info,
+  .text-muted,
+  .text-white,
+  .text-dark {
+    color: #000000 !important;
+  }
 
-    /* ============================================================
-       4️⃣ حذف رنگ‌ها و تبدیل به خاکستری
-       ============================================================ */
-    .card-header,
-    .bg-primary,
-    .bg-success,
-    .bg-danger,
-    .bg-info,
-    .bg-warning,
-    .bg-secondary,
-    .bg-light,
-    .bg-dark,
-    .alert,
-    .badge,
-    .btn {
-        background-color: #f8f9fa !important;
-        color: #000000 !important;
-        border-color: #cccccc !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
+  .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f8f9fa !important;
+  }
 
-    .text-primary,
-    .text-success,
-    .text-danger,
-    .text-warning,
-    .text-info,
-    .text-muted,
-    .text-white,
-    .text-dark {
-        color: #000000 !important;
-    }
+  .badge.bg-success,
+  .badge.bg-danger,
+  .badge.bg-warning,
+  .badge.bg-info,
+  .badge.bg-secondary {
+    background-color: #f8f9fa !important;
+    color: #000000 !important;
+    border: 1px solid #999999 !important;
+  }
 
-    /* ============================================================
-       5️⃣ کارت‌ها و جداول
-       ============================================================ */
-    .card {
-        border: 1px solid #dddddd !important;
-        box-shadow: none !important;
-        margin-bottom: 10px !important;
-    }
+  .shadow,
+  .shadow-sm,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
 
-    .card-header {
-        border-bottom: 1px solid #dddddd !important;
-        font-weight: bold !important;
-    }
+  .print-area {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 
-    .table th,
-    .table td {
-        border: 1px solid #dddddd !important;
-    }
-
-    .table-striped tbody tr:nth-of-type(odd) {
-        background-color: #f8f9fa !important;
-    }
-
-    /* ============================================================
-       6️⃣ نشان‌های وضعیت
-       ============================================================ */
-    .badge.bg-success,
-    .badge.bg-danger,
-    .badge.bg-warning,
-    .badge.bg-info,
-    .badge.bg-secondary {
-        background-color: #f8f9fa !important;
-        color: #000000 !important;
-        border: 1px solid #999999 !important;
-    }
-
-    /* ============================================================
-       7️⃣ حذف سایه‌ها
-       ============================================================ */
-    .shadow,
-    .shadow-sm,
-    .shadow-lg {
-        box-shadow: none !important;
-    }
-
-    /* ============================================================
-       8️⃣ تنظیمات نهایی
-       ============================================================ */
-    body {
-        background: white !important;
-        color: #000000 !important;
-    }
-
-    .print-area {
-        background: white !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-
-    /* ============================================================
-       9️⃣ جلوگیری از شکستن صفحات
-       ============================================================ */
-    .card,
-    .table,
-    .row,
-    .col-md-4,
-    .col-md-6,
-    .col-md-8,
-    .col-md-12 {
-        page-break-inside: avoid !important;
-    }
+  .card,
+  .table,
+  .row,
+  .col-md-4,
+  .col-md-6,
+  .col-md-8,
+  .col-md-12 {
+    page-break-inside: avoid !important;
+  }
 }

@@ -109,9 +109,11 @@ export default function MarkazEditModal({ show, onClose, onSuccess, markaz }) {
 
             if (response.data?.success) {
                 toast.success('مرکز با موفقیت به‌روزرسانی شد');
-
-                // 🔥 فقط onSuccess رو صدا بزن (نه onClose)
-                if (onSuccess) onSuccess(); 
+                setSubmitting(false);
+                onClose();
+                setTimeout(() => {
+                    onSuccess();
+                }, 50);
             } else {
                 toast.error(response.data?.message || 'خطا در ذخیره تغییرات');
                 setSubmitting(false);
@@ -310,12 +312,12 @@ export default function MarkazEditModal({ show, onClose, onSuccess, markaz }) {
                                     {submitting ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            در حال ذخیره...
+                                            <span>در حال ذخیره...</span>
                                         </>
                                     ) : (
                                         <>
                                             <i className="bi bi-check-lg me-1"></i>
-                                            ذخیره تغییرات
+                                            <span>ذخیره تغییرات</span>
                                         </>
                                     )}
                                 </button>

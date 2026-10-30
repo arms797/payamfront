@@ -79,7 +79,7 @@ export default function GrooheAmoozeshiFormModal({ show, onClose, onSuccess, ite
                 naamDaneshkadeh: formData.naamDaneshkadeh || null,
                 codeGrooheAmoozeshi: formData.codeGrooheAmoozeshi || null,
                 onvanGrooheAmoozeshi: formData.onvanGrooheAmoozeshi,
-                vazeeat: formData.vazeeat 
+                vazeeat: formData.vazeeat
             };
 
             let response;
@@ -92,7 +92,10 @@ export default function GrooheAmoozeshiFormModal({ show, onClose, onSuccess, ite
             if (response.data?.success) {
                 toast.success(isEditMode ? 'گروه آموزشی با موفقیت ویرایش شد' : 'گروه آموزشی با موفقیت ایجاد شد');
                 setSubmitting(false);
-                onSuccess();
+                onClose();
+                setTimeout(() => {
+                    onSuccess();
+                }, 50);
             } else {
                 toast.error(response.data?.message || 'خطا در ذخیره تغییرات');
                 setSubmitting(false);
@@ -222,12 +225,12 @@ export default function GrooheAmoozeshiFormModal({ show, onClose, onSuccess, ite
                                     {submitting ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            در حال ذخیره...
+                                            <span>در حال ذخیره...</span>
                                         </>
                                     ) : (
                                         <>
                                             <i className="bi bi-check-lg me-1"></i>
-                                            {isEditMode ? 'ذخیره تغییرات' : 'ایجاد'}
+                                            <span>{isEditMode ? 'ذخیره تغییرات' : 'ایجاد'}</span>
                                         </>
                                     )}
                                 </button>

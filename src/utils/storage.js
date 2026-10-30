@@ -5,6 +5,37 @@ const STORAGE_KEYS = {
 };
 
 export const setUserData = (data) => {
+  if (!data || typeof data !== 'object') return false;
+  if (!data.accessToken || !data.refreshToken) return false;
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.accessToken, data.accessToken);
+    localStorage.setItem(STORAGE_KEYS.refreshToken, data.refreshToken);
+
+    const user = {
+      id: data.id,
+      username: data.username,
+      email: data.email,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      roles: data.roles ?? [],
+      currentRoleId: data.currentRoleId ?? null,
+      currentRoleName: data.currentRoleName ?? null,
+      markazId: data.markazId ?? null,
+      menus: data.menus ?? [],
+      permissions: data.permissions ?? [],
+      noeHamkari: data.noeHamkari ?? 0,
+      expiresIn: data.expiresIn ?? null,
+    };
+
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+    return true;
+  } catch (error) {
+    console.error('setUserData error:', error);
+    return false;
+  }
+};
+/*export const setUserData = (data) => {
   if (!data || typeof data !== 'object') {
     return false;
   }
@@ -46,7 +77,7 @@ export const setUserData = (data) => {
     console.error('setUserData error:', error);
     return false;
   }
-};
+};*/
 
 export const getAccessToken = () => {
   try {
@@ -88,10 +119,13 @@ export const clearUserData = () => {
     return false;
   }
 };
-
 export const isAuthenticated = () => {
-  return Boolean(getAccessToken());
+  const token = getAccessToken();
+  return Boolean(token && token.length > 20); // جلوگیری از رشته خالی/خراب
 };
+/*export const isAuthenticated = () => {
+  return Boolean(getAccessToken());
+};*/
 
 /*
 // ============================================================

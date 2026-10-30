@@ -22,7 +22,7 @@ export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooh
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
 
-    const { refrshReshteh } = useReshteh();
+    const { refreshReshteh } = useReshteh();
 
     // ============================================================
     // لیست مقطع‌ها
@@ -173,9 +173,18 @@ export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooh
 
             if (response.data?.success) {
                 toast.success(isEditMode ? 'رشته با موفقیت ویرایش شد' : 'رشته با موفقیت ایجاد شد');
-                refrshReshteh();
+
+                // مهم: اول submitting را خاموش کن
                 setSubmitting(false);
-                onSuccess();
+
+                // مهم: اول مودال را ببند
+                onClose();
+
+                // بعد از بسته شدن کامل مودال، رفرش لیست را انجام بده
+                // setTimeout باعث می‌شود React اول unmount مودال را تمام کند
+                setTimeout(() => {
+                    onSuccess();
+                }, 50);
             } else {
                 toast.error(response.data?.message || 'خطا در ذخیره تغییرات');
                 setSubmitting(false);
@@ -191,8 +200,8 @@ export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooh
     // ============================================================
     // رندر
     // ============================================================
-    const modalContent = (
-        <>
+    return createPortal(
+        <div key="reshteh-form-modal">
             <div
                 className="modal-backdrop fade show"
                 style={{ zIndex: 1050 }}
@@ -389,12 +398,12 @@ export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooh
                                     {submitting ? (
                                         <>
                                             <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                                            در حال ذخیره...
+                                            <span>در حال ذخیره...</span>
                                         </>
                                     ) : (
                                         <>
                                             <i className="bi bi-check-lg me-1"></i>
-                                            {isEditMode ? 'ذخیره تغییرات' : 'ایجاد'}
+                                            <span>{isEditMode ? 'ذخیره تغییرات' : 'ایجاد'}</span>
                                         </>
                                     )}
                                 </button>
@@ -403,8 +412,9 @@ export default function ReshtehFormModal({ show, onClose, onSuccess, item, grooh
                     </div>
                 </div>
             </div>
-        </>
+        </div>,
+        document.body
     );
 
-    return createPortal(modalContent, document.body);
+    //return createPortal(modalContent, document.body);
 }

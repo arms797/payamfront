@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-toastify';
 import api from '../../../api/axiosConfig';
 import { useAuth } from '../../../context/AuthContext';
@@ -77,6 +77,8 @@ export default function DarsList() {
     const { reshtehList, getReshtehName } = useReshteh();
 
     const initialState = getInitialState();
+    const isFirstLoadRef = useRef(true);
+
 
     // Stateهای فیلتر
     const [search, setSearch] = useState(initialState.search);
@@ -111,6 +113,8 @@ export default function DarsList() {
     const [items, setItems] = useState([]);
     const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);   // 🔥 جدید
+
 
 
     // لیست نوع درس
@@ -146,8 +150,12 @@ export default function DarsList() {
     // ============================================================
     // دریافت لیست درس‌ها
     // ============================================================
-    const fetchItems = async () => {
-        setLoading(true);
+    const fetchItems = async (isInitial = false) => {
+        if (isInitial) {
+            setLoading(true);
+        } else {
+            setRefreshing(true);
+        }
         try {
             const params = new URLSearchParams();
             if (debouncedFilters.search) params.append('search', debouncedFilters.search);
@@ -162,11 +170,6 @@ export default function DarsList() {
             params.append('page', debouncedFilters.page);
             params.append('pageSize', debouncedFilters.pageSize);
 
-            /*const response = await api.get(`/Dars/list?${params.toString()}`);
-            if (response.data?.success) {
-                setItems(response.data.data || []);
-                setPagination(response.data.pagination || { totalCount: 0, totalPages: 0 });
-            }*/
             const response = await api.get(`/Dars/list?${params.toString()}`);
             if (response.data?.success) {
                 const { data: rows, pagination: pag } = response.data;
@@ -176,7 +179,6 @@ export default function DarsList() {
                 setItems(items);
                 setPagination(paginationData);
 
-                // 🔥 شبکه ایمنی: اگه صفحه‌ی جاری از محدوده بیرون زده، برگرد به صفحه ۱
                 if (
                     items.length === 0 &&
                     paginationData.totalCount > 0 &&
@@ -189,6 +191,7 @@ export default function DarsList() {
             toast.error(error.response?.data?.message || 'خطا در دریافت لیست درس‌ها');
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
@@ -262,7 +265,8 @@ export default function DarsList() {
     // 🔥 Fetch Effect — فقط وقتی debouncedFilters تغییر کرد، درخواست بزن
     // ============================================================
     useEffect(() => {
-        fetchItems();
+        fetchItems(isFirstLoadRef.current);
+        isFirstLoadRef.current = false;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedFilters]);
 
@@ -306,7 +310,7 @@ export default function DarsList() {
             const response = await api.delete(`/Dars/delete/${item.id}`);
             if (response.data?.success) {
                 toast.success('درس با موفقیت حذف شد');
-                fetchItems();
+                fetchItems(false);
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'خطا در حذف درس');
@@ -316,7 +320,11 @@ export default function DarsList() {
     // ============================================================
     // ذخیره state در URL
     // ============================================================
-    const handleFormSuccess = () => {
+    const handleFormSuccess = async () => {
+        // ۱. رفرش داده (بدون unmount صفحه)
+        await fetchItems(false);
+
+        // ۲. آپدیت URL بدون reload
         const params = new URLSearchParams();
         if (search) params.set('search', search);
         if (filterMaghtas.length) params.set('maghtas', filterMaghtas.join(','));
@@ -330,7 +338,7 @@ export default function DarsList() {
         if (page > 1) params.set('page', page);
         if (pageSize !== 20) params.set('pageSize', pageSize);
 
-        window.location.href = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
     };
 
     // ============================================================
@@ -475,7 +483,7 @@ export default function DarsList() {
                         ) : items.length > 0 ? (
                             <div className="table-responsive">
                                 <table className="table table-hover table-striped mb-0 align-middle"
-                                    style={{fontSize:'14px'}}
+                                    style={{ fontSize: '14px' }}
                                 >
                                     <thead className="table-light">
                                         <tr>
@@ -485,9 +493,9 @@ export default function DarsList() {
                                             <th className="text-center">کد مقطع</th>
                                             <th className="text-center">کد رشته</th>
                                             <th>عنوان رشته</th>
-                                            <th className="text-center" style={{fontSize:'12px'}}>واحد تئوری</th>
-                                            <th className="text-center" style={{fontSize:'12px'}}>واحد عملی</th>
-                                            <th className="text-center" style={{fontSize:'12px'}}>ترم اخذ</th>
+                                            <th className="text-center" style={{ fontSize: '12px' }}>واحد تئوری</th>
+                                            <th className="text-center" style={{ fontSize: '12px' }}>واحد عملی</th>
+                                            <th className="text-center" style={{ fontSize: '12px' }}>ترم اخذ</th>
                                             <th>نوع درس</th>
                                             <th className="text-center">منابع</th>
                                             <th className="text-center" style={{ width: '130px' }}>عملیات</th>
@@ -514,13 +522,13 @@ export default function DarsList() {
                                                         <PersianNumber>{reshteh?.codeReshte || '-'}</PersianNumber>
                                                     </td>
                                                     <td >{reshteh?.onvanReshte || '-'}</td>
-                                                    <td className="text-center" style={{fontSize:'12px'}}>
+                                                    <td className="text-center" style={{ fontSize: '12px' }}>
                                                         <PersianNumber>{item.vahedTeori || 0}</PersianNumber>
                                                     </td>
-                                                    <td className="text-center" style={{fontSize:'12px'}}>
+                                                    <td className="text-center" style={{ fontSize: '12px' }}>
                                                         <PersianNumber>{item.vahedAmali || 0}</PersianNumber>
                                                     </td>
-                                                    <td className="text-center" style={{fontSize:'12px'}}>
+                                                    <td className="text-center" style={{ fontSize: '12px' }}>
                                                         {item.termAkhz !== null && item.termAkhz !== undefined
                                                             ? <PersianNumber>{item.termAkhz}</PersianNumber>
                                                             : <span className="text-muted">-</span>}

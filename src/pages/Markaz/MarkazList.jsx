@@ -43,7 +43,7 @@ const getPaginationRange = (currentPage, totalPages) => {
 // ============================================================
 // 🔥 بازیابی state از sessionStorage
 // ============================================================
-const getInitialState = () => {
+/*const getInitialState = () => {
     try {
         const saved = sessionStorage.getItem('markazList_state');
         if (saved) {
@@ -54,24 +54,21 @@ const getInitialState = () => {
     }
     return {};
 };
+*/
 
 export default function MarkazList() {
     const { refreshMarkaz } = useMarkaz();
 
-    // ============================================================
-    // 🔥 Stateها با مقدار اولیه از sessionStorage
-    // ============================================================
-    const initialState = getInitialState();
-
     const [markazList, setMarkazList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-    const [search, setSearch] = useState(initialState.search || '');
-    const [filterOstan, setFilterOstan] = useState(initialState.filterOstan || '');
-    const [filterVazeeyat, setFilterVazeeyat] = useState(initialState.filterVazeeyat || 'all');
-    const [filterLevel, setFilterLevel] = useState(initialState.filterLevel || '');
-    const [page, setPage] = useState(initialState.page || 1);
-    const [pageSize, setPageSize] = useState(initialState.pageSize || 20);
+    const [search, setSearch] = useState('');
+    const [filterOstan, setFilterOstan] = useState('');
+    const [filterVazeeyat, setFilterVazeeyat] = useState('all');
+    const [filterLevel, setFilterLevel] = useState('');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
 
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingMarkaz, setEditingMarkaz] = useState(null);
@@ -80,29 +77,38 @@ export default function MarkazList() {
     // ============================================================
     // 🔥 پاک کردن state ذخیره‌شده بعد از بازیابی
     // ============================================================
-    useEffect(() => {
+    /*useEffect(() => {
         sessionStorage.removeItem('markazList_state');
     }, []);
-
+*/
     // ============================================================
     // دریافت همه مراکز
     // ============================================================
-    useEffect(() => {
-        const fetchAll = async () => {
+    // ============================================================
+    // دریافت همه مراکز
+    // ============================================================
+    const fetchItems = async (isInitial = false) => {
+        if (isInitial) {
             setLoading(true);
-            try {
-                const response = await api.get('/Markaz/list', { params: { all: true } });
-                if (response.data?.data) {
-                    setMarkazList(response.data.data);
-                }
-            } catch (error) {
-                console.error('خطا در دریافت مراکز:', error);
-                toast.error('خطا در دریافت لیست مراکز');
-            } finally {
-                setLoading(false);
+        } else {
+            setRefreshing(true);
+        }
+        try {
+            const response = await api.get('/Markaz/list', { params: { all: true } });
+            if (response.data?.data) {
+                setMarkazList(response.data.data);
             }
-        };
-        fetchAll();
+        } catch (error) {
+            console.error('خطا در دریافت مراکز:', error);
+            toast.error('خطا در دریافت لیست مراکز');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchItems(true);
     }, []);
 
     // ============================================================
@@ -215,25 +221,14 @@ export default function MarkazList() {
     // ============================================================
     // 🔥 بعد از ویرایش موفق: ذخیره state و reload
     // ============================================================
-    const handleEditSuccess = () => {
-        // ذخیره کل state
-        sessionStorage.setItem('markazList_state', JSON.stringify({
-            search,
-            filterOstan,
-            filterVazeeyat,
-            filterLevel,
-            page,
-            pageSize
-        }));
-
-        // بستن مودال
-        setShowEditModal(false);
-        setEditingMarkaz(null);
-
-        // رفرش صفحه بعد از ۳۰۰ms
-        setTimeout(() => {
-            window.location.reload();
-        }, 300);
+    // ============================================================
+    // 🔥 بعد از ویرایش موفق: رفرش داده (بدون reload)
+    // ============================================================
+    const handleEditSuccess = async () => {
+        await fetchItems(false);
+        if (typeof refreshMarkaz === 'function') {
+            await refreshMarkaz();
+        }
     };
 
     // ============================================================
