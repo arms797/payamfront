@@ -92,7 +92,7 @@ function DashboardContent() {
             <button className="hamburger-btn" onClick={toggleSidebar}>
               <i className={`bi ${isOpen ? 'bi-x-lg' : 'bi-list'} fs-3`}></i>
             </button>
-            <h5 className="mb-0">سامانه پیام</h5>
+
           </div>
 
           <div className="d-flex align-items-center gap-3">

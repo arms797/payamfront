@@ -210,7 +210,7 @@ function DashboardContent() {
                 <div className="d-flex align-items-center justify-content-between">
                     <div className="d-flex align-items-center gap-2">
 
-                        <h5 className="mb-0">سامانه پیام</h5>
+                        
                     </div>
 
                     <div className="d-flex align-items-center gap-3">

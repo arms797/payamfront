@@ -93,7 +93,7 @@ export default function Sidebar({ onClose }) {
     return (
         <>
             <div className="sidebar-header d-flex align-items-center justify-content-between px-3 pb-3 mb-2 border-bottom">
-                <h5 className="mb-0">منوی سیستم</h5>
+                <h5 className="mb-0">سامانه پیام</h5>
 
                 {typeof onClose === 'function' && (
                     <button

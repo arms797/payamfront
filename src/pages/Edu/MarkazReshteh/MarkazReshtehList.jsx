@@ -10,6 +10,8 @@ import PersianNumber from '../../../components/common/PersianNumber';
 import CascadingFilter from '../../../components/common/CascadingFilter';
 import MultiSelectWrapper from '../../../components/common/MultiSelectWrapper';
 import MarkazReshtehFormModal from './MarkazReshtehFormModal';
+import MarkazReshtehBulkUploadModal from './MarkazReshtehBulkUploadModal';
+import MarkazReshtehAdaptiveModal from './MarkazReshtehAdaptiveModal';
 
 // ============================================================
 // بازیابی state از URL
@@ -29,9 +31,44 @@ const getInitialState = () => {
         ostans: parseArray('ostans'),
         markazIds: parseArray('markazIds').map(x => parseInt(x, 10)).filter(x => !isNaN(x)),
         vazeeyat: params.get('vazeeyat') === 'true' ? true : params.get('vazeeyat') === 'false' ? false : null,
+        level: parseArray('level'),
         page: parseInt(params.get('page') || '1', 10),
         pageSize: parseInt(params.get('pageSize') || '20', 10)
     };
+};
+
+// ============================================================
+// 🔥 تابع تولید لیست صفحات: اول + آخر + جاری ± ۱
+// ============================================================
+const getPaginationRange = (currentPage, totalPages) => {
+    const delta = 1;
+    const pages = new Set();
+    pages.add(1);
+    pages.add(totalPages);
+
+    for (let i = currentPage - delta; i <= currentPage + delta; i++) {
+        if (i >= 1 && i <= totalPages) {
+            pages.add(i);
+        }
+    }
+
+    const sortedPages = Array.from(pages).sort((a, b) => a - b);
+    const result = [];
+    let prev = 0;
+
+    for (const page of sortedPages) {
+        if (prev) {
+            if (page - prev === 2) {
+                result.push(prev + 1);
+            } else if (page - prev > 2) {
+                result.push('...');
+            }
+        }
+        result.push(page);
+        prev = page;
+    }
+
+    return result;
 };
 
 const FILTER_DEBOUNCE_MS = 700;
@@ -57,6 +94,7 @@ export default function MarkazReshtehList() {
     // ---- فیلترهای ساده ----
     const [search, setSearch] = useState(initialState.search);
     const [filterVazeeyat, setFilterVazeeyat] = useState(initialState.vazeeyat);
+    const [filterLevels, setFilterLevels] = useState(initialState.level);
 
     // ---- صفحه‌بندی ----
     const [page, setPage] = useState(initialState.page);
@@ -72,6 +110,7 @@ export default function MarkazReshtehList() {
         ostans: initialState.ostans,
         markazIds: initialState.markazIds,
         vazeeyat: initialState.vazeeyat,
+        levels: initialState.level,
         page: initialState.page,
         pageSize: initialState.pageSize
     });
@@ -84,6 +123,8 @@ export default function MarkazReshtehList() {
     // ---- مودال ----
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+    const [showAdaptiveModal, setShowAdaptiveModal] = useState(false);
 
     // ============================================================
     // Lookup Maps (O(1))
@@ -141,6 +182,19 @@ export default function MarkazReshtehList() {
     const getGrooheName = (grooheId) => grooheMap.get(grooheId)?.onvanGrooheAmoozeshi || '-';
     const getDaneshkadehName = (codeDaneshkadeh) => daneshkadeMap.get(codeDaneshkadeh)?.name || '-';
     const getOstanName = (codeOstan) => ostanMap.get(codeOstan) || codeOstan || '-';
+    // 🔥 Helper سطح
+    const getLevelInfo = (level) => {
+        switch (level) {
+            case 4:
+                return { label: 'مرکز', color: 'secondary', style: {} };
+            case 3:
+                return { label: 'استانی', color: 'primary', style: {} };
+            case 2:
+                return { label: 'کشوری', color: 'success', style: {} };
+            default:
+                return { label: '-', color: 'light', style: {} };
+        }
+    };
 
     // ============================================================
     // Options (فیلترهای زنجیره‌ای مرکز/استان)
@@ -175,6 +229,13 @@ export default function MarkazReshtehList() {
             .map(m => ({ value: String(m.id), label: buildName(m) }));
     }, [markazList, filterOstans]);
 
+    // 🔥 گزینه‌های سطح
+    const levelOptions = [
+        { value: '4', label: 'مرکز' },
+        { value: '3', label: 'استانی' },
+        { value: '2', label: 'کشوری' }
+    ];
+
     // ============================================================
     // Debounce Effect
     // ============================================================
@@ -189,6 +250,7 @@ export default function MarkazReshtehList() {
                 ostans: filterOstans,
                 markazIds: filterMarkazIds,
                 vazeeyat: filterVazeeyat,
+                levels: filterLevels,
                 page,
                 pageSize
             });
@@ -197,7 +259,7 @@ export default function MarkazReshtehList() {
         return () => clearTimeout(timer);
     }, [
         search, filterMaghtas, filterDaneshkades, filterGroohes, filterReshtehs,
-        filterOstans, filterMarkazIds, filterVazeeyat,
+        filterOstans, filterMarkazIds, filterVazeeyat, filterLevels,
         page, pageSize
     ]);
 
@@ -218,9 +280,13 @@ export default function MarkazReshtehList() {
             if (debouncedFilters.vazeeyat !== null && debouncedFilters.vazeeyat !== undefined) {
                 params.append('vazeeyat', debouncedFilters.vazeeyat);
             }
+            if (debouncedFilters.levels && debouncedFilters.levels.length > 0) {
+                debouncedFilters.levels.forEach(v => params.append('level', v));
+            }
             params.append('page', debouncedFilters.page);
             params.append('pageSize', debouncedFilters.pageSize);
 
+            //const response = await api.get(`/MarkazReshteh/list?page=1&pageSize=20`);
             const response = await api.get(`/MarkazReshteh/list?${params.toString()}`);
             if (response.data?.success) {
                 setItems(response.data.data || []);
@@ -266,12 +332,25 @@ export default function MarkazReshtehList() {
                 {/* هدر */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <h5 className="mb-0">رشته‌های مرکز</h5>
-                    <PermissionWrapper permission="MarkazReshteh.Create">
-                        <button className="btn btn-primary btn-sm" onClick={openCreateModal}>
-                            <i className="bi bi-plus-circle me-1"></i>
-                            افزودن رشته به مرکز
-                        </button>
-                    </PermissionWrapper>
+                    <div className="d-flex gap-2">
+                        {/* 🔥 دکمه آپلود اکسل */}
+                        <PermissionWrapper permission="MarkazReshteh.BulkUpload">
+                            <button
+                                className="btn btn-outline-success btn-sm"
+                                onClick={() => setShowBulkUploadModal(true)}
+                            >
+                                <i className="bi bi-file-earmark-excel me-1"></i>
+                                آپلود اکسل
+                            </button>
+                        </PermissionWrapper>
+
+                        <PermissionWrapper permission="MarkazReshteh.BulkAssign">
+                            <button className="btn btn-primary btn-sm" onClick={() => setShowAdaptiveModal(true)}>
+                                <i className="bi bi-plus-circle me-1"></i>
+                                افزودن رشته به مرکز
+                            </button>
+                        </PermissionWrapper>
+                    </div>
                 </div>
 
                 {/* ============================================================ */}
@@ -315,7 +394,7 @@ export default function MarkazReshtehList() {
                         {/* 🔥 ردیف ۲: فیلتر آبشاری مرکز (استان → مرکز) + جستجو + وضعیت */}
                         <div className="row g-2 align-items-end mt-2 pt-2 border-top">
                             {/* جستجو */}
-                            <div className="col-md-3">
+                            <div className="col-md-2">
                                 <label className="form-label small mb-1">جستجو</label>
                                 <input
                                     type="text"
@@ -354,11 +433,25 @@ export default function MarkazReshtehList() {
                                 />
                             </div>
 
-                            {/* وضعیت */}
+
+
+                            {/* 🔥 سطح */}
                             <div className="col-md-2">
+                                <label className="form-label small mb-1">سطح رشته</label>
+                                <MultiSelectWrapper
+                                    options={levelOptions}
+                                    value={filterLevels}
+                                    onChange={(v) => { setFilterLevels(v); setPage(1); }}
+                                    placeholder="سطح رشته..."
+                                    hideIndicator={true}
+                                />
+                            </div>
+                            {/* وضعیت */}
+                            <div className="col-md-1">
                                 <label className="form-label small mb-1">وضعیت</label>
                                 <select
                                     className="form-select form-select-sm"
+                                    style={{ fontSize: '12px' }}
                                     value={filterVazeeyat === null ? '' : String(filterVazeeyat)}
                                     onChange={(e) => {
                                         const v = e.target.value;
@@ -373,7 +466,7 @@ export default function MarkazReshtehList() {
                             </div>
 
                             {/* مجموع */}
-                            <div className="col-md-2 text-end">
+                            <div className="col-md-1 text-end">
                                 <span className="badge bg-primary">
                                     مجموع: <PersianNumber>{pagination.totalCount}</PersianNumber>
                                 </span>
@@ -395,13 +488,14 @@ export default function MarkazReshtehList() {
                                     <thead className="table-light">
                                         <tr>
                                             <th style={{ width: '50px' }}>#</th>
-                                            <th>کد رشته</th>
+                                            <th>استان</th>
+                                            <th>مرکز</th>
                                             <th>نام رشته</th>
+                                            <th>کد رشته</th>
                                             <th>مقطع</th>
                                             <th>دانشکده</th>
-                                            <th>گروه</th>
-                                            <th>مرکز</th>
-                                            <th>استان</th>
+                                            <th>گروه آموزشی</th>
+                                            <th className="text-center">سطح رشته</th>
                                             <th className="text-center">تعداد دانشجو</th>
                                             <th className="text-center">وضعیت</th>
                                             <th className="text-center" style={{ width: '80px' }}>عملیات</th>
@@ -413,15 +507,27 @@ export default function MarkazReshtehList() {
                                                 <td className="text-center">
                                                     <PersianNumber>{(page - 1) * pageSize + index + 1}</PersianNumber>
                                                 </td>
+                                                <td>{getOstanName(item.codeOstan)}</td>
+                                                <td>{getMarkazName(item.markazId)}</td>
+                                                <td><strong>{item.reshtehName || '-'}</strong></td>
                                                 <td className="text-center">
                                                     <PersianNumber>{item.codeReshte || '-'}</PersianNumber>
                                                 </td>
-                                                <td><strong>{item.reshtehName || '-'}</strong></td>
+
                                                 <td>{item.maghta || item.codeMaghta || '-'}</td>
                                                 <td>{getDaneshkadehName(item.codeDaneshkadeh)}</td>
                                                 <td>{getGrooheName(item.grooheAmoozeshiId)}</td>
-                                                <td>{getMarkazName(item.markazId)}</td>
-                                                <td>{getOstanName(item.codeOstan)}</td>
+                                                <td className="text-center">
+                                                    {(() => {
+                                                        const levelInfo = getLevelInfo(item.level);
+                                                        return (
+                                                            <span className={`badge bg-${levelInfo.color}`}>
+                                                                {levelInfo.label}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </td>
+
                                                 <td className="text-center">
                                                     <PersianNumber>{item.tedadDaneshjoo || 0}</PersianNumber>
                                                 </td>
@@ -462,18 +568,44 @@ export default function MarkazReshtehList() {
                             </small>
                             <nav>
                                 <ul className="pagination pagination-sm mb-0">
+                                    {/* قبلی */}
                                     <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
-                                        <button className="page-link" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+                                        <button
+                                            className="page-link"
+                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                            title="صفحه قبل"
+                                        >
                                             <i className="bi bi-chevron-right"></i>
                                         </button>
                                     </li>
-                                    <li className="page-item active">
-                                        <span className="page-link">
-                                            <PersianNumber>{page}</PersianNumber> / <PersianNumber>{pagination.totalPages}</PersianNumber>
-                                        </span>
-                                    </li>
+
+                                    {/* شماره صفحات */}
+                                    {getPaginationRange(page, pagination.totalPages).map((p, idx) => {
+                                        if (p === '...') {
+                                            return (
+                                                <li key={`dots-${idx}`} className="page-item disabled">
+                                                    <span className="page-link">...</span>
+                                                </li>
+                                            );
+                                        }
+                                        return (
+                                            <li key={p} className={`page-item ${page === p ? 'active' : ''}`}>
+                                                <button className="page-link" onClick={() => setPage(p)}>
+                                                    <PersianNumber>{p}</PersianNumber>
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+
+                                    {/* بعدی */}
                                     <li className={`page-item ${page === pagination.totalPages ? 'disabled' : ''}`}>
-                                        <button className="page-link" onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages}>
+                                        <button
+                                            className="page-link"
+                                            onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                            disabled={page === pagination.totalPages}
+                                            title="صفحه بعد"
+                                        >
                                             <i className="bi bi-chevron-left"></i>
                                         </button>
                                     </li>
@@ -501,6 +633,23 @@ export default function MarkazReshtehList() {
                 onClose={() => { setShowFormModal(false); setEditingItem(null); }}
                 onSuccess={handleFormSuccess}
                 item={editingItem}
+            />
+            {/* 🔥 مودال آپلود اکسل */}
+            <MarkazReshtehBulkUploadModal
+                show={showBulkUploadModal}
+                onClose={() => setShowBulkUploadModal(false)}
+                onSuccess={async () => {
+                    setShowBulkUploadModal(false);
+                    await fetchItems(false);
+                }}
+            />
+            <MarkazReshtehAdaptiveModal
+                show={showAdaptiveModal}
+                onClose={() => setShowAdaptiveModal(false)}
+                onSuccess={async () => {
+                    setShowAdaptiveModal(false);
+                    await fetchItems(false);
+                }}
             />
         </>
     );

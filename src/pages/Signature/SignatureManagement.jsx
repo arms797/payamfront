@@ -467,10 +467,7 @@ export default function SignatureManagement() {
                     <i className="bi bi-person-gear me-2"></i>
                     مدیریت امضای کاربران
                 </h4>
-                <span className="badge bg-warning text-dark">
-                    <i className="bi bi-unlock me-1"></i>
-                    مجوز: Signature.UnlockSignature
-                </span>
+
             </div>
 
             {/* ============================================================
@@ -515,10 +512,7 @@ export default function SignatureManagement() {
                                     <i className="bi bi-arrow-counterclockwise"></i>
                                 </button>
                             </div>
-                            <small className="text-muted">
-                                <i className="bi bi-info-circle me-1"></i>
-                                جستجو با تاخیر ۷۰۰ میلی‌ثانیه انجام می‌شود
-                            </small>
+
                         </div>
                         <div className="col-md-6 text-end">
                             <span className="text-muted">
