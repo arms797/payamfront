@@ -436,7 +436,7 @@ export default function ReshtehList() {
                                                 <td className="text-center">
                                                     <PersianNumber>{item.codeReshte || '-'}</PersianNumber>
                                                 </td>
-                                                <td><strong>{item.onvanReshte || '-'}</strong></td>
+                                                <td><strong><PersianNumber>{item.onvanReshte || '-'}</PersianNumber></strong></td>
                                                 <td className="text-center">
                                                     {getMaghtaName(item.codeMaghta)}
                                                 </td>

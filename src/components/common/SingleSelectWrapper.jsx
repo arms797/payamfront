@@ -12,7 +12,7 @@ export default function SingleSelectWrapper({
     isDisabled = false,
     isClearable = true,
     hideIndicator = false,
-    menuMaxHeight = 300,
+    menuMaxHeight = 150,
     noOptionsMessage = 'موردی یافت نشد'
 }) {
     // value هم می‌تونه string باشه هم object

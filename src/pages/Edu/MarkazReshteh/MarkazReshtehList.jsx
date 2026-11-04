@@ -12,6 +12,7 @@ import MultiSelectWrapper from '../../../components/common/MultiSelectWrapper';
 import MarkazReshtehFormModal from './MarkazReshtehFormModal';
 import MarkazReshtehBulkUploadModal from './MarkazReshtehBulkUploadModal';
 import MarkazReshtehAdaptiveModal from './MarkazReshtehAdaptiveModal';
+import { useConfirm } from '../../../hooks/useConfirm';
 
 // ============================================================
 // بازیابی state از URL
@@ -78,6 +79,7 @@ export default function MarkazReshtehList() {
     const { grooheList, daneshkadeList } = useGrooheAmoozeshi();
     const { markazList } = useMarkaz();
     const { reshtehList } = useReshteh();
+    const { confirm, ConfirmModal } = useConfirm();
 
     const initialState = getInitialState();
 
@@ -120,12 +122,21 @@ export default function MarkazReshtehList() {
     const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 0 });
     const [loading, setLoading] = useState(true);
 
+    const [recalculating, setRecalculating] = useState(false);
+
     // ---- مودال ----
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
     const [showAdaptiveModal, setShowAdaptiveModal] = useState(false);
 
+    const { user, currentRoleId } = useAuth();
+
+    const codeRole = useMemo(() => {
+        if (!user?.roles || !currentRoleId) return 4;
+        const activeRole = user.roles.find(r => r.id === currentRoleId);
+        return activeRole?.codeRole || 4;
+    }, [user, currentRoleId]);
     // ============================================================
     // Lookup Maps (O(1))
     // ============================================================
@@ -304,6 +315,54 @@ export default function MarkazReshtehList() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [debouncedFilters]);
 
+    // محاسبه تعداد دانشجویان مرکز رشته های لول 3 و 2
+    const handleRecalculate = async () => {
+        // تعیین سطح بر اساس نقش
+        let level;
+        if (codeRole === 1) {
+            // نقش 1: از کاربر بپرس (به‌طور پیش‌فرض 3)
+            level = 3;
+        } else if (codeRole === 2) {
+            level = 2;
+        } else if (codeRole === 3) {
+            level = 3;
+        } else {
+            toast.error('شما مجاز به این عملیات نیستید');
+            return;
+        }
+
+        const markazId = user?.markazId;
+        if (!markazId) {
+            toast.error('مرکز کاربری مشخص نیست');
+            return;
+        }
+
+        const confirmed = await confirm({
+            title: 'محاسبه مجدد تعداد دانشجو',
+            message: `آیا از محاسبه مجدد تعداد دانشجو برای سطح ${level === 2 ? 'کشوری' : 'استانی'} مطمئن هستید؟`,
+            confirmText: 'بله، محاسبه کن',
+            confirmVariant: 'warning'
+        });
+        if (!confirmed) return;
+
+        setRecalculating(true);
+        try {
+            const response = await api.post(
+                `/MarkazReshteh/recalculate-tedad?markazId=${markazId}&level=${level}`
+            );
+
+            if (response.data?.success) {
+                toast.success(response.data.message || 'محاسبه انجام شد');
+                await fetchItems(false);
+            } else {
+                toast.error(response.data?.message || 'خطا در محاسبه');
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'خطا در محاسبه');
+        } finally {
+            setRecalculating(false);
+        }
+    };
     // ============================================================
     // عملیات
     // ============================================================
@@ -350,6 +409,28 @@ export default function MarkazReshtehList() {
                                 افزودن رشته به مرکز
                             </button>
                         </PermissionWrapper>
+                        {/* 🔥 دکمه محاسبه مجدد — فقط برای نقش 1، 2، 3 */}
+                        {(codeRole === 1 || codeRole === 2 || codeRole === 3) && (
+                            <PermissionWrapper permission="MarkazReshteh.RecalculateTedad">
+                                <button
+                                    className="btn btn-warning btn-sm"
+                                    onClick={handleRecalculate}
+                                    disabled={recalculating}
+                                >
+                                    {recalculating ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-1"></span>
+                                            در حال محاسبه...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="bi bi-arrow-repeat me-1"></i>
+                                            محاسبه مجدد تعداد دانشجو
+                                        </>
+                                    )}
+                                </button>
+                            </PermissionWrapper>
+                        )}
                     </div>
                 </div>
 
@@ -509,7 +590,7 @@ export default function MarkazReshtehList() {
                                                 </td>
                                                 <td>{getOstanName(item.codeOstan)}</td>
                                                 <td>{getMarkazName(item.markazId)}</td>
-                                                <td><strong>{item.reshtehName || '-'}</strong></td>
+                                                <td><strong><PersianNumber>{item.reshtehName || '-'}</PersianNumber></strong></td>
                                                 <td className="text-center">
                                                     <PersianNumber>{item.codeReshte || '-'}</PersianNumber>
                                                 </td>
@@ -651,6 +732,7 @@ export default function MarkazReshtehList() {
                     await fetchItems(false);
                 }}
             />
+            <ConfirmModal />
         </>
     );
 }

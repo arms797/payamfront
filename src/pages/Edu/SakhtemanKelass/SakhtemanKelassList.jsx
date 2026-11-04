@@ -555,8 +555,8 @@ export default function SakhtemanKelassList() {
                                                     </PersianNumber>
                                                 </td>
                                                 <td>{item.markazName || '-'}</td>
-                                                <td><strong>{item.naamSakhteman || '-'}</strong></td>
-                                                <td>{item.naamClass || '-'}</td>
+                                                <td><strong><PersianNumber>{item.naamSakhteman || '-'}</PersianNumber></strong></td>
+                                                <td><PersianNumber>{item.naamClass || '-'}</PersianNumber></td>
                                                 <td className="text-center">
                                                     {item.amoozeshi === true && (
                                                         <span className="badge bg-primary">آموزشی</span>

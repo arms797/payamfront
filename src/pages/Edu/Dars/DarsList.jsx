@@ -497,7 +497,11 @@ export default function DarsList() {
                                             <th className="text-center" style={{ fontSize: '12px' }}>واحد عملی</th>
                                             <th className="text-center" style={{ fontSize: '12px' }}>ترم اخذ</th>
                                             <th>نوع درس</th>
-                                            <th className="text-center">منابع</th>
+                                            <th className="text-center" style={{ fontSize: '11px' }}>
+                                                <span>منبع</span>
+                                                <span className="mx-1 text-muted">|</span>
+                                                <span>پیوست</span>
+                                            </th>
                                             <th className="text-center" style={{ width: '130px' }}>عملیات</th>
                                         </tr>
                                     </thead>
@@ -514,14 +518,14 @@ export default function DarsList() {
                                                     <td className="text-center">
                                                         <PersianNumber>{item.codeDars || '-'}</PersianNumber>
                                                     </td>
-                                                    <td><strong>{item.naamDars || '-'}</strong></td>
+                                                    <td><strong><PersianNumber>{item.naamDars || '-'}</PersianNumber></strong></td>
                                                     <td className="text-center">
                                                         <PersianNumber>{reshteh?.codeMaghta || '-'}</PersianNumber>
                                                     </td>
                                                     <td className="text-center">
                                                         <PersianNumber>{reshteh?.codeReshte || '-'}</PersianNumber>
                                                     </td>
-                                                    <td >{reshteh?.onvanReshte || '-'}</td>
+                                                    <td ><PersianNumber>{reshteh?.onvanReshte || '-'}</PersianNumber></td>
                                                     <td className="text-center" style={{ fontSize: '12px' }}>
                                                         <PersianNumber>{item.vahedTeori || 0}</PersianNumber>
                                                     </td>
@@ -555,9 +559,9 @@ export default function DarsList() {
                                                                                 whiteSpace: 'nowrap'
                                                                             }}
                                                                         >
-                                                                            <span>{m.shomareManba || '-'}</span>
+                                                                            <span><PersianNumber>{m.shomareManba || '-'}</PersianNumber></span>
                                                                             <span className="mx-1 text-muted">|</span>
-                                                                            <span>{m.codePeyvast || '-'}</span>
+                                                                            <span><PersianNumber>{m.codePeyvast || '-'}</PersianNumber></span>
                                                                         </div>
                                                                     );
                                                                 })}

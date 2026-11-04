@@ -63,14 +63,14 @@ export default function MarkazReshtehAdaptiveModal({ show, onClose, onSuccess })
         groohes: [],
         search: '',
         page: 1,
-        pageSize: 10
+        pageSize: 7
     });
 
     // لیست رشته‌ها و انتخاب‌ها
     const [reshtehs, setReshtehs] = useState([]);
     const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 0 });
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(7);
 
     const [selectedReshtehIds, setSelectedReshtehIds] = useState(new Set());
     const [tedadDaneshjooMap, setTedadDaneshjooMap] = useState({});
@@ -117,7 +117,7 @@ export default function MarkazReshtehAdaptiveModal({ show, onClose, onSuccess })
             groohes: [],
             search: '',
             page: 1,
-            pageSize: 10
+            pageSize: 7
         });
         // 🔥 ریست فیلترها
         setFilterMaghtas([]);
@@ -514,7 +514,9 @@ export default function MarkazReshtehAdaptiveModal({ show, onClose, onSuccess })
                                         </div>
                                     ) : reshtehs.length > 0 ? (
                                         <>
-                                            <div className="table-responsive" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                                            <div className="table-responsive" 
+                                                style={{ maxHeight: '350px', overflowY: 'auto' , fontSize:'14px' }}
+                                            >
                                                 <table className="table table-sm table-hover mb-0 align-middle">
                                                     <thead className="table-light sticky-top">
                                                         <tr>
@@ -551,7 +553,7 @@ export default function MarkazReshtehAdaptiveModal({ show, onClose, onSuccess })
                                                                         />
                                                                     </td>
                                                                     <td><PersianNumber>{r.codeReshte || '-'}</PersianNumber></td>
-                                                                    <td>{r.onvanReshte || '-'}</td>
+                                                                    <td><PersianNumber>{r.onvanReshte || '-'}</PersianNumber></td>
                                                                     <td>{r.maghta || r.codeMaghta || '-'}</td>
                                                                     <td>{r.daneshkadehName || '-'}</td>
                                                                     <td>{r.grooheAmoozeshiName || '-'}</td>
@@ -614,8 +616,8 @@ export default function MarkazReshtehAdaptiveModal({ show, onClose, onSuccess })
                                                         value={pageSize}
                                                         onChange={(e) => { setPageSize(parseInt(e.target.value)); setPage(1); }}
                                                     >
-                                                        <option value="10">۱۰</option>
-                                                        <option value="20">۲۰</option>
+                                                        <option value="7">7</option>
+                                                        <option value="20">20</option>
                                                     </select>
                                                 </div>
                                             )}
